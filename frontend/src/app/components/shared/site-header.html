@@ -1,0 +1,25 @@
+<header (keydown.escape)="closeMenu(menuButton)">
+  <p class="notice">Huancayo · Directorio demostrativo</p>
+  <div class="container bar">
+    <a class="brand" routerLink="/" (click)="menuOpen.set(false)" aria-label="ROOMI, inicio">roomi</a>
+    <button #menuButton type="button" class="menu" aria-controls="navegacion" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.update(open => !open)">
+      {{ menuOpen() ? 'Cerrar menú' : 'Menú' }}
+    </button>
+    <nav id="navegacion" aria-label="Navegación principal" [class.open]="menuOpen()">
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
+           ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">{{ link.label }}</a>
+      }
+      @if (session.user(); as user) {
+        @if (user.role === 'owner') {
+          <a routerLink="/propietario" routerLinkActive="active" (click)="menuOpen.set(false)">Mis anuncios</a>
+        } @else if (user.role === 'admin') {
+          <a routerLink="/administracion" routerLinkActive="active" (click)="menuOpen.set(false)">Administración</a>
+        }
+        <button type="button" class="button quiet" (click)="signOut()">Cerrar sesión</button>
+      } @else {
+        <a routerLink="/acceso" routerLinkActive="active" (click)="menuOpen.set(false)">Iniciar sesión</a>
+      }
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,11 @@
+.explore { padding-block: 24px 40px; gap: 24px; }
+.hero { padding: clamp(20px, 5vw, 64px); background: linear-gradient(120deg, #132e35, #294d58); color: white; border-radius: var(--radius); }
+.hero h1 { max-width: 18ch; }
+.hero p { max-width: 55ch; }
+.eyebrow { color: #cee6f0; font-size: .6875rem; text-transform: uppercase; letter-spacing: .06em; }
+.all { justify-self: start; }
+@media (max-width: 560px) {
+  .hero .actions { display: grid; }
+  .all { justify-self: stretch; }
+  .hero h1 { line-height: 1.32; }
+}

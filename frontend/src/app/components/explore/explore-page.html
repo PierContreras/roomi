@@ -1,0 +1,24 @@
+<div class="container explore stack">
+  <section class="hero stack compact">
+    <p class="eyebrow">Directorio estudiantil · Huancayo</p>
+    <h1>Encuentra tu habitación cerca de tu universidad en Huancayo</h1>
+    <p>Plataforma de contacto directo entre estudiantes universitarios y propietarios. Sin comisiones de reserva ni pagos en la plataforma.</p>
+    <div class="actions">
+      <a class="button secondary" routerLink="/buscar">Explorar habitaciones</a>
+      <a class="button" [routerLink]="session.user()?.role === 'owner' ? '/propietario/nuevo' : '/acceso'"
+        [queryParams]="session.user()?.role === 'owner' ? {} : { destino: 'publicar' }">Publicar habitación</a>
+    </div>
+    <p class="small">Fotografías e información referencial</p>
+  </section>
+  <app-search-filters (applied)="search($event)" />
+  <section class="stack compact">
+    <h2>Habitaciones recomendadas para estudiantes</h2>
+    <p>Trato directo con el propietario. Visita y coordina sin comisiones ni cobros en línea.</p>
+    <div class="room-grid">
+      @for (room of recommended(); track room.id) {
+        <app-room-card [room]="room" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+      }
+    </div>
+    <a class="button secondary all" routerLink="/buscar">Ver todas las opciones</a>
+  </section>
+</div>

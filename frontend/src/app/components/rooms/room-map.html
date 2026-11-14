@@ -1,0 +1,20 @@
+<section class="panel" aria-label="Mapa de zonas">
+  <div class="map" aria-label="Vista esquemática de Huancayo">
+    @for (marker of markers(); track marker.zone) {
+      <button type="button" class="marker" [style.left.%]="marker.x" [style.top.%]="marker.y"
+        [attr.aria-pressed]="active()?.zone === marker.zone" (click)="selected.set(marker.zone)">
+        {{ marker.zone }} <span>{{ marker.rooms.length }}</span>
+      </button>
+    } @empty { <p class="map-empty">Sin ubicaciones para mostrar</p> }
+  </div>
+  <div class="map-caption">
+    <p class="muted small">Ubicaciones demostrativas · Vista esquemática</p>
+    @if (active(); as marker) {
+      <ul>
+        @for (room of marker.rooms; track room.id) {
+          <li><a [routerLink]="['/habitaciones', room.id]">{{ room.title }} · S/ {{ room.price }}</a></li>
+        }
+      </ul>
+    }
+  </div>
+</section>

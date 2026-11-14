@@ -1,0 +1,8 @@
+section { overflow: hidden; }
+.map { position: relative; min-height: 285px; background: linear-gradient(130deg, transparent 45%, #c4dceb 45%, #c4dceb 50%, transparent 50%), repeating-linear-gradient(18deg, transparent 0 30px, white 31px 35px), repeating-linear-gradient(112deg, #ecf2e9 0 45px, white 46px 51px); }
+.marker { position: absolute; transform: translate(-50%, -50%); background: white; color: var(--ink); border: 1px solid var(--brand); border-radius: 20px; padding: 6px 10px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.marker[aria-pressed="true"] { background: var(--brand); color: white; }
+.marker span { margin-left: 2px; }
+.map-empty { position: absolute; inset: 43% 0 auto; text-align: center; }
+.map-caption { padding: 10px 14px; }
+.map-caption p, ul { margin: 0; }

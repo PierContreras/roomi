@@ -1,0 +1,27 @@
+<div class="container page stack">
+  <p class="small muted">Panel del propietario</p>
+  <h1>Mis anuncios</h1>
+  <p>Publica habitaciones y revisa el estado de tus anuncios.</p>
+  <div class="actions"><a class="button" routerLink="/propietario/nuevo">Publicar habitación</a></div>
+  @if (notice()) { <p role="status">{{ notice() }}</p> }
+  @for (room of listings(); track room.id) {
+    <article class="panel section stack compact">
+      <div class="actions">
+        <h2>{{ room.title }}</h2>
+        <app-status-badge [status]="room.status" />
+      </div>
+      <p>{{ room.zone }} · S/ {{ room.price }} / mes</p>
+      @if (room.reviewNote) { <p class="muted"><strong>Observación:</strong> {{ room.reviewNote }}</p> }
+      <div class="actions">
+        <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">Editar<span class="sr-only"> {{ room.title }}</span></a>
+        <button type="button" class="button quiet" (click)="selected.set(room); confirmation.open()">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+      </div>
+    </article>
+  } @empty {
+    <div class="panel empty"><h2>Aún no tienes anuncios</h2><p>Publica tu primera habitación para enviarla a revisión.</p></div>
+  }
+  <app-confirm-dialog #confirmation heading="Retirar publicación" approve="Retirar anuncio" [danger]="true"
+    (accepted)="withdraw()" (closed)="selected.set(null)">
+    <p>¿Quieres retirar «{{ selected()?.title }}» del directorio?</p>
+  </app-confirm-dialog>
+</div>

@@ -1,0 +1,76 @@
+<form #form="ngForm" class="panel section stack" (ngSubmit)="submit(form)">
+  <h2>Datos de la habitación</h2>
+  <label>Título
+    <input name="titulo" required maxlength="100" [(ngModel)]="draft.title" #title="ngModel" />
+    @if (title.touched && !draft.title.trim()) { <span class="error">Escribe el título del anuncio.</span> }
+  </label>
+  <div class="form-grid">
+    <label>Zona
+      <select name="zona" [(ngModel)]="draft.zone">
+        @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
+      </select>
+    </label>
+    <label>Universidad cercana
+      <select name="universidad" [(ngModel)]="draft.university">
+        @for (university of universities; track university) { <option [value]="university">{{ university }}</option> }
+      </select>
+    </label>
+    <label>Tipo de alojamiento
+      <select name="tipo" [(ngModel)]="draft.type">
+        @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
+      </select>
+    </label>
+  </div>
+  <label>Dirección referencial
+    <input name="direccion" required maxlength="160" [(ngModel)]="draft.address" #address="ngModel" />
+    @if (address.touched && !draft.address.trim()) { <span class="error">Indica una dirección ficticia.</span> }
+  </label>
+  <div class="form-grid">
+    <label>Precio mensual (S/)
+      <input name="precio" required type="number" min="1" max="10000" step="0.01" [(ngModel)]="draft.price" #price="ngModel" />
+      @if (price.touched && price.invalid) { <span class="error">Ingresa un valor entre S/ 1 y S/ 10 000.</span> }
+    </label>
+    <label>Garantía (S/)
+      <input name="garantia" required type="number" min="0" max="10000" step="0.01" [(ngModel)]="draft.deposit" #deposit="ngModel" />
+      @if (deposit.touched && deposit.invalid) { <span class="error">Ingresa un valor entre S/ 0 y S/ 10 000.</span> }
+    </label>
+    <label>Minutos al campus
+      <input name="minutos" required type="number" min="0" max="180" [(ngModel)]="draft.minutes" #minutes="ngModel" />
+      @if (minutes.touched && minutes.invalid) { <span class="error">Ingresa un valor entre 0 y 180.</span> }
+    </label>
+  </div>
+  <fieldset>
+    <legend>Servicios incluidos</legend>
+    <div class="chips">
+      @for (amenity of amenities; track amenity) {
+        <label class="check"><input type="checkbox" [checked]="draft.amenities.includes(amenity)"
+          (change)="toggleAmenity(amenity, $any($event.target).checked)" /> {{ amenity }}</label>
+      }
+    </div>
+  </fieldset>
+  <label>Descripción
+    <textarea name="descripcion" rows="4" required maxlength="1200" [(ngModel)]="draft.description" #description="ngModel"></textarea>
+    @if (description.touched && !draft.description.trim()) { <span class="error">Describe la habitación.</span> }
+  </label>
+  <label>Condiciones de alquiler
+    <textarea name="condiciones" rows="3" required maxlength="800" [(ngModel)]="draft.rules" #rules="ngModel"></textarea>
+    @if (rules.touched && !draft.rules.trim()) { <span class="error">Ingresa las condiciones de alquiler.</span> }
+  </label>
+  <label>Fotografías referenciales (opcional)
+    <input #photos type="file" name="fotos" accept="image/jpeg,image/png,image/webp" multiple [disabled]="loadingPhotos()"
+      (change)="addPhotos(photos)" />
+    <span class="muted">Hasta 3 fotografías de 400 KB cada una.</span>
+  </label>
+  @if (photoError()) { <p class="error" role="alert">{{ photoError() }}</p> }
+  @if (loadingPhotos()) { <p role="status">Cargando fotografías…</p> }
+  @if (draft.photos.length) {
+    <div class="thumbnails">
+      @for (photo of draft.photos; track $index) {
+        <div><img [src]="photo.src" [alt]="photo.alt" />
+          <button type="button" class="button quiet" (click)="removePhoto($index)">Quitar foto {{ $index + 1 }}</button></div>
+      }
+    </div>
+  }
+  @if (submitted() && form.invalid) { <p class="error" role="alert">Completa los campos marcados antes de continuar.</p> }
+  <div class="actions"><button type="submit" class="button" [disabled]="loadingPhotos()">Revisar publicación</button></div>
+</form>

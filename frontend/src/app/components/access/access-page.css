@@ -1,0 +1,4 @@
+.access { max-width: 1020px; }
+.demo { background: var(--brand); color: white; border-radius: var(--radius); }
+.profile { display: grid; gap: 4px; }
+.profile span { overflow-wrap: anywhere; }

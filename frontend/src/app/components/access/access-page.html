@@ -1,0 +1,55 @@
+<div class="container page access">
+  @if (registered(); as profile) {
+    <section class="panel section stack" role="status">
+      <h1>Cuenta de demostración creada</h1>
+      <p>Bienvenido a ROOMI, {{ profile.name }}. Tu sesión está activa para este recorrido.</p>
+      <button type="button" class="button" (click)="enter(profile)">Continuar</button>
+    </section>
+  } @else {
+    <div class="split">
+      <section class="panel section stack">
+        <h1>{{ registering() ? 'Crea tu cuenta' : 'Inicia sesión en ROOMI' }}</h1>
+        <p>Usa datos ficticios para probar la plataforma.</p>
+        <form #form="ngForm" class="stack" (ngSubmit)="submit(form)">
+          @if (registering()) {
+            <label>Nombre
+              <input name="nombre" required maxlength="100" [(ngModel)]="details.name" #name="ngModel" autocomplete="name" />
+              @if (name.touched && (name.invalid || !details.name.trim())) { <span class="error">Ingresa tu nombre.</span> }
+            </label>
+            <label>Tipo de cuenta
+              <select name="rol" [(ngModel)]="details.role">
+                <option value="student">Estudiante</option><option value="owner">Propietario</option>
+              </select>
+            </label>
+          }
+          <label>Correo electrónico
+            <input name="correo" type="email" required email maxlength="180" [(ngModel)]="details.email" #email="ngModel" autocomplete="username" />
+            @if (email.touched && email.invalid) { <span class="error">Ingresa un correo válido.</span> }
+          </label>
+          <label>Contraseña
+            <input name="contrasena" type="password" required minlength="6" maxlength="64" [(ngModel)]="details.password" #passwordField="ngModel"
+              [attr.autocomplete]="registering() ? 'new-password' : 'current-password'" />
+            @if (passwordField.touched && passwordField.invalid) { <span class="error">Ingresa al menos 6 caracteres.</span> }
+          </label>
+          @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+          <button type="submit" class="button">{{ registering() ? 'Crear cuenta' : 'Iniciar sesión' }}</button>
+        </form>
+        @if (registering()) {
+          <p>¿Ya tienes un perfil? <a routerLink="/acceso" queryParamsHandling="preserve">Inicia sesión</a>.</p>
+        } @else {
+          <p>¿Necesitas un perfil? <a routerLink="/registro" queryParamsHandling="preserve">Crea una cuenta</a>.</p>
+        }
+      </section>
+      <aside class="section demo stack compact">
+        <h2>Perfiles de demostración</h2>
+        <p>Entra directamente con un perfil de prueba. La contraseña de estos perfiles es <strong>{{ password }}</strong>.</p>
+        @for (profile of profiles; track profile.id) {
+          <div class="profile">
+            <button type="button" class="button secondary" (click)="demo(profile)">{{ roleLabels[profile.role] }}</button>
+            <span class="small">{{ profile.email }}</span>
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>

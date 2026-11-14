@@ -1,0 +1,14 @@
+header { background: white; border-bottom: 1px solid var(--border); }
+.notice { margin: 0; padding: 6px 16px; text-align: center; color: white; background: var(--brand); font-size: .6875rem; }
+.bar { display: flex; align-items: center; gap: 2rem; min-height: 76px; }
+.brand { margin-right: auto; color: var(--brand); font-size: 1.5rem; font-weight: 700; text-decoration: none; }
+nav { display: flex; align-items: center; gap: 1.5rem; }
+nav a { padding-block: .75rem; text-decoration: none; font-weight: 600; }
+nav a.active { text-decoration: underline; text-underline-offset: .35em; }
+.menu { display: none; background: transparent; border: 0; color: var(--ink); padding: .75rem; font-weight: 700; }
+@media (max-width: 760px) {
+  .bar { flex-wrap: wrap; min-height: 80px; gap: 0; }
+  .menu { display: inline-block; }
+  nav { display: none; flex-basis: 100%; }
+  nav.open { display: grid; gap: 0; padding-bottom: .75rem; }
+}

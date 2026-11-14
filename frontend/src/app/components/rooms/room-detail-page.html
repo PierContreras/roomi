@@ -1,0 +1,45 @@
+<div class="container page">
+  <p class="small muted"><a routerLink="/buscar">Habitaciones</a> / Ficha</p>
+  @if (room(); as current) {
+    <p class="muted">{{ current.zone }} · Huancayo · {{ current.university }}</p>
+    <h1>{{ current.title }}</h1>
+    <p>{{ current.type }} · {{ current.minutes }} min al campus</p>
+    <app-room-gallery [photos]="current.photos" />
+    <div class="split details">
+      <div class="stack">
+        <section class="panel section">
+          <h2>Sobre la habitación</h2>
+          <p>{{ current.description }}</p>
+          <h3>Servicios</h3>
+          <ul class="chips plain">
+            @for (amenity of current.amenities; track amenity) { <li class="chip">{{ amenity }}</li> }
+            @empty { <li>Servicios por confirmar</li> }
+          </ul>
+          <h3>Condiciones de alquiler</h3>
+          <p>{{ current.rules }}</p>
+        </section>
+        <section class="stack compact">
+          <h2>Ubicación aproximada</h2>
+          <p>{{ current.address }} · Dirección ficticia</p>
+          <app-room-map [rooms]="[current]" />
+        </section>
+      </div>
+      <aside class="panel section contact-aside">
+        <h2>S/ {{ current.price }} <span class="small muted">/ mes</span></h2>
+        <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
+        <p>{{ current.owner }}</p>
+        <div class="stack compact">
+          <a class="button" [routerLink]="['contacto']">Contactar al propietario</a>
+          <button type="button" class="button secondary" [attr.aria-pressed]="catalog.isSaved(current.id)"
+            (click)="catalog.toggleSaved(current.id)">{{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
+        </div>
+      </aside>
+    </div>
+  } @else {
+    <section class="panel empty">
+      <h1>Habitación no disponible</h1>
+      <p>Es posible que el anuncio haya cambiado de estado.</p>
+      <a class="button" routerLink="/buscar">Buscar otras habitaciones</a>
+    </section>
+  }
+</div>

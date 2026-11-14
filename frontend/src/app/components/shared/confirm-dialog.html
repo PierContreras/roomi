@@ -1,0 +1,8 @@
+<dialog #dialog aria-labelledby="confirm-heading" (close)="closed.emit()">
+  <h2 id="confirm-heading">{{ heading() }}</h2>
+  <ng-content />
+  <div class="actions">
+    <button type="button" class="button quiet" autofocus (click)="close()">Cancelar</button>
+    <button type="button" class="button" [class.danger]="danger()" (click)="close(true)">{{ approve() }}</button>
+  </div>
+</dialog>

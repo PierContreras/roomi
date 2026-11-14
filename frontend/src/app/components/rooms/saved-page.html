@@ -1,0 +1,15 @@
+<div class="container page">
+  <h1>Habitaciones guardadas</h1>
+  <div class="room-grid">
+    @for (room of catalog.saved(); track room.id) {
+      <app-room-card [room]="room" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
+    }
+  </div>
+  @if (!catalog.saved().length) {
+    <section class="panel empty">
+      <h2>Aún no tienes habitaciones guardadas</h2>
+      <p>Guarda las habitaciones que te interesan para compararlas después.</p>
+      <a class="button" routerLink="/buscar">Explorar habitaciones</a>
+    </section>
+  }
+</div>

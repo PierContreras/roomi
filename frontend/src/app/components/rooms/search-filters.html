@@ -1,0 +1,48 @@
+<form class="panel filters" #form="ngForm" (ngSubmit)="form.valid && applied.emit(draft)">
+  <div class="essential">
+    <label>Universidad
+      <select name="universidad" [(ngModel)]="draft.university">
+        <option value="">Todas las universidades</option>
+        @for (university of universities; track university) { <option [value]="university">{{ university }}</option> }
+      </select>
+    </label>
+    <label>Zona
+      <select name="zona" [(ngModel)]="draft.zone">
+        <option value="">Todas las zonas</option>
+        @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
+      </select>
+    </label>
+    <button type="submit" class="button">Buscar habitaciones</button>
+    <button type="button" class="button secondary" [attr.aria-expanded]="expanded()" aria-controls="advanced-filters"
+      (click)="expanded.update(open => !open)">Filtros: precio, tipo y servicios</button>
+  </div>
+  <div class="advanced" id="advanced-filters" [hidden]="!expanded()">
+    <div class="form-grid">
+      <label>Precio máximo (S/)
+        <input type="number" name="precio" min="0" [(ngModel)]="draft.maxPrice" #price="ngModel" />
+        @if (price.invalid) { <span class="error">Ingresa un precio desde S/ 0.</span> }
+      </label>
+      <label>Tiempo máximo al campus (min)
+        <input type="number" name="tiempo" min="0" [(ngModel)]="draft.maxMinutes" #minutes="ngModel" />
+        @if (minutes.invalid) { <span class="error">Ingresa un tiempo desde 0 minutos.</span> }
+      </label>
+      <label>Tipo de alojamiento
+        <select name="tipo" [(ngModel)]="draft.type">
+          <option value="">Todos los tipos</option>
+          @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
+        </select>
+      </label>
+    </div>
+    <fieldset>
+      <legend>Servicios</legend>
+      <div class="chips">
+        @for (amenity of amenities; track amenity) {
+          <label class="check"><input type="checkbox" [checked]="draft.amenities.includes(amenity)"
+            (change)="toggleAmenity(amenity, $any($event.target).checked)" /> {{ amenity }}</label>
+        }
+      </div>
+    </fieldset>
+    <div class="actions"><button type="submit" class="button">Aplicar filtros</button>
+      <button type="button" class="button quiet" (click)="reset()">Limpiar filtros</button></div>
+  </div>
+</form>

@@ -1,0 +1,30 @@
+<div class="container page stack">
+  <p class="small muted">Panel de administración</p>
+  <h1>Revisión de anuncios</h1>
+  <p>Revisa los datos, las condiciones de alquiler y las fotos antes de decidir si el anuncio se publica.</p>
+  <section class="stack compact" aria-labelledby="pending">
+    <h2 id="pending">Pendientes de revisión ({{ pending().length }})</h2>
+    @for (room of pending(); track room.id) {
+      <article class="panel section stack compact">
+        <div class="actions">
+          <h3>{{ room.title }}</h3>
+          <app-status-badge [status]="room.status" />
+        </div>
+        <p>{{ room.owner }} · {{ room.zone }} · S/ {{ room.price }} / mes</p>
+        <div><a class="button" [routerLink]="['/administracion', room.id]">Revisar anuncio<span class="sr-only"> {{ room.title }}</span></a></div>
+      </article>
+    } @empty {
+      <div class="panel empty"><p>No hay anuncios pendientes de revisión.</p></div>
+    }
+  </section>
+  <details class="panel section">
+    <summary>Ver anuncios revisados ({{ reviewed().length }})</summary>
+    <ul class="stack">
+      @for (room of reviewed(); track room.id) {
+        <li><a [routerLink]="['/administracion', room.id]">{{ room.title }}</a> · <app-status-badge [status]="room.status" /></li>
+      } @empty {
+        <li>Aún no hay anuncios revisados.</li>
+      }
+    </ul>
+  </details>
+</div>

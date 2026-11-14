@@ -1,0 +1,11 @@
+.results-heading { margin-block: 26px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.results-heading h2 { margin: 0; }
+.results { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.results .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.map-toggle { display: none; }
+@media (max-width: 940px) {
+  .results { grid-template-columns: 1fr; }
+  .results app-room-map, .results.map-open .room-grid { display: none; }
+  .results.map-open app-room-map, .map-toggle { display: block; }
+}
+@media (max-width: 560px) { .results .room-grid { grid-template-columns: 1fr; } }
