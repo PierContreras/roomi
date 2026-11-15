@@ -1,5 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { SessionService } from '../../services/session.service';
 
 @Component({
@@ -12,6 +14,16 @@ export class SiteHeader {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   protected readonly menuOpen = signal(false);
+  protected readonly path = signal(this.router.url.split(/[?#]/)[0]);
+
+  constructor() {
+    this.router.events.pipe(filter(event => event instanceof NavigationEnd), takeUntilDestroyed())
+      .subscribe(event => {
+        this.path.set(event.urlAfterRedirects.split(/[?#]/)[0]);
+        this.menuOpen.set(false);
+      });
+  }
+
   protected closeMenu(button: HTMLButtonElement) {
     if (!this.menuOpen()) return;
     this.menuOpen.set(false);
@@ -21,6 +33,6 @@ export class SiteHeader {
   protected signOut() {
     this.session.signOut();
     this.menuOpen.set(false);
-    void this.router.navigateByUrl('/acceso');
+    void this.router.navigateByUrl('/explorar');
   }
 }

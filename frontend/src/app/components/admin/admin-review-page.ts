@@ -5,6 +5,7 @@ import { SessionService } from '../../services/session.service';
 import { RoomGallery } from '../rooms/room-gallery';
 import { RoomService } from '../../services/room.service';
 import { StatusBadge } from '../shared/status-badge';
+import { UiLibraries } from '../../services/ui-libraries';
 
 @Component({
   imports: [RouterLink, FormsModule, RoomGallery, StatusBadge],
@@ -14,6 +15,7 @@ export class AdminReviewPage {
   readonly id = input.required<string>();
   private readonly session = inject(SessionService);
   private readonly catalog = inject(RoomService);
+  private readonly libraries = inject(UiLibraries);
   protected readonly room = computed(() => this.catalog.rooms().find(room =>
     room.id === this.id() && room.status !== 'withdrawn',
   ));
@@ -33,5 +35,6 @@ export class AdminReviewPage {
       return;
     }
     this.notice.set(decision === 'approved' ? 'Anuncio aprobado en la demostración.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
+    void this.libraries.success(decision === 'approved' ? 'Anuncio aprobado' : 'Decisión registrada');
   }
 }

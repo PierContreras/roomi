@@ -1,7 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { SessionService } from '../../services/session.service';
-import { RoomFilters } from '../../interfaces/room';
+import { RoomFilters, zones } from '../../interfaces/room';
 import { RoomCard } from '../rooms/room-card';
 import { RoomService } from '../../services/room.service';
 import { SearchFilters } from '../rooms/search-filters';
@@ -12,7 +11,7 @@ import { SearchFilters } from '../rooms/search-filters';
   styleUrl: './explore-page.css',
 })
 export class ExplorePage {
-  protected readonly session = inject(SessionService);
+  protected readonly zones = zones;
   private readonly router = inject(Router);
   protected readonly catalog = inject(RoomService);
   protected readonly published = this.catalog.published();

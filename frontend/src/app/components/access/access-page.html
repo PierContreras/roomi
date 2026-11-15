@@ -16,6 +16,7 @@
         <div class="access-heading stack compact">
           <p class="access-label">Cuenta ROOMI</p>
           <h1>{{ registering() ? 'Crea tu cuenta en ROOMI' : 'Inicia sesión o crea tu cuenta' }}</h1>
+          @if (destino() === 'publicar') { <p class="small">Para publicar una habitación, elige un perfil de propietario.</p> }
           <p>{{ registering() ? 'Usa datos ficticios para probar el registro.' : 'Accede para guardar anuncios o publicar una habitación en Huancayo.' }}</p>
         </div>
         <form #form="ngForm" class="stack" (ngSubmit)="submit(form)">

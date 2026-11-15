@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { requireRole } from './services/role.guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'acceso' },
+  { path: '', pathMatch: 'full', redirectTo: 'explorar' },
   { path: 'explorar', loadComponent: () => import('./components/explore/explore-page').then(m => m.ExplorePage), title: 'Explorar | ROOMI' },
   { path: 'buscar', loadComponent: () => import('./components/rooms/search-page').then(m => m.SearchPage), title: 'Buscar | ROOMI' },
   { path: 'habitaciones/:id/contacto', loadComponent: () => import('./components/rooms/room-contact-page').then(m => m.RoomContactPage), title: 'Consulta | ROOMI' },

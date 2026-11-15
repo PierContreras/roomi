@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { RoomGallery } from './room-gallery';
 import { RoomMap } from './room-map';
 import { RoomService } from '../../services/room.service';
+import { roomNavigation } from './room-navigation';
 
 @Component({
   imports: [RouterLink, RoomGallery, RoomMap],
@@ -10,6 +11,7 @@ import { RoomService } from '../../services/room.service';
 })
 export class RoomDetailPage {
   readonly id = input.required<string>();
+  protected readonly navigation = roomNavigation();
   protected readonly catalog = inject(RoomService);
   protected readonly room = this.catalog.detail(this.id);
 }

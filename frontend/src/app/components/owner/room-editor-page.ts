@@ -6,6 +6,7 @@ import { RoomGallery } from '../rooms/room-gallery';
 import { RoomService } from '../../services/room.service';
 import { StatusBadge } from '../shared/status-badge';
 import { RoomForm } from './room-form';
+import { UiLibraries } from '../../services/ui-libraries';
 
 @Component({
   imports: [RouterLink, RoomForm, RoomGallery, StatusBadge],
@@ -15,6 +16,7 @@ export class RoomEditorPage {
   readonly id = input<string>();
   private readonly catalog = inject(RoomService);
   private readonly session = inject(SessionService);
+  private readonly libraries = inject(UiLibraries);
   protected readonly existing = computed(() => {
     const id = this.id();
     const user = this.session.user();
@@ -34,7 +36,11 @@ export class RoomEditorPage {
     const user = this.session.user();
     if (!user) return;
     const result = this.catalog.save(draft, user, this.id());
-    if (result) this.saved.set(result);
-    else this.error.set('El anuncio ya no está disponible para edición.');
+    if (result) {
+      this.saved.set(result);
+      void this.libraries.success('Publicación enviada a revisión');
+    } else {
+      this.error.set('El anuncio ya no está disponible para edición.');
+    }
   }
 }

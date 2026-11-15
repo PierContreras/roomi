@@ -1,30 +1,49 @@
 <div class="container page">
-  <p class="small muted"><a routerLink="/explorar">Explorar</a> / Buscar</p>
+  <nav class="route-trail" aria-label="Ubicación">
+    <a routerLink="/explorar">Inicio</a>
+    <span aria-hidden="true">/</span><span aria-current="page">Buscar habitaciones</span>
+  </nav>
   <h1>Habitaciones en Huancayo</h1>
   <app-search-filters [initial]="filters()" (applied)="apply($event)" />
+  @if (filterLabels().length) {
+    <div class="applied">
+      <ul class="chips plain" aria-label="Filtros aplicados">
+        @for (label of filterLabels(); track $index) { <li class="chip">{{ label }}</li> }
+      </ul>
+      <a class="small" routerLink="/buscar">Quitar filtros</a>
+    </div>
+  }
   @switch (state()) {
     @case ('loading') { <p class="panel empty" role="status">Buscando habitaciones…</p> }
     @case ('error') {
-      <div class="panel empty"><p role="alert">Ocurrió un error al cargar las habitaciones.</p>
+      <div class="panel empty"><p role="alert">No se pudo cargar el catálogo de habitaciones.</p>
         <button type="button" class="button" (click)="load()">Volver a intentar</button></div>
     }
     @case ('ready') {
       <div class="results-heading">
         <h2 aria-live="polite">{{ rooms().length }} {{ rooms().length === 1 ? 'habitación encontrada' : 'habitaciones encontradas' }}</h2>
         @if (rooms().length) {
-          <button type="button" class="button secondary map-toggle" [attr.aria-pressed]="showMap()" (click)="showMap.update(open => !open)">
-            {{ showMap() ? 'Ver listado' : 'Ver mapa' }}
-          </button>
+          <div class="actions">
+            <button type="button" class="button secondary" [attr.aria-expanded]="showChart()" (click)="showChart.update(open => !open)">
+              {{ showChart() ? 'Ocultar comparación' : 'Comparar precios' }}
+            </button>
+            <button type="button" class="button secondary map-toggle" [attr.aria-pressed]="showMap()" (click)="changeView({ vista: showMap() ? null : 'mapa' })">
+              {{ showMap() ? 'Ver listado' : 'Ver mapa' }}
+            </button>
+          </div>
         }
       </div>
       @if (rooms().length) {
+        @if (showChart()) {
+          <app-price-ranges [rooms]="rooms()" />
+        }
         <div class="results" [class.map-open]="showMap()">
           <section class="room-grid" aria-label="Resultados">
             @for (room of rooms(); track room.id) {
-              <app-room-card [room]="room" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+              <app-room-card [room]="room" [detailQuery]="detailQuery()" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
             }
           </section>
-          <app-room-map [rooms]="rooms()" />
+          <app-room-map [rooms]="rooms()" [detailQuery]="detailQuery()" [selected]="mapZone()" (selectedChange)="changeView({ zonaMapa: $event })" />
         </div>
       } @else {
         <div class="panel empty">

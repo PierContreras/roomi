@@ -1,5 +1,8 @@
 <div class="container page">
-  <p class="small muted"><a routerLink="/buscar">Habitaciones</a> / Ficha</p>
+  <nav class="route-trail" aria-label="Ubicación">
+    <a [routerLink]="navigation.back().path" [queryParams]="navigation.query()">← {{ navigation.back().label }}</a>
+    <span aria-hidden="true">/</span><span aria-current="page">Ficha de la habitación</span>
+  </nav>
   @if (room.isLoading()) {
     <p role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
@@ -34,8 +37,8 @@
         <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
         <p>{{ current.owner }}</p>
         <div class="stack compact">
-          <a class="button" [routerLink]="['contacto']">Contactar al propietario</a>
-          <a class="button quiet" [routerLink]="['compartir']">Compartir anuncio</a>
+          <a class="button" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()">Contactar al propietario</a>
+          <a class="button quiet" [routerLink]="['compartir']" [queryParams]="navigation.detailQuery()">Compartir anuncio</a>
           <button type="button" class="button secondary" [attr.aria-pressed]="catalog.isSaved(current.id)"
             (click)="catalog.toggleSaved(current.id)">{{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
         </div>

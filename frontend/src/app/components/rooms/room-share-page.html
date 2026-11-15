@@ -1,4 +1,8 @@
 <div class="container page">
+  <nav class="route-trail" aria-label="Ubicación">
+    <a [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
+    <span aria-hidden="true">/</span><span aria-current="page">Compartir</span>
+  </nav>
   @if (room.isLoading()) {
     <p role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
@@ -6,7 +10,6 @@
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
     <section class="panel section stack share">
-      <p class="section-label">Detalle del anuncio</p>
       <h1>Comparte este anuncio</h1>
       <p>{{ current.title }} · S/ {{ current.price }} / mes</p>
       <label>Enlace del anuncio
@@ -18,13 +21,13 @@
           {{ feedback() === 'copied' ? 'Enlace copiado.' : 'El enlace está seleccionado. Puedes copiarlo manualmente.' }}
         </p>
       }
-      <a class="button" [routerLink]="['/habitaciones', current.id]">Volver al anuncio</a>
-      <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']">Consultar al propietario</a>
+      <a class="button" [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()">Volver al anuncio</a>
+      <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']" [queryParams]="navigation.detailQuery()">Consultar al propietario</a>
     </section>
   } @else {
     <section class="panel empty">
       <h1>Anuncio no disponible</h1>
-      <a class="button" routerLink="/buscar">Ver otras habitaciones</a>
+      <a class="button" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">{{ navigation.back().label }}</a>
     </section>
   }
 </div>

@@ -1,6 +1,8 @@
 :host { display: block; }
 .room-card { overflow: hidden; height: 100%; display: flex; flex-direction: column; }
-img, .photo-placeholder { width: 100%; height: 230px; object-fit: cover; }
-.card-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
-.price { margin-top: auto; }
-.card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+img { width: 100%; height: clamp(140px, 18vw, 210px); object-fit: cover; }
+.card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.location { color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+.price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; }

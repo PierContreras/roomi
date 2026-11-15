@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Params, RouterLink } from '@angular/router';
 import { PublicRoom } from '../../interfaces/room';
 
 @Component({
@@ -11,5 +11,6 @@ import { PublicRoom } from '../../interfaces/room';
 export class RoomCard {
   readonly room = input.required<PublicRoom>();
   readonly saved = input.required<boolean>();
+  readonly detailQuery = input<Params>({});
   readonly saveToggled = output<string>();
 }

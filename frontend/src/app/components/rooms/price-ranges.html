@@ -1,0 +1,13 @@
+<section class="panel section stack compact" aria-labelledby="price-ranges-heading">
+  <h3 id="price-ranges-heading">Precios de alquiler por zona</h3>
+  <p class="muted small">Mínimo y máximo mensual de los anuncios que coinciden con tus filtros.</p>
+  <div class="chart" hidden aria-hidden="true"><canvas #canvas></canvas></div>
+  <table aria-label="Rangos de alquiler mensual en soles">
+    <thead><tr><th scope="col">Zona</th><th scope="col">Mínimo</th><th scope="col">Máximo</th><th scope="col">Anuncios</th></tr></thead>
+    <tbody>
+      @for (range of ranges(); track range.zone) {
+        <tr><th scope="row">{{ range.zone }}</th><td>{{ money(range.min) }}</td><td>{{ money(range.max) }}</td><td>{{ range.count }}</td></tr>
+      }
+    </tbody>
+  </table>
+</section>

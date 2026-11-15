@@ -1,8 +1,10 @@
 <div class="container page stack">
   <p class="small muted">Panel del propietario</p>
-  <h1>Mis anuncios</h1>
+  <div class="actions page-heading">
+    <h1>Mis anuncios</h1>
+    <a class="button" routerLink="/propietario/nuevo">Publicar habitación</a>
+  </div>
   <p>Publica habitaciones y revisa el estado de tus anuncios.</p>
-  <div class="actions"><a class="button" routerLink="/propietario/nuevo">Publicar habitación</a></div>
   @if (notice()) { <p role="status">{{ notice() }}</p> }
   @for (room of listings(); track room.id) {
     <article class="panel section stack compact">
@@ -14,7 +16,7 @@
       @if (room.reviewNote) { <p class="muted"><strong>Observación:</strong> {{ room.reviewNote }}</p> }
       <div class="actions">
         <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">Editar<span class="sr-only"> {{ room.title }}</span></a>
-        <button type="button" class="button quiet" (click)="selected.set(room); confirmation.open()">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+        <button type="button" class="button quiet" [attr.aria-disabled]="confirming() || null" (click)="confirmWithdrawal(room, confirmation)">Retirar<span class="sr-only"> {{ room.title }}</span></button>
       </div>
     </article>
   } @empty {

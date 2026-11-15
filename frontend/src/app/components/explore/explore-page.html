@@ -1,33 +1,39 @@
 <div class="container explore stack">
-  <section class="hero stack compact">
-    <p class="eyebrow">Directorio estudiantil · Huancayo</p>
-    <h1>Encuentra tu habitación cerca de tu universidad en Huancayo</h1>
-    <p>Plataforma de contacto directo entre estudiantes universitarios y propietarios. Sin comisiones de reserva ni pagos en la plataforma.</p>
-    <div class="actions">
-      <a class="button secondary" routerLink="/buscar">Explorar habitaciones</a>
-      <a class="button" [routerLink]="session.user()?.role === 'owner' ? '/propietario/nuevo' : '/acceso'"
-        [queryParams]="session.user()?.role === 'owner' ? {} : { destino: 'publicar' }">Publicar habitación</a>
+  <section class="hero" aria-labelledby="explore-title">
+    <div class="intro">
+      <h1 id="explore-title">Tu próxima habitación en Huancayo</h1>
+      <p>Busca cerca de tu universidad, compara alquileres y coordina una visita con el propietario.</p>
+      <app-search-filters class="home-search" (applied)="search($event)" />
     </div>
-    <p class="small">Fotografías e información referencial</p>
+    <nav class="zones" aria-labelledby="zones-title">
+      <h2 id="zones-title">Buscar por zona</h2>
+      <ul class="plain">
+        @for (zone of zones; track zone) {
+          <li><a routerLink="/buscar" [queryParams]="{ zona: zone }">{{ zone }}<span aria-hidden="true"></span></a></li>
+        }
+      </ul>
+    </nav>
   </section>
-  <app-search-filters (applied)="search($event)" />
-  <section class="stack compact">
-    <h2>Habitaciones recomendadas para estudiantes</h2>
-    <p>Trato directo con el propietario. Visita y coordina sin comisiones ni cobros en línea.</p>
+  <section class="stack" aria-labelledby="rooms-title">
+    <div class="shelf-heading">
+      <h2 id="rooms-title">Habitaciones para explorar</h2>
+      <a class="button secondary" routerLink="/buscar">Ver todas las habitaciones</a>
+    </div>
     @if (published.isLoading()) {
       <p role="status">Cargando habitaciones…</p>
     } @else if (published.error()) {
-      <p role="alert">No pudimos cargar las habitaciones.</p>
-      <button class="button quiet" type="button" (click)="published.reload()">Reintentar</button>
+      <div class="panel section">
+        <p role="alert">No se pudo cargar el catálogo de habitaciones.</p>
+        <button class="button quiet" type="button" (click)="published.reload()">Volver a intentar</button>
+      </div>
     } @else {
       <div class="room-grid">
         @for (room of recommended(); track room.id) {
-          <app-room-card [room]="room" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+          <app-room-card [room]="room" [detailQuery]="{ origen: 'explorar' }" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
         } @empty {
           <p>Por ahora no hay habitaciones publicadas.</p>
         }
       </div>
     }
-    <a class="button secondary all" routerLink="/buscar">Ver todas las opciones</a>
   </section>
 </div>

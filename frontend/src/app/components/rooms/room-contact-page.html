@@ -1,11 +1,14 @@
 <div class="container page">
+  <nav class="route-trail" aria-label="Ubicación">
+    <a [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
+    <span aria-hidden="true">/</span><span aria-current="page">Contacto</span>
+  </nav>
   @if (room.isLoading()) {
     <p role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
     <p role="alert">No pudimos cargar el anuncio.</p>
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
-    <p class="small muted"><a [routerLink]="['/habitaciones', current.id]">Volver al anuncio</a></p>
     <h1>Contacta al propietario</h1>
     <p>Consulta por la disponibilidad, las condiciones de alquiler o una visita.</p>
     <div class="split">
@@ -17,7 +20,7 @@
             <textarea rows="5" [value]="prepared()" readonly></textarea>
           </label>
           <div class="actions">
-            <a [routerLink]="['/habitaciones', current.id]" class="button">Volver al anuncio</a>
+            <a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button">Volver al anuncio</a>
             <button type="button" class="button secondary" (click)="prepared.set('')">Editar consulta</button>
           </div>
         </section>
@@ -47,6 +50,6 @@
       </aside>
     </div>
   } @else {
-    <div class="panel empty"><h1>Anuncio no disponible</h1><a class="button" routerLink="/buscar">Volver a la búsqueda</a></div>
+    <div class="panel empty"><h1>Anuncio no disponible</h1><a class="button" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">{{ navigation.back().label }}</a></div>
   }
 </div>

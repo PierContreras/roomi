@@ -1,5 +1,8 @@
 <div class="container page">
-  <h1>Habitaciones guardadas</h1>
+  <div class="actions page-heading">
+    <h1>Habitaciones guardadas</h1>
+    <a class="button secondary" routerLink="/buscar">Seguir buscando</a>
+  </div>
   @if (published.isLoading()) {
     <p role="status">Cargando habitaciones guardadas…</p>
   } @else if (published.error()) {
@@ -8,7 +11,7 @@
   } @else if (saved().length) {
     <div class="room-grid">
       @for (room of saved(); track room.id) {
-        <app-room-card [room]="room" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
+        <app-room-card [room]="room" [detailQuery]="{ origen: 'guardados' }" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
       }
     </div>
   } @else {

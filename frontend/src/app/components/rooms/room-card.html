@@ -1,17 +1,18 @@
 <article class="panel room-card">
   @if (room().photos[0]; as photo) {
     <img [src]="photo.src" [alt]="photo.alt" loading="lazy" />
-  } @else {
-    <div class="photo-placeholder">Fotografía referencial no disponible</div>
   }
   <div class="card-body">
-    <p class="muted small"><strong>{{ room().zone }} · Huancayo · {{ room().university }}</strong></p>
+    <p class="location small">{{ room().zone }}</p>
     <h3>{{ room().title }}</h3>
+    <p class="muted small">{{ room().minutes }} min al campus {{ room().university }}</p>
     <p>{{ room().description }}</p>
-    <p class="muted small">{{ room().amenities.join(' · ') }}</p>
-    <p class="price"><strong>S/ {{ room().price }} / mes</strong><span class="muted small"> · Dato de ejemplo</span></p>
+    @if (room().amenities.length) {
+      <p class="muted small">{{ room().amenities.join(', ') }}</p>
+    }
+    <p class="price"><strong>S/ {{ room().price }}</strong><span class="muted small"> al mes</span></p>
     <div class="card-actions">
-      <a class="button secondary" [routerLink]="['/habitaciones', room().id]">Ver anuncio<span class="sr-only"> de {{ room().title }}</span></a>
+      <a class="button secondary" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()">Ver anuncio<span class="sr-only"> de {{ room().title }}</span></a>
       <button type="button" class="button quiet" [attr.aria-pressed]="saved()"
         (click)="saveToggled.emit(room().id)">{{ saved() ? 'Guardado' : 'Guardar' }}<span class="sr-only"> {{ room().title }}</span></button>
     </div>
