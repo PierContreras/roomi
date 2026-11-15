@@ -32,6 +32,6 @@ export class AdminReviewPage {
       this.error.set('El anuncio ya no está pendiente de revisión.');
       return;
     }
-    this.notice.set(decision === 'approved' ? 'Anuncio aprobado y visible en el directorio.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
+    this.notice.set(decision === 'approved' ? 'Anuncio aprobado en la demostración.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
   }
 }

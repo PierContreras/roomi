@@ -1,5 +1,10 @@
 <div class="container page">
-  @if (room(); as current) {
+  @if (room.isLoading()) {
+    <p role="status">Cargando anuncio…</p>
+  } @else if (room.error()) {
+    <p role="alert">No pudimos cargar el anuncio.</p>
+    <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
+  } @else if (room.value(); as current) {
     <section class="panel section stack share">
       <p class="section-label">Detalle del anuncio</p>
       <h1>Comparte este anuncio</h1>

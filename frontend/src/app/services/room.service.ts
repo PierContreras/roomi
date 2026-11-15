@@ -1,31 +1,42 @@
-import { computed, Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { inject, Injectable, Signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, firstValueFrom, of, throwError } from 'rxjs';
 import { browserState } from './browser-state';
 import { demoRooms } from './demo-rooms';
 import { DemoUser } from '../interfaces/user';
-import { Room, RoomDraft, RoomFilters } from '../interfaces/room';
+import { PublicRoom, Room, RoomDraft, RoomFilters } from '../interfaces/room';
+
+const catalogUrl = '/api/alojamientos';
 
 @Injectable({ providedIn: 'root' })
 export class RoomService {
+  private readonly http = inject(HttpClient);
   private readonly catalog = browserState<readonly Room[]>('roomi.rooms.v1', demoRooms);
   private readonly savedState = browserState<readonly string[]>('roomi.saved.v1', []);
   readonly rooms = this.catalog.value;
-  readonly published = computed(() => this.rooms().filter(room => room.status === 'approved'));
-  readonly saved = computed(() => this.published().filter(room => this.savedState.value().includes(room.id)));
-
-  findPublished(id: string) {
-    return this.published().find(room => room.id === id);
+  published() {
+    return rxResource({ stream: () => this.http.get<PublicRoom[]>(catalogUrl) });
   }
 
-  async search(filters: RoomFilters) {
-    await new Promise<void>(resolve => setTimeout(resolve, 180));
-    return this.published().filter(room =>
-      (!filters.zone || room.zone === filters.zone) &&
-      (!filters.university || room.university === filters.university) &&
-      (!filters.type || room.type === filters.type) &&
-      (filters.maxPrice === null || room.price <= filters.maxPrice) &&
-      (filters.maxMinutes === null || room.minutes <= filters.maxMinutes) &&
-      filters.amenities.every(amenity => room.amenities.includes(amenity)),
-    );
+  detail(id: Signal<string>) {
+    return rxResource({
+      params: id,
+      stream: ({ params }) => this.getDetail(params).pipe(
+        catchError((error: HttpErrorResponse) => error.status === 404 ? of(null) : throwError(() => error)),
+      ),
+    });
+  }
+
+  search(filters: RoomFilters) {
+    let params = new HttpParams();
+    if (filters.zone) params = params.set('zona', filters.zone);
+    if (filters.university) params = params.set('universidad', filters.university);
+    if (filters.type) params = params.set('tipo', filters.type);
+    if (filters.maxPrice !== null) params = params.set('precio', filters.maxPrice);
+    if (filters.maxMinutes !== null) params = params.set('minutos', filters.maxMinutes);
+    for (const amenity of filters.amenities) params = params.append('servicio', amenity);
+    return firstValueFrom(this.http.get<PublicRoom[]>(catalogUrl, { params }));
   }
 
   isSaved(id: string) {
@@ -71,7 +82,11 @@ export class RoomService {
   }
 
   async prepareContact(roomId: string, inquiry: { name: string; email: string; message: string }) {
-    if (!this.findPublished(roomId)) throw new Error('Este anuncio ya no está disponible.');
+    await firstValueFrom(this.getDetail(roomId));
     return 'Hola, soy ' + inquiry.name.trim() + '. ' + inquiry.message.trim() + '\nCorreo de contacto: ' + inquiry.email.trim();
+  }
+
+  private getDetail(id: string) {
+    return this.http.get<PublicRoom>(`${catalogUrl}/${encodeURIComponent(id)}`);
   }
 }

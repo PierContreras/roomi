@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RoomGallery } from './room-gallery';
 import { RoomMap } from './room-map';
@@ -11,5 +11,5 @@ import { RoomService } from '../../services/room.service';
 export class RoomDetailPage {
   readonly id = input.required<string>();
   protected readonly catalog = inject(RoomService);
-  protected readonly room = computed(() => this.catalog.findPublished(this.id()));
+  protected readonly room = this.catalog.detail(this.id);
 }

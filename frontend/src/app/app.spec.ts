@@ -1,10 +1,32 @@
+import { HttpErrorResponse, HttpInterceptorFn, HttpResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
+import { demoRooms } from './services/demo-rooms';
 import { RoomService } from './services/room.service';
+
+const mockCatalog: HttpInterceptorFn = request => {
+  const rooms = demoRooms.filter(room => room.status === 'approved');
+  const { params, url } = request;
+  if (url === '/api/alojamientos') {
+    const results = rooms.filter(room =>
+      (!params.has('zona') || room.zone === params.get('zona')) &&
+      (!params.has('precio') || room.price <= Number(params.get('precio'))),
+    );
+    return of(new HttpResponse({ body: results }));
+  }
+  if (url === '/api/alojamientos/catalogo-no-disponible') {
+    return throwError(() => new HttpErrorResponse({ status: 503, url }));
+  }
+  const room = rooms.find(room => url === `/api/alojamientos/${room.id}`);
+  return room
+    ? of(new HttpResponse({ body: room }))
+    : throwError(() => new HttpErrorResponse({ status: 404, url }));
+};
 
 describe('App', () => {
   beforeEach(async () => {
@@ -34,7 +56,10 @@ describe('Recorridos de ROOMI', () => {
   beforeEach(async () => {
     localStorage.removeItem('roomi.rooms.v1');
     localStorage.removeItem('roomi.saved.v1');
-    TestBed.configureTestingModule({ providers: [provideRouter(routes, withComponentInputBinding())] });
+    TestBed.configureTestingModule({ providers: [
+      provideRouter(routes, withComponentInputBinding()),
+      provideHttpClient(withInterceptors([mockCatalog])),
+    ] });
     harness = await RouterTestingHarness.create();
   });
 
@@ -79,20 +104,17 @@ describe('Recorridos de ROOMI', () => {
     await harness.navigateByUrl('/explorar');
     await enter('zona', 'San Carlos');
     await action('Buscar habitaciones');
-    await new Promise(resolve => setTimeout(resolve, 200));
     await stabilize();
     expect(text()).toContain('2 habitaciones encontradas');
 
     await action('Filtros: precio');
     await enter('precio', '10');
     await action('Aplicar filtros');
-    await new Promise(resolve => setTimeout(resolve, 200));
     await stabilize();
     expect(text()).toContain('No encontramos habitaciones con estos filtros');
 
     await enter('precio', '325');
     await action('Aplicar filtros');
-    await new Promise(resolve => setTimeout(resolve, 200));
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
     await action('Ver mapa');
@@ -101,7 +123,7 @@ describe('Recorridos de ROOMI', () => {
     expect(page().querySelector('.map-caption')?.textContent).toContain('Cuarto iluminado');
     await action('Ver listado');
     await action('Guardar');
-    expect(TestBed.inject(RoomService).saved()[0]?.id).toBe('san-carlos-320');
+    expect(TestBed.inject(RoomService).isSaved('san-carlos-320')).toBe(true);
     await action('Ver anuncio');
     expect(text()).toContain('Cuarto iluminado con escritorio y baño propio');
     await action('Contactar al propietario');
@@ -111,8 +133,21 @@ describe('Recorridos de ROOMI', () => {
     await enter('correo', 'consulta@roomi.test');
     await enter('mensaje', '¿Puedo visitar la habitación el sábado?');
     await action('Preparar consulta');
-    expect(text()).toContain('Mensaje preparado');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Mensaje preparado');
+    });
     expect(page().querySelector('textarea')?.value).toContain('consulta@roomi.test');
+  });
+
+  it('distingue un anuncio inexistente de un fallo del catálogo', async () => {
+    await harness.navigateByUrl('/habitaciones/no-existe');
+    await stabilize();
+    expect(text()).toContain('Habitación no disponible');
+
+    await harness.navigateByUrl('/habitaciones/catalogo-no-disponible');
+    await stabilize();
+    expect(page().querySelector('[role="alert"]')?.textContent).toContain('No pudimos cargar el anuncio');
   });
 
   it('valida el acceso y confirma el registro de un perfil ficticio', async () => {
@@ -156,6 +191,7 @@ describe('Recorridos de ROOMI', () => {
 
   it('abre la pantalla de compartir desde la habitación', async () => {
     await harness.navigateByUrl('/habitaciones/san-carlos-320');
+    await stabilize();
     await action('Compartir anuncio');
     expect(text()).toContain('Comparte este anuncio');
     expect(page().querySelector('input')?.value).toMatch(/\/habitaciones\/san-carlos-320$/);
@@ -214,8 +250,8 @@ describe('Recorridos de ROOMI', () => {
     await action('Volver a la cola');
     await action('Revisar anuncio Habitación independiente en Chilca');
     await action('Aprobar anuncio');
-    expect(text()).toContain('Anuncio aprobado y visible');
-    expect(TestBed.inject(RoomService).findPublished('chilca-en-revision')).toBeDefined();
+    expect(text()).toContain('Anuncio aprobado en la demostración');
+    expect(TestBed.inject(RoomService).rooms().find(room => room.id === 'chilca-en-revision')?.status).toBe('approved');
 
     await chooseProfile('Propietario');
     expect(text()).toContain('Añade referencias para ubicar el alojamiento.');

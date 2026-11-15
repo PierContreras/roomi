@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Room } from '../../interfaces/room';
+import { PublicRoom } from '../../interfaces/room';
 
 @Component({
   selector: 'app-room-card',
@@ -9,7 +9,7 @@ import { Room } from '../../interfaces/room';
   styleUrl: './room-card.css',
 })
 export class RoomCard {
-  readonly room = input.required<Room>();
+  readonly room = input.required<PublicRoom>();
   readonly saved = input.required<boolean>();
   readonly saveToggled = output<string>();
 }
