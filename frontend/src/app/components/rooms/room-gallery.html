@@ -2,13 +2,13 @@
   @if (photos()[index()]; as photo) {
     <img [src]="photo.src" [alt]="photo.alt" />
     @if (photos().length > 1) {
-      <div class="actions" aria-label="Seleccionar fotografía">
-        @for (item of photos(); track $index) {
-          <button type="button" class="button secondary" [attr.aria-pressed]="index() === $index" (click)="index.set($index)">Foto {{ $index + 1 }}</button>
-        }
+      <div class="controls" role="group" aria-label="Cambiar fotografía">
+        <button type="button" class="button secondary" (click)="move(-1)"><app-ui-icon name="chevronLeft" /> Anterior</button>
+        <span class="small muted" role="status">Foto {{ index() + 1 }} de {{ photos().length }}</span>
+        <button type="button" class="button secondary" (click)="move(1)">Siguiente <app-ui-icon name="chevronRight" /></button>
       </div>
     }
   } @else {
-    <div class="photo-placeholder">Fotografías referenciales no disponibles</div>
+    <p class="no-photo muted small"><app-ui-icon name="photo" /> Este anuncio aún no tiene fotos.</p>
   }
 </section>

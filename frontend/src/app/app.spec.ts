@@ -126,7 +126,8 @@ describe('Recorridos de ROOMI', () => {
     expect(page().querySelector('table tbody')?.textContent).toMatch(/San Carlos.*320.*320/);
     await action('Ver mapa');
     expect(page().querySelector('.map-open')).toBeTruthy();
-    await action('San Carlos');
+    page().querySelector<HTMLButtonElement>('button.marker')!.click();
+    await stabilize();
     expect(page().querySelector('.map-caption')?.textContent).toContain('Cuarto iluminado');
     await action('Ver listado');
     await action('Guardar');
@@ -152,6 +153,34 @@ describe('Recorridos de ROOMI', () => {
     expect(params.get('precio')).toBe('325');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
+  });
+
+  it('ordena los resultados y compara los anuncios guardados', async () => {
+    await harness.navigateByUrl('/buscar?zona=San%20Carlos&precio=1000');
+    await stabilize();
+    await enter('orden', 'precio');
+    const prices = [...page().querySelectorAll('.price strong')].map(item => Number(item.textContent?.replace('S/', '').trim()));
+    expect(prices).toHaveLength(2);
+    expect(prices).toEqual([...prices].sort((left, right) => left - right));
+    page().querySelector<HTMLAnchorElement>('a[aria-label="Quitar filtro: Hasta S/ 1000"]')!.click();
+    await stabilize();
+    const params = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap;
+    expect(params.get('precio')).toBeNull();
+    expect(params.get('zona')).toBe('San Carlos');
+    expect(params.get('orden')).toBe('precio');
+    for (const button of page().querySelectorAll<HTMLButtonElement>('.favorite')) {
+      button.click();
+    }
+    await harness.navigateByUrl('/guardados');
+    await stabilize();
+    await action('Comparar habitaciones');
+    const table = page().querySelector('table')!;
+    expect(table.textContent).toContain('Garantía');
+    expect(table.querySelectorAll('thead th')).toHaveLength(3);
+    await action('Ver anuncio');
+    await action('← Volver a guardados');
+    expect(TestBed.inject(Router).url).toMatch(/^\/guardados\?comparar=/);
+    expect(page().querySelector('table')?.textContent).toContain('Garantía');
   });
 
   it('distingue un anuncio inexistente de un fallo del catálogo', async () => {

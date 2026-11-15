@@ -1,6 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { amenities, Amenity, RoomFilters, roomTypes, universities, zones } from '../../interfaces/room';
+import { UiIcon } from '../shared/ui-icon';
 
 export const emptyFilters: RoomFilters = {
   zone: '', university: '', type: '', maxPrice: null, maxMinutes: null, amenities: [],
@@ -8,7 +9,7 @@ export const emptyFilters: RoomFilters = {
 
 @Component({
   selector: 'app-search-filters',
-  imports: [FormsModule],
+  imports: [FormsModule, UiIcon],
   templateUrl: './search-filters.html',
   styleUrl: './search-filters.css',
 })
@@ -19,6 +20,7 @@ export class SearchFilters {
   protected readonly universities = universities;
   protected readonly types = roomTypes;
   protected readonly amenities = amenities;
+  protected readonly wholeMinutes = /^\d+$/;
   protected readonly expanded = signal(false);
   protected draft: RoomFilters = { ...emptyFilters };
 

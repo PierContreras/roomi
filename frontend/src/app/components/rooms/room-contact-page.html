@@ -17,12 +17,14 @@
           <h2>Mensaje preparado</h2>
           <p>La consulta se simuló. Puedes revisar o copiar el mensaje.</p>
           <label>Consulta
-            <textarea rows="5" [value]="prepared()" readonly></textarea>
+            <textarea #messageField rows="5" [value]="prepared()" readonly></textarea>
           </label>
           <div class="actions">
-            <a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button">Volver al anuncio</a>
+            <button type="button" class="button" (click)="copy(messageField)"><app-ui-icon name="message" /> Copiar mensaje</button>
             <button type="button" class="button secondary" (click)="prepared.set('')">Editar consulta</button>
+            <a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button quiet">Volver al anuncio</a>
           </div>
+          @if (copyFeedback()) { <p class="small" role="status">{{ copyFeedback() }}</p> }
         </section>
       } @else {
         <form #form="ngForm" class="panel section stack" (ngSubmit)="prepare(form)">
@@ -39,7 +41,7 @@
             @if (message.touched && message.invalid) { <span class="error">Escribe entre 10 y 800 caracteres.</span> }
           </label>
           @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Preparando…' : 'Preparar consulta' }}</button>
+          <button class="button" type="submit" [disabled]="busy()"><app-ui-icon name="message" /> {{ busy() ? 'Preparando…' : 'Preparar consulta' }}</button>
         </form>
       }
       <aside class="panel section">

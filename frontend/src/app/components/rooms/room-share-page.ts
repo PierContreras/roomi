@@ -3,9 +3,11 @@ import { Router, RouterLink } from '@angular/router';
 import { RoomService } from '../../services/room.service';
 import { roomNavigation } from './room-navigation';
 import { UiLibraries } from '../../services/ui-libraries';
+import { copyToClipboard } from '../shared/copy-to-clipboard';
+import { UiIcon } from '../shared/ui-icon';
 
 @Component({
-  imports: [RouterLink],
+  imports: [RouterLink, UiIcon],
   templateUrl: './room-share-page.html',
   styleUrl: './room-share-page.css',
 })
@@ -24,16 +26,8 @@ export class RoomSharePage {
   });
 
   protected async copy(field: HTMLInputElement) {
-    try {
-      const clipboard = this.document.defaultView?.navigator.clipboard;
-      if (!clipboard) throw new Error('Clipboard unavailable');
-      await clipboard.writeText(this.link());
-      this.feedback.set('copied');
-      void this.libraries.success('Enlace copiado');
-    } catch {
-      field.focus();
-      field.select();
-      this.feedback.set('manual');
-    }
+    const copied = await copyToClipboard(field);
+    this.feedback.set(copied ? 'copied' : 'manual');
+    if (copied) void this.libraries.success('Enlace copiado');
   }
 }

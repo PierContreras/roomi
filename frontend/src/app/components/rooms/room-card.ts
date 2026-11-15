@@ -1,10 +1,11 @@
 import { Component, input, output } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { PublicRoom } from '../../interfaces/room';
+import { UiIcon } from '../shared/ui-icon';
 
 @Component({
   selector: 'app-room-card',
-  imports: [RouterLink],
+  imports: [RouterLink, UiIcon],
   templateUrl: './room-card.html',
   styleUrl: './room-card.css',
 })

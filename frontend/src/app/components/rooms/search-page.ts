@@ -1,13 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, Params, Router, RouterLink } from '@angular/router';
 import { PublicRoom, RoomFilters, amenities, roomTypes, universities, zones } from '../../interfaces/room';
 import { RoomCard } from './room-card';
 import { RoomMap } from './room-map';
 import { RoomService } from '../../services/room.service';
 import { emptyFilters, SearchFilters } from './search-filters';
-import { searchQuery } from './room-navigation';
+import { filterParamKeys, searchQuery } from './room-navigation';
 import { PriceRanges } from './price-ranges';
+import { UiIcon } from '../shared/ui-icon';
 
 function selectValue<T extends string>(options: readonly T[], value: string | null): T | '' {
   return options.find(option => option === value) ?? '';
@@ -20,7 +21,7 @@ function nonNegative(value: string | null): number | null {
 }
 
 @Component({
-  imports: [SearchFilters, RoomCard, RoomMap, RouterLink, PriceRanges],
+  imports: [SearchFilters, RoomCard, RoomMap, RouterLink, PriceRanges, UiIcon],
   templateUrl: './search-page.html',
   styleUrl: './search-page.css',
 })
@@ -32,14 +33,18 @@ export class SearchPage {
   protected readonly filters = signal(emptyFilters);
   protected readonly filterLabels = computed(() => {
     const { zone, university, type, maxPrice, maxMinutes, amenities } = this.filters();
-    const labels: string[] = [];
-    if (zone) labels.push(zone);
-    if (university) labels.push(university);
-    if (type) labels.push(type);
-    if (maxPrice !== null) labels.push(`Hasta S/ ${maxPrice}`);
-    if (maxMinutes !== null) labels.push(`Hasta ${maxMinutes} min al campus`);
-    return [...labels, ...amenities];
+    const labels: { label: string; remove: Params }[] = [];
+    if (zone) labels.push({ label: zone, remove: { zona: null } });
+    if (university) labels.push({ label: university, remove: { universidad: null } });
+    if (type) labels.push({ label: type, remove: { tipo: null } });
+    if (maxPrice !== null) labels.push({ label: `Hasta S/ ${maxPrice}`, remove: { precio: null } });
+    if (maxMinutes !== null) labels.push({ label: `Hasta ${maxMinutes} min al campus`, remove: { minutos: null } });
+    for (const amenity of amenities) {
+      labels.push({ label: amenity, remove: { servicio: amenities.filter(item => item !== amenity) } });
+    }
+    return labels;
   });
+  protected readonly clearFilters = Object.fromEntries(filterParamKeys.map(key => [key, null]));
   protected readonly rooms = signal<readonly PublicRoom[]>([]);
   protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   private readonly params = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
@@ -47,10 +52,22 @@ export class SearchPage {
   protected readonly mapZone = computed(() => this.params().get('zonaMapa') ?? '');
   protected readonly detailQuery = computed(() => ({ ...searchQuery(this.params()), origen: 'buscar' }));
   protected readonly showChart = signal(false);
+  protected readonly sort = computed(() => {
+    const value = this.params().get('orden');
+    return value === 'precio' || value === 'distancia' ? value : '';
+  });
+  protected readonly orderedRooms = computed(() => {
+    const rooms = this.rooms();
+    switch (this.sort()) {
+      case 'precio': return [...rooms].sort((a, b) => a.price - b.price);
+      case 'distancia': return [...rooms].sort((a, b) => a.minutes - b.minutes);
+      default: return rooms;
+    }
+  });
 
   constructor() {
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(params => {
-      const key = JSON.stringify(searchQuery(params), ['zona', 'universidad', 'tipo', 'precio', 'minutos', 'servicio']);
+      const key = JSON.stringify(filterParamKeys.map(name => params.getAll(name)));
       if (key === this.filterKey) return;
       this.filterKey = key;
       this.loadParams(params);
@@ -59,13 +76,14 @@ export class SearchPage {
 
   private filterKey = '';
 
-  protected changeView(queryParams: { vista: 'mapa' | null } | { zonaMapa: string }) {
+  protected changeView(queryParams: Params) {
     void this.router.navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   protected apply(filters: RoomFilters) {
     void this.router.navigate([], {
       relativeTo: this.route,
+      queryParamsHandling: 'merge',
       queryParams: {
         zona: filters.zone || null, universidad: filters.university || null, tipo: filters.type || null,
         precio: filters.maxPrice, minutos: filters.maxMinutes, servicio: filters.amenities.length ? filters.amenities : null,

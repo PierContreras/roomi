@@ -9,46 +9,62 @@
     <p role="alert">No pudimos cargar el anuncio.</p>
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
-    <p class="muted">{{ current.zone }} · Huancayo · {{ current.university }}</p>
-    <h1>{{ current.title }}</h1>
-    <p>{{ current.type }} · {{ current.minutes }} min al campus</p>
+    <div class="listing-heading">
+      <h1>{{ current.title }}</h1>
+      <div class="actions">
+        <a class="button quiet" [routerLink]="['compartir']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="share" /> Compartir anuncio</a>
+        <button type="button" class="button secondary" aria-label="Guardar anuncio" [attr.aria-pressed]="catalog.isSaved(current.id)"
+          (click)="catalog.toggleSaved(current.id)"><app-ui-icon name="heart" [filled]="catalog.isSaved(current.id)" /> {{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
+      </div>
+    </div>
+    <ul class="listing-facts plain">
+      <li>{{ current.type }}</li>
+      <li><app-ui-icon name="pin" /> {{ current.zone }}, Huancayo</li>
+      <li><app-ui-icon name="clock" /> {{ current.minutes }} min al campus {{ current.university }}</li>
+    </ul>
     <app-room-gallery [photos]="current.photos" />
     <div class="split details">
-      <div class="stack">
-        <section class="panel section">
+      <aside class="panel section contact-aside">
+        <h2>S/ {{ current.price }} <span class="small muted">/ mes</span></h2>
+        <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
+        <p>Propietario: <strong>{{ current.owner }}</strong></p>
+        <div class="stack compact">
+          <a class="button" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar al propietario</a>
+        </div>
+      </aside>
+      <div class="stack listing-info">
+        <nav class="actions detail-links" aria-label="Secciones del anuncio">
+          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="servicios">Servicios</a>
+          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="condiciones">Condiciones</a>
+          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="ubicacion">Ubicación</a>
+        </nav>
+        <section class="detail-section">
           <h2>Sobre la habitación</h2>
           <p>{{ current.description }}</p>
-          <h3>Servicios</h3>
+        </section>
+        <section class="detail-section" id="servicios">
+          <h2>Servicios incluidos</h2>
           <ul class="chips plain">
             @for (amenity of current.amenities; track amenity) { <li class="chip">{{ amenity }}</li> }
             @empty { <li>Servicios por confirmar</li> }
           </ul>
-          <h3>Condiciones de alquiler</h3>
+        </section>
+        <section class="detail-section" id="condiciones">
+          <h2>Condiciones de alquiler</h2>
           <p>{{ current.rules }}</p>
         </section>
-        <section class="stack compact">
+        <section class="stack compact detail-section" id="ubicacion">
           <h2>Ubicación aproximada</h2>
           <p>{{ current.address }} · Dirección ficticia</p>
           <app-room-map [rooms]="[current]" />
         </section>
       </div>
-      <aside class="panel section contact-aside">
-        <h2>S/ {{ current.price }} <span class="small muted">/ mes</span></h2>
-        <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
-        <p>{{ current.owner }}</p>
-        <div class="stack compact">
-          <a class="button" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()">Contactar al propietario</a>
-          <a class="button quiet" [routerLink]="['compartir']" [queryParams]="navigation.detailQuery()">Compartir anuncio</a>
-          <button type="button" class="button secondary" [attr.aria-pressed]="catalog.isSaved(current.id)"
-            (click)="catalog.toggleSaved(current.id)">{{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
-        </div>
-      </aside>
     </div>
   } @else {
     <section class="panel empty">
       <h1>Habitación no disponible</h1>
       <p>Es posible que el anuncio haya cambiado de estado.</p>
-      <a class="button" routerLink="/buscar">Buscar otras habitaciones</a>
+      <a class="button" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">{{ navigation.back().label }}</a>
     </section>
   }
 </div>
