@@ -6,9 +6,10 @@ import { RoomService } from '../../services/room.service';
 import { ConfirmDialog } from '../shared/confirm-dialog';
 import { StatusBadge } from '../shared/status-badge';
 import { UiLibraries } from '../../services/ui-libraries';
+import { UiIcon } from '../shared/ui-icon';
 
 @Component({
-  imports: [RouterLink, StatusBadge, ConfirmDialog],
+  imports: [RouterLink, StatusBadge, ConfirmDialog, UiIcon],
   templateUrl: './owner-page.html',
 })
 export class OwnerPage {

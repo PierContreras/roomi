@@ -8,9 +8,12 @@
   @if (filterLabels().length) {
     <div class="applied">
       <ul class="chips plain" aria-label="Filtros aplicados">
-        @for (label of filterLabels(); track $index) { <li class="chip">{{ label }}</li> }
+        @for (filter of filterLabels(); track $index) {
+          <li><a class="chip filter-chip" [routerLink]="[]" [queryParams]="filter.remove" queryParamsHandling="merge"
+            [attr.aria-label]="'Quitar filtro: ' + filter.label">{{ filter.label }} <app-ui-icon name="close" /></a></li>
+        }
       </ul>
-      <a class="small" routerLink="/buscar">Quitar filtros</a>
+      <a class="small" [routerLink]="[]" [queryParams]="clearFilters" queryParamsHandling="merge">Quitar todos los filtros</a>
     </div>
   }
   @switch (state()) {
@@ -23,13 +26,21 @@
       <div class="results-heading">
         <h2 aria-live="polite">{{ rooms().length }} {{ rooms().length === 1 ? 'habitación encontrada' : 'habitaciones encontradas' }}</h2>
         @if (rooms().length) {
-          <div class="actions">
+          <div class="actions result-controls">
+            <label class="sort">Ordenar por
+              <select name="orden" [value]="sort()" (change)="changeView({ orden: $any($event.target).value || null })">
+                <option value="">Orden del catálogo</option>
+                <option value="precio">Menor alquiler</option>
+                <option value="distancia">Más cerca del campus</option>
+              </select>
+            </label>
             <button type="button" class="button secondary" [attr.aria-expanded]="showChart()" (click)="showChart.update(open => !open)">
-              {{ showChart() ? 'Ocultar comparación' : 'Comparar precios' }}
+              <app-ui-icon name="compare" /> {{ showChart() ? 'Ocultar comparación' : 'Comparar precios' }}
             </button>
-            <button type="button" class="button secondary map-toggle" [attr.aria-pressed]="showMap()" (click)="changeView({ vista: showMap() ? null : 'mapa' })">
-              {{ showMap() ? 'Ver listado' : 'Ver mapa' }}
-            </button>
+            <div class="view-options" role="group" aria-label="Vista de resultados">
+              <button type="button" class="button quiet" [attr.aria-pressed]="!showMap()" (click)="changeView({ vista: null })"><app-ui-icon name="list" /> Ver listado</button>
+              <button type="button" class="button quiet" [attr.aria-pressed]="showMap()" (click)="changeView({ vista: 'mapa' })"><app-ui-icon name="map" /> Ver mapa</button>
+            </div>
           </div>
         }
       </div>
@@ -39,11 +50,13 @@
         }
         <div class="results" [class.map-open]="showMap()">
           <section class="room-grid" aria-label="Resultados">
-            @for (room of rooms(); track room.id) {
+            @for (room of orderedRooms(); track room.id) {
               <app-room-card [room]="room" [detailQuery]="detailQuery()" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
             }
           </section>
-          <app-room-map [rooms]="rooms()" [detailQuery]="detailQuery()" [selected]="mapZone()" (selectedChange)="changeView({ zonaMapa: $event })" />
+          @if (showMap()) {
+            <app-room-map [rooms]="orderedRooms()" [detailQuery]="detailQuery()" [selected]="mapZone()" (selectedChange)="changeView({ zonaMapa: $event })" />
+          }
         </div>
       } @else {
         <div class="panel empty">

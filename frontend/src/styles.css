@@ -65,6 +65,10 @@ legend { margin-bottom: 8px; font-weight: 600; }
 .error { color: #9b2631; }
 .photo-placeholder { display: grid; place-items: center; padding: 12px; color: var(--muted); background: linear-gradient(145deg, #edf1f3, #d9e2e8); text-align: center; font-size: .875rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+@media (max-width: 940px) {
+  html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
 @media (max-width: 760px) {
   .page { padding-block: 22px 38px; }
   .room-grid, .split, .form-grid { grid-template-columns: 1fr; }

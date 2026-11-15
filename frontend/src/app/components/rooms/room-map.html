@@ -8,13 +8,16 @@
     } @empty { <p class="map-empty">Sin ubicaciones para mostrar</p> }
   </div>
   <div class="map-caption">
-    <p class="muted small">Ubicaciones demostrativas · Vista esquemática</p>
+    <p class="muted small">Mapa esquemático de Huancayo</p>
     @if (active(); as marker) {
-      <ul>
+      <p class="small"><strong>{{ marker.zone }}</strong></p>
+      <ul class="plain">
         @for (room of marker.rooms; track room.id) {
-          <li><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">{{ room.title }} · S/ {{ room.price }}</a></li>
+          <li><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">{{ room.title }} <strong>S/ {{ room.price }} al mes</strong></a></li>
         }
       </ul>
+    } @else if (markers().length) {
+      <p class="small">Selecciona una zona para ver sus habitaciones.</p>
     }
   </div>
 </section>

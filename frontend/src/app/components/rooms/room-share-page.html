@@ -15,14 +15,16 @@
       <label>Enlace del anuncio
         <input #linkField type="text" [value]="link()" readonly />
       </label>
-      <button class="button quiet" type="button" (click)="copy(linkField)">Copiar enlace</button>
+      <button class="button" type="button" (click)="copy(linkField)"><app-ui-icon name="share" /> Copiar enlace</button>
       @if (feedback() !== 'idle') {
         <p class="message" role="status">
           {{ feedback() === 'copied' ? 'Enlace copiado.' : 'El enlace está seleccionado. Puedes copiarlo manualmente.' }}
         </p>
       }
-      <a class="button" [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()">Volver al anuncio</a>
-      <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']" [queryParams]="navigation.detailQuery()">Consultar al propietario</a>
+      <div class="actions">
+        <a class="button quiet" [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()">Volver al anuncio</a>
+        <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar al propietario</a>
+      </div>
     </section>
   } @else {
     <section class="panel empty">

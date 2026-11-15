@@ -1,7 +1,14 @@
 <div class="container page">
   <div class="actions page-heading">
     <h1>Habitaciones guardadas</h1>
-    <a class="button secondary" routerLink="/buscar">Seguir buscando</a>
+    <div class="actions">
+      <a class="button secondary" routerLink="/buscar"><app-ui-icon name="search" /> Seguir buscando</a>
+      @if (saved().length >= 2) {
+        <button type="button" class="button" [attr.aria-expanded]="showComparison()" (click)="toggleComparison()">
+          <app-ui-icon name="compare" /> {{ showComparison() ? 'Ocultar comparación' : 'Comparar habitaciones' }}
+        </button>
+      }
+    </div>
   </div>
   @if (published.isLoading()) {
     <p role="status">Cargando habitaciones guardadas…</p>
@@ -9,16 +16,51 @@
     <p role="alert">No pudimos cargar las habitaciones guardadas.</p>
     <button class="button quiet" type="button" (click)="published.reload()">Reintentar</button>
   } @else if (saved().length) {
+    @if (showComparison() && comparison().length === 2) {
+      <section class="panel section stack comparison" aria-labelledby="comparison-title">
+        <h2 id="comparison-title">Comparar habitaciones guardadas</h2>
+        <div class="compare-selects">
+          @for (id of pair(); track $index; let index = $index) {
+            <label>Habitación {{ index + 1 }}
+              <select [name]="'comparar-' + index" [value]="id" (change)="selectRoom(index === 0 ? 0 : 1, $any($event.target).value)">
+                @for (room of saved(); track room.id) {
+                  @if (room.id !== pair()[1 - index]) {
+                    <option [value]="room.id" [selected]="room.id === id">{{ room.title }}</option>
+                  }
+                }
+              </select>
+            </label>
+          }
+        </div>
+        <table aria-labelledby="comparison-title">
+          <thead><tr><th scope="col">Dato</th>
+            @for (room of comparison(); track room.id) {
+              <th scope="col">{{ room.title }}</th>
+            }
+          </tr></thead>
+          <tbody>
+            <tr><th scope="row">Alquiler al mes</th>@for (room of comparison(); track room.id) { <td>S/ {{ room.price }}</td> }</tr>
+            <tr><th scope="row">Garantía</th>@for (room of comparison(); track room.id) { <td>S/ {{ room.deposit }}</td> }</tr>
+            <tr><th scope="row">Zona</th>@for (room of comparison(); track room.id) { <td>{{ room.zone }}</td> }</tr>
+            <tr><th scope="row">Tiempo al campus</th>@for (room of comparison(); track room.id) { <td>{{ room.minutes }} min a {{ room.university }}</td> }</tr>
+            <tr><th scope="row">Servicios</th>@for (room of comparison(); track room.id) { <td>{{ room.amenities.join(', ') || 'Por confirmar' }}</td> }</tr>
+            <tr><th scope="row">Ficha</th>@for (room of comparison(); track room.id) {
+              <td><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">Ver anuncio<span class="sr-only"> de {{ room.title }}</span></a></td>
+            }</tr>
+          </tbody>
+        </table>
+      </section>
+    }
     <div class="room-grid">
       @for (room of saved(); track room.id) {
-        <app-room-card [room]="room" [detailQuery]="{ origen: 'guardados' }" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
+        <app-room-card [room]="room" [detailQuery]="detailQuery()" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
       }
     </div>
   } @else {
     <section class="panel empty">
       <h2>Aún no tienes habitaciones guardadas</h2>
-      <p>Guarda las habitaciones que te interesan para compararlas después.</p>
-      <a class="button" routerLink="/buscar">Explorar habitaciones</a>
+      <p>Toca el corazón en una habitación para encontrarla aquí. Con dos guardadas puedes compararlas.</p>
+      <a class="button" routerLink="/buscar"><app-ui-icon name="search" /> Buscar habitaciones</a>
     </section>
   }
 </div>

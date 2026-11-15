@@ -1,11 +1,20 @@
-<article class="panel room-card">
+<article class="panel room-card" [class.has-photo]="room().photos.length">
   @if (room().photos[0]; as photo) {
-    <img [src]="photo.src" [alt]="photo.alt" loading="lazy" />
+    <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" tabindex="-1" aria-hidden="true">
+      <img [src]="photo.src" [alt]="photo.alt" loading="lazy" />
+    </a>
   }
   <div class="card-body">
-    <p class="location small">{{ room().zone }}</p>
+    <div class="card-top">
+      <p class="location small"><app-ui-icon name="pin" /> {{ room().zone }}</p>
+      <button type="button" class="button quiet favorite" [attr.aria-pressed]="saved()"
+        [attr.aria-label]="'Guardar ' + room().title" [title]="saved() ? 'Quitar de guardados' : 'Guardar habitación'"
+        (click)="saveToggled.emit(room().id)">
+        <app-ui-icon name="heart" [filled]="saved()" /><span class="sr-only">{{ saved() ? 'Guardado' : 'Guardar' }}</span>
+      </button>
+    </div>
     <h3>{{ room().title }}</h3>
-    <p class="muted small">{{ room().minutes }} min al campus {{ room().university }}</p>
+    <p class="muted small"><app-ui-icon name="clock" /> {{ room().minutes }} min al campus {{ room().university }}</p>
     <p>{{ room().description }}</p>
     @if (room().amenities.length) {
       <p class="muted small">{{ room().amenities.join(', ') }}</p>
@@ -13,8 +22,6 @@
     <p class="price"><strong>S/ {{ room().price }}</strong><span class="muted small"> al mes</span></p>
     <div class="card-actions">
       <a class="button secondary" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()">Ver anuncio<span class="sr-only"> de {{ room().title }}</span></a>
-      <button type="button" class="button quiet" [attr.aria-pressed]="saved()"
-        (click)="saveToggled.emit(room().id)">{{ saved() ? 'Guardado' : 'Guardar' }}<span class="sr-only"> {{ room().title }}</span></button>
     </div>
   </div>
 </article>

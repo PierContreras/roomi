@@ -1,8 +1,12 @@
 :host { display: block; }
-.room-card { overflow: hidden; height: 100%; display: flex; flex-direction: column; }
-img { width: 100%; height: clamp(140px, 18vw, 210px); object-fit: cover; }
+.room-card { position: relative; height: 100%; display: flex; flex-direction: column; }
+img { display: block; width: 100%; height: clamp(140px, 18vw, 210px); object-fit: cover; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
 .card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
-.location { color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.location { color: var(--muted); font-weight: 700; margin: 0; }
+.favorite { width: 44px; padding: 0; flex: none; border-radius: 50%; background: white; }
+.favorite[aria-pressed="true"] { color: #962c50; background: #fff3f6; border-color: #e7b8c7; }
+.has-photo .favorite { position: absolute; top: 12px; right: 12px; }
 .price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }

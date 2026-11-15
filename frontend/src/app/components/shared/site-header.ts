@@ -3,10 +3,11 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SessionService } from '../../services/session.service';
+import { UiIcon } from './ui-icon';
 
 @Component({
   selector: 'app-site-header',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, UiIcon],
   templateUrl: './site-header.html',
   styleUrl: './site-header.css',
 })
