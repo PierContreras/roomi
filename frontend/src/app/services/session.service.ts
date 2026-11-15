@@ -6,6 +6,7 @@ export const roleLabels: Record<Role, string> = {
 };
 
 export const demoPassword = 'roomi123';
+export const demoPhone = '000000001';
 
 export const demoUsers: readonly DemoUser[] = [
   { id: 'demo-student', name: 'Estudiante de demostración', email: 'estudiante@roomi.test', role: 'student' },
@@ -18,8 +19,9 @@ export class SessionService {
   private readonly current = signal<DemoUser | null>(null);
   readonly user = this.current.asReadonly();
 
-  signIn(email: string, password: string) {
-    const user = demoUsers.find(profile => profile.email === email.trim().toLowerCase());
+  signIn(identifier: string, password: string) {
+    const value = identifier.trim().toLowerCase();
+    const user = value === demoPhone ? demoUsers[0] : demoUsers.find(profile => profile.email === value);
     if (!user || password !== demoPassword) return null;
     this.current.set(user);
     return user;

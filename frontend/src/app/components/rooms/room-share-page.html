@@ -1,0 +1,25 @@
+<div class="container page">
+  @if (room(); as current) {
+    <section class="panel section stack share">
+      <p class="section-label">Detalle del anuncio</p>
+      <h1>Comparte este anuncio</h1>
+      <p>{{ current.title }} · S/ {{ current.price }} / mes</p>
+      <label>Enlace del anuncio
+        <input #linkField type="text" [value]="link()" readonly />
+      </label>
+      <button class="button quiet" type="button" (click)="copy(linkField)">Copiar enlace</button>
+      @if (feedback() !== 'idle') {
+        <p class="message" role="status">
+          {{ feedback() === 'copied' ? 'Enlace copiado.' : 'El enlace está seleccionado. Puedes copiarlo manualmente.' }}
+        </p>
+      }
+      <a class="button" [routerLink]="['/habitaciones', current.id]">Volver al anuncio</a>
+      <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']">Consultar al propietario</a>
+    </section>
+  } @else {
+    <section class="panel empty">
+      <h1>Anuncio no disponible</h1>
+      <a class="button" routerLink="/buscar">Ver otras habitaciones</a>
+    </section>
+  }
+</div>

@@ -1,0 +1,89 @@
+<div class="container page help">
+  <section class="help-intro stack compact">
+    <p class="section-label">Centro de ayuda y soporte</p>
+    <h1>¿En qué podemos ayudarte?</h1>
+    <p class="muted">Guía práctica para buscar, visitar y publicar habitaciones en el directorio de ROOMI.</p>
+    <form class="help-search" (ngSubmit)="query.set(searchText)">
+      <label>Buscar ayuda
+        <input name="busqueda" type="search" [(ngModel)]="searchText" placeholder="Preguntas frecuentes, normas, visitas…" />
+      </label>
+      <button class="button" type="submit">Buscar</button>
+    </form>
+  </section>
+
+  <section class="stack">
+    <h2>Categorías de asistencia</h2>
+    <div class="topic-grid">
+      @for (topic of topics; track topic.title) {
+        <article class="panel section topic stack compact">
+          <h3>{{ topic.title }}</h3>
+          <p class="muted">{{ topic.description }}</p>
+          <a class="button secondary" [routerLink]="topic.route ?? '/ayuda'" [fragment]="topic.fragment"
+            (click)="!topic.route && clearSearch()">{{ topic.label }}</a>
+        </article>
+      }
+    </div>
+  </section>
+
+  <div class="split help-details">
+    <section class="stack compact" id="preguntas">
+      <h2>Preguntas frecuentes del directorio</h2>
+      @if (query().trim()) {
+        <div class="actions">
+          <p class="small muted" role="status">{{ filtered().length }} resultados para «{{ query() }}»</p>
+          <button class="button quiet" type="button" (click)="clearSearch()">Limpiar búsqueda</button>
+        </div>
+      }
+      @for (question of filtered(); track question.id) {
+        <details [id]="question.id" class="panel question">
+          <summary>{{ question.title }}</summary>
+          <p>{{ question.answer }}</p>
+        </details>
+      } @empty {
+        <p class="panel section">No encontramos preguntas con esa búsqueda. Prueba con «visita» o «publicar».</p>
+      }
+    </section>
+
+    <section class="panel section stack compact" id="soporte">
+      @if (confirmation()) {
+        <div class="stack compact" role="status">
+          <h2>Consulta registrada en la demo</h2>
+          <p>Esta es la confirmación del formulario. Tu consulta no se ha enviado.</p>
+          <button type="button" class="button secondary" (click)="confirmation.set(false)">Redactar otra consulta</button>
+        </div>
+      } @else {
+        <p class="section-label">Mesa de consultas</p>
+        <h2>Contacto de soporte</h2>
+        <p class="muted small">Formulario de demostración. Usa datos ficticios.</p>
+        <form #form="ngForm" class="stack compact" (ngSubmit)="submit(form)">
+          <label>Nombre o seudónimo
+            <input name="nombre" required maxlength="100" [(ngModel)]="inquiry.name" #name="ngModel" />
+            @if (name.touched && !inquiry.name.trim()) { <span class="error">Ingresa un nombre o seudónimo.</span> }
+          </label>
+          <label>Correo electrónico
+            <input name="correo" type="email" email required maxlength="180" [(ngModel)]="inquiry.email" #email="ngModel" />
+            @if (email.touched && email.invalid) { <span class="error">Ingresa un correo válido.</span> }
+          </label>
+          <label>Motivo de contacto
+            <select name="motivo" required [(ngModel)]="inquiry.subject" #subject="ngModel">
+              <option value="">Selecciona un motivo</option>
+              <option>Consulta sobre una habitación</option>
+              <option>Publicar una habitación</option>
+              <option>Reportar un anuncio</option>
+              <option>Otra consulta</option>
+            </select>
+            @if (subject.touched && subject.invalid) { <span class="error">Selecciona un motivo de contacto.</span> }
+          </label>
+          <label>Mensaje
+            <textarea name="mensaje" required minlength="10" maxlength="800" rows="4" [(ngModel)]="inquiry.message" #message="ngModel"></textarea>
+            @if (message.touched && inquiry.message.trim().length < 10) {
+              <span class="error">Escribe un mensaje de al menos 10 caracteres.</span>
+            }
+          </label>
+          @if (submitted()) { <p class="error small" role="alert">Revisa tu consulta y completa los campos marcados.</p> }
+          <button class="button" type="submit">Registrar consulta de prueba</button>
+        </form>
+      }
+    </section>
+  </div>
+</div>

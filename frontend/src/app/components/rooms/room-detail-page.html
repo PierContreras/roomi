@@ -30,6 +30,7 @@
         <p>{{ current.owner }}</p>
         <div class="stack compact">
           <a class="button" [routerLink]="['contacto']">Contactar al propietario</a>
+          <a class="button quiet" [routerLink]="['compartir']">Compartir anuncio</a>
           <button type="button" class="button secondary" [attr.aria-pressed]="catalog.isSaved(current.id)"
             (click)="catalog.toggleSaved(current.id)">{{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
         </div>

@@ -76,7 +76,7 @@ describe('Recorridos de ROOMI', () => {
   }
 
   it('busca, filtra, guarda un anuncio y prepara una consulta sin enviarla', async () => {
-    await harness.navigateByUrl('/');
+    await harness.navigateByUrl('/explorar');
     await enter('zona', 'San Carlos');
     await action('Buscar habitaciones');
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -116,9 +116,18 @@ describe('Recorridos de ROOMI', () => {
   });
 
   it('valida el acceso y confirma el registro de un perfil ficticio', async () => {
+    await harness.navigateByUrl('/');
+    expect(TestBed.inject(Router).url).toBe('/acceso');
+    expect(text()).toContain('Inicia sesión o crea tu cuenta');
+    await action('Seguir explorando como invitado');
+    expect(TestBed.inject(Router).url).toBe('/explorar');
     await harness.navigateByUrl('/propietario');
     expect(TestBed.inject(Router).url).toBe('/acceso');
+    await enter('correo', 'incorrecto');
+    await action('Continuar');
+    expect(text()).toContain('Revisa tu correo o teléfono');
     await enter('correo', 'propietario@roomi.test');
+    await action('Continuar');
     await enter('contrasena', 'incorrecta');
     await action('Iniciar sesión');
     expect(text()).toContain('no coinciden');
@@ -128,6 +137,30 @@ describe('Recorridos de ROOMI', () => {
     await enter('contrasena', 'prueba123');
     await action('Crear cuenta');
     expect(text()).toContain('Cuenta de demostración creada');
+  });
+
+  it('busca preguntas de ayuda y confirma una consulta simulada', async () => {
+    await harness.navigateByUrl('/ayuda');
+    await enter('busqueda', 'propietario');
+    await action('Buscar');
+    expect(text()).toContain('resultados para');
+    await action('Registrar consulta de prueba');
+    expect(text()).toContain('Revisa tu consulta');
+    await enter('nombre', 'Juan Demo');
+    await enter('correo', 'ayuda@roomi.test');
+    await enter('motivo', 'Otra consulta');
+    await enter('mensaje', 'Quiero conocer cómo funciona el directorio.');
+    await action('Registrar consulta de prueba');
+    expect(text()).toContain('Consulta registrada en la demo');
+  });
+
+  it('abre la pantalla de compartir desde la habitación', async () => {
+    await harness.navigateByUrl('/habitaciones/san-carlos-320');
+    await action('Compartir anuncio');
+    expect(text()).toContain('Comparte este anuncio');
+    expect(page().querySelector('input')?.value).toMatch(/\/habitaciones\/san-carlos-320$/);
+    await action('Volver al anuncio');
+    expect(text()).toContain('Sobre la habitación');
   });
 
   it('crea, edita y retira un anuncio y refleja ambas decisiones de moderación', async () => {
