@@ -8,23 +8,23 @@
     </button>
     <nav id="navegacion" aria-label="Navegación principal" [class.open]="menuOpen()">
       <div class="nav-links">
-        <a routerLink="/explorar" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Explorar</a>
-        <a [routerLink]="session.user()?.role === 'owner' ? '/propietario/nuevo' : '/acceso'"
-          [queryParams]="session.user()?.role === 'owner' ? {} : { destino: 'publicar' }"
-          (click)="menuOpen.set(false)">Publicar habitación</a>
+        <a routerLink="/explorar" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Inicio</a>
+        <a routerLink="/buscar" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Buscar habitaciones</a>
         <a routerLink="/guardados" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Guardados</a>
+        @if (session.user()?.role === 'owner') {
+          <a routerLink="/propietario" routerLinkActive="active" [ariaCurrentWhenActive]="path() === '/propietario' ? 'page' : 'location'" (click)="menuOpen.set(false)">Mis anuncios</a>
+        } @else if (session.user()?.role === 'admin') {
+          <a routerLink="/administracion" routerLinkActive="active" [ariaCurrentWhenActive]="path() === '/administracion' ? 'page' : 'location'" (click)="menuOpen.set(false)">Administración</a>
+        } @else {
+          <a routerLink="/acceso" [queryParams]="{ destino: 'publicar' }" (click)="menuOpen.set(false)">Publicar</a>
+        }
         <a routerLink="/ayuda" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Ayuda</a>
       </div>
       <div class="account-links">
-        @if (session.user(); as user) {
-          @if (user.role === 'owner') {
-            <a routerLink="/propietario" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Mis anuncios</a>
-          } @else if (user.role === 'admin') {
-            <a routerLink="/administracion" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Administración</a>
-          }
+        @if (session.user()) {
           <button type="button" class="button quiet" (click)="signOut()">Cerrar sesión</button>
         } @else {
-          <a class="button" routerLink="/acceso" routerLinkActive="access-active" ariaCurrentWhenActive="page"
+          <a class="button" routerLink="/acceso" routerLinkActive="access-active" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
             (click)="menuOpen.set(false)">Iniciar sesión</a>
         }
       </div>

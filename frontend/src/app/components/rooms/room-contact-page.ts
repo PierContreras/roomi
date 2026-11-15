@@ -3,6 +3,7 @@ import { Component, inject, input, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RoomService } from '../../services/room.service';
+import { roomNavigation } from './room-navigation';
 
 @Component({
   imports: [FormsModule, RouterLink],
@@ -10,6 +11,7 @@ import { RoomService } from '../../services/room.service';
 })
 export class RoomContactPage {
   readonly id = input.required<string>();
+  protected readonly navigation = roomNavigation();
   private readonly catalog = inject(RoomService);
   protected readonly room = this.catalog.detail(this.id);
   protected readonly prepared = signal('');

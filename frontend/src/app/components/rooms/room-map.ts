@@ -1,5 +1,5 @@
-import { Component, computed, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, input, model } from '@angular/core';
+import { Params, RouterLink } from '@angular/router';
 import { PublicRoom, Zone } from '../../interfaces/room';
 
 const positions: Record<Zone, [number, number]> = {
@@ -14,7 +14,8 @@ const positions: Record<Zone, [number, number]> = {
 })
 export class RoomMap {
   readonly rooms = input.required<readonly PublicRoom[]>();
-  protected readonly selected = signal('');
+  readonly detailQuery = input<Params>({});
+  readonly selected = model('');
   protected readonly markers = computed(() => Object.entries(positions).flatMap(([zone, [x, y]]) => {
     const rooms = this.rooms().filter(room => room.zone === zone);
     return rooms.length ? [{ zone, x, y, rooms }] : [];

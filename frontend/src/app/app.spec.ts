@@ -8,6 +8,7 @@ import { App } from './app';
 import { routes } from './app.routes';
 import { demoRooms } from './services/demo-rooms';
 import { RoomService } from './services/room.service';
+import { UiLibraries } from './services/ui-libraries';
 
 const mockCatalog: HttpInterceptorFn = request => {
   const rooms = demoRooms.filter(room => room.status === 'approved');
@@ -102,6 +103,10 @@ describe('Recorridos de ROOMI', () => {
 
   it('busca, filtra, guarda un anuncio y prepara una consulta sin enviarla', async () => {
     await harness.navigateByUrl('/explorar');
+    await action('San Carlos');
+    expect(TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap.get('zona')).toBe('San Carlos');
+    expect(page().querySelector('[aria-label="Filtros aplicados"]')?.textContent).toContain('San Carlos');
+    await harness.navigateByUrl('/explorar');
     await enter('zona', 'San Carlos');
     await action('Buscar habitaciones');
     await stabilize();
@@ -117,6 +122,8 @@ describe('Recorridos de ROOMI', () => {
     await action('Aplicar filtros');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
+    await action('Comparar precios');
+    expect(page().querySelector('table tbody')?.textContent).toMatch(/San Carlos.*320.*320/);
     await action('Ver mapa');
     expect(page().querySelector('.map-open')).toBeTruthy();
     await action('San Carlos');
@@ -138,6 +145,13 @@ describe('Recorridos de ROOMI', () => {
       expect(text()).toContain('Mensaje preparado');
     });
     expect(page().querySelector('textarea')?.value).toContain('consulta@roomi.test');
+    await action('Volver al anuncio');
+    await action('← Volver a los resultados');
+    const params = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap;
+    expect(params.get('zona')).toBe('San Carlos');
+    expect(params.get('precio')).toBe('325');
+    await stabilize();
+    expect(text()).toContain('1 habitación encontrada');
   });
 
   it('distingue un anuncio inexistente de un fallo del catálogo', async () => {
@@ -152,7 +166,8 @@ describe('Recorridos de ROOMI', () => {
 
   it('valida el acceso y confirma el registro de un perfil ficticio', async () => {
     await harness.navigateByUrl('/');
-    expect(TestBed.inject(Router).url).toBe('/acceso');
+    expect(TestBed.inject(Router).url).toBe('/explorar');
+    await harness.navigateByUrl('/acceso');
     expect(text()).toContain('Inicia sesión o crea tu cuenta');
     await action('Seguir explorando como invitado');
     expect(TestBed.inject(Router).url).toBe('/explorar');
@@ -200,6 +215,8 @@ describe('Recorridos de ROOMI', () => {
   });
 
   it('crea, edita y retira un anuncio y refleja ambas decisiones de moderación', async () => {
+    vi.spyOn(TestBed.inject(UiLibraries), 'confirm').mockResolvedValue(undefined);
+    vi.spyOn(TestBed.inject(UiLibraries), 'success').mockResolvedValue(undefined);
     const createElement = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation((tag, options) => {
       const element = createElement(tag, options);

@@ -12,7 +12,7 @@
     @if (active(); as marker) {
       <ul>
         @for (room of marker.rooms; track room.id) {
-          <li><a [routerLink]="['/habitaciones', room.id]">{{ room.title }} · S/ {{ room.price }}</a></li>
+          <li><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">{{ room.title }} · S/ {{ room.price }}</a></li>
         }
       </ul>
     }

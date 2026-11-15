@@ -1,10 +1,18 @@
 <div class="container page stack">
   <p class="small muted"><a routerLink="/propietario">Volver a mis anuncios</a></p>
+  @if (!id() || existing() || saved()) {
+    <ol class="publication-steps" aria-label="Pasos para publicar">
+      <li [attr.aria-current]="!preview() ? 'step' : null">Datos del alojamiento</li>
+      <li [attr.aria-current]="preview() && !saved() ? 'step' : null">Vista previa</li>
+      <li [attr.aria-current]="saved() ? 'step' : null">En revisión</li>
+    </ol>
+  }
   @if (saved(); as current) {
     <section class="panel section stack compact" role="status">
       <h1>Publicación enviada a revisión</h1>
       <p>{{ current.title }}</p>
       <div><app-status-badge [status]="current.status" /></div>
+      <p>Consulta el estado de tu publicación en Mis anuncios.</p>
       <div><a class="button" routerLink="/propietario">Ver mis anuncios</a></div>
     </section>
   } @else if (id() && !existing()) {
