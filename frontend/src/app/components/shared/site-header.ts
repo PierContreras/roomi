@@ -12,12 +12,6 @@ export class SiteHeader {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   protected readonly menuOpen = signal(false);
-  protected readonly links = [
-    { label: 'Explorar', path: '/' },
-    { label: 'Buscar', path: '/buscar' },
-    { label: 'Guardados', path: '/guardados' },
-  ];
-
   protected closeMenu(button: HTMLButtonElement) {
     if (!this.menuOpen()) return;
     this.menuOpen.set(false);

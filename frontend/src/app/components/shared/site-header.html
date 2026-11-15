@@ -1,25 +1,33 @@
 <header (keydown.escape)="closeMenu(menuButton)">
-  <p class="notice">Huancayo · Directorio demostrativo</p>
+  <p class="notice">Directorio estudiantil demostrativo · Huancayo</p>
   <div class="container bar">
-    <a class="brand" routerLink="/" (click)="menuOpen.set(false)" aria-label="ROOMI, inicio">roomi</a>
-    <button #menuButton type="button" class="menu" aria-controls="navegacion" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.update(open => !open)">
+    <a class="brand" routerLink="/explorar" (click)="menuOpen.set(false)" aria-label="ROOMI, explorar habitaciones">roomi</a>
+    <button #menuButton type="button" class="menu button quiet" aria-controls="navegacion"
+      [attr.aria-expanded]="menuOpen()" (click)="menuOpen.update(open => !open)">
       {{ menuOpen() ? 'Cerrar menú' : 'Menú' }}
     </button>
     <nav id="navegacion" aria-label="Navegación principal" [class.open]="menuOpen()">
-      @for (link of links; track link.path) {
-        <a [routerLink]="link.path" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
-           ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">{{ link.label }}</a>
-      }
-      @if (session.user(); as user) {
-        @if (user.role === 'owner') {
-          <a routerLink="/propietario" routerLinkActive="active" (click)="menuOpen.set(false)">Mis anuncios</a>
-        } @else if (user.role === 'admin') {
-          <a routerLink="/administracion" routerLinkActive="active" (click)="menuOpen.set(false)">Administración</a>
+      <div class="nav-links">
+        <a routerLink="/explorar" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Explorar</a>
+        <a [routerLink]="session.user()?.role === 'owner' ? '/propietario/nuevo' : '/acceso'"
+          [queryParams]="session.user()?.role === 'owner' ? {} : { destino: 'publicar' }"
+          (click)="menuOpen.set(false)">Publicar habitación</a>
+        <a routerLink="/guardados" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Guardados</a>
+        <a routerLink="/ayuda" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Ayuda</a>
+      </div>
+      <div class="account-links">
+        @if (session.user(); as user) {
+          @if (user.role === 'owner') {
+            <a routerLink="/propietario" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Mis anuncios</a>
+          } @else if (user.role === 'admin') {
+            <a routerLink="/administracion" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)">Administración</a>
+          }
+          <button type="button" class="button quiet" (click)="signOut()">Cerrar sesión</button>
+        } @else {
+          <a class="button" routerLink="/acceso" routerLinkActive="access-active" ariaCurrentWhenActive="page"
+            (click)="menuOpen.set(false)">Iniciar sesión</a>
         }
-        <button type="button" class="button quiet" (click)="signOut()">Cerrar sesión</button>
-      } @else {
-        <a routerLink="/acceso" routerLinkActive="active" (click)="menuOpen.set(false)">Iniciar sesión</a>
-      }
+      </div>
     </nav>
   </div>
 </header>

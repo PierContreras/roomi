@@ -23,8 +23,9 @@ npm.cmd test -- --watch=false
 
 | Etapa | Pantallas y rutas | Cómo probar | Operaciones simuladas |
 | --- | --- | --- | --- |
-| Base | Explorar, encabezado, menú móvil y pie en `/` | Reduce la ventana a 390 px de ancho. Abre y cierra **Menú** y sigue un enlace | Aviso y datos de demostración |
-| Estudiante | Explorar, `/buscar`, `/habitaciones/:id`, `/habitaciones/:id/contacto`, `/guardados` | Busca en San Carlos, aplica un precio máximo, abre una ficha y prepara una consulta. Usa un precio máximo de S/ 10 para ver el estado vacío. En móvil usa **Ver mapa** | Filtros, ubicación aproximada, contactos, fotos referenciales y consultas |
+| Base | Acceso inicial en `/`, encabezado, menú móvil y pie | Abre **Menú** en móvil o selecciona **Seguir explorando como invitado** | Acceso y perfiles de demostración |
+| Estudiante | `/explorar`, `/buscar`, `/habitaciones/:id`, `/habitaciones/:id/contacto`, `/habitaciones/:id/compartir`, `/guardados` | Busca en San Carlos, aplica un precio máximo, abre una ficha y prepara una consulta o copia el enlace | Filtros, ubicación aproximada, contactos, fotos referenciales y consultas |
+| Ayuda | `/ayuda` | Busca una pregunta o completa el formulario con datos ficticios | Consulta de soporte y confirmación local |
 | Propietario | `/acceso`, `/registro`, `/propietario`, `/propietario/nuevo`, `/propietario/:id/editar` | Entra como **Propietario**. Crea un anuncio con datos ficticios, revisa y envía. Edita sus datos y retíralo desde **Mis anuncios** | Cuenta, inicio de sesión, estados y almacenamiento local |
 | Administrador | `/administracion`, `/administracion/:id` | Cierra sesión y entra como **Administrador**. Aprueba un anuncio pendiente o recházalo con motivo. Vuelve a **Propietario** en la misma pestaña y comprueba el nuevo estado | Cola y decisiones de moderación compartidas entre los paneles |
 

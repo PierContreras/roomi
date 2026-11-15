@@ -2,7 +2,7 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemoUser, Role } from '../../interfaces/user';
-import { demoPassword, demoUsers, roleLabels, SessionService } from '../../services/session.service';
+import { demoPassword, demoPhone, demoUsers, roleLabels, SessionService } from '../../services/session.service';
 
 @Component({
   imports: [FormsModule, RouterLink],
@@ -18,6 +18,8 @@ export class AccessPage {
   protected readonly profiles = demoUsers;
   protected readonly roleLabels = roleLabels;
   protected readonly password = demoPassword;
+  protected readonly phone = demoPhone;
+  protected readonly passwordStep = signal(false);
   protected readonly error = signal('');
   protected readonly registered = signal<DemoUser | null>(null);
   protected details = { name: '', email: '', password: '', role: 'student' as Exclude<Role, 'admin'> };
@@ -25,6 +27,12 @@ export class AccessPage {
   protected demo(user: DemoUser) {
     const session = this.session.signIn(user.email, demoPassword);
     if (session) this.enter(session);
+  }
+
+  protected useUniversityEmail() {
+    this.details.email = this.profiles[0].email;
+    this.error.set('');
+    this.passwordStep.set(true);
   }
 
   protected submit(form: NgForm) {
@@ -41,9 +49,17 @@ export class AccessPage {
       else this.error.set('Este correo ya corresponde a un perfil de demostración.');
       return;
     }
+    if (!/^(?:[^\s@]+@[^\s@]+\.[^\s@]+|\d{9})$/.test(email.trim())) {
+      this.error.set('Revisa tu correo o teléfono. Ingresa un correo válido o un número de 9 dígitos.');
+      return;
+    }
+    if (!this.passwordStep()) {
+      this.passwordStep.set(true);
+      return;
+    }
     const user = this.session.signIn(email, password);
     if (user) this.enter(user);
-    else this.error.set('El correo o la contraseña de demostración no coinciden.');
+    else this.error.set('El correo, el teléfono o la contraseña de demostración no coinciden.');
   }
 
   protected enter(user: DemoUser) {
@@ -53,7 +69,7 @@ export class AccessPage {
     } else if (user.role === 'admin') {
       void this.router.navigateByUrl('/administracion');
     } else {
-      void this.router.navigateByUrl('/');
+      void this.router.navigateByUrl('/explorar');
     }
   }
 }

@@ -1,0 +1,18 @@
+.help { display: grid; gap: clamp(28px, 5vw, 56px); }
+.help-intro { text-align: center; max-width: 720px; width: 100%; margin: 14px auto 0; }
+.section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.help-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; text-align: left; margin-top: 12px; }
+.topic-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.topic { grid-template-rows: auto 1fr auto; }
+.topic .button { justify-self: start; }
+.help-details .actions p { margin: 0; }
+.question { padding: 14px 16px; scroll-margin-top: 12px; }
+.question summary { cursor: pointer; font-weight: 650; }
+.question p { color: var(--muted); margin: 10px 0 0; }
+.question:target { border-color: #779cac; }
+@media (max-width: 900px) { .topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .help-intro { text-align: left; margin: 0; }
+  .topic-grid, .help-search { grid-template-columns: 1fr; }
+  .topic .button { justify-self: stretch; }
+}

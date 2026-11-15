@@ -1,7 +1,28 @@
 <footer>
   <div class="container">
-    <a class="brand" routerLink="/">roomi</a>
-    <p>Directorio estudiantil universitario en Huancayo. Trato directo entre estudiantes y propietarios.</p>
-    <p>Las fotos, contactos y precios son referenciales para la demostración.</p>
+    <div class="footer-grid">
+      <div class="intro">
+        <a class="brand" routerLink="/explorar">roomi</a>
+        <p>Directorio de alojamiento estudiantil en Huancayo. Trato directo entre estudiantes y propietarios.</p>
+      </div>
+      <nav aria-label="Explorar en ROOMI">
+        <h2>Explorar</h2>
+        <a routerLink="/buscar" [queryParams]="{ zona: 'El Tambo' }">Habitaciones en El Tambo</a>
+        <a routerLink="/buscar" [queryParams]="{ zona: 'Centro' }">Centro de Huancayo</a>
+        <a routerLink="/guardados">Anuncios guardados</a>
+      </nav>
+      <nav aria-label="Comunidad ROOMI">
+        <h2>Comunidad</h2>
+        <a routerLink="/ayuda" fragment="preguntas">Cómo funciona</a>
+        <a routerLink="/acceso" [queryParams]="{ destino: 'publicar' }">Publicar habitación</a>
+        <a routerLink="/ayuda">Ayuda y soporte</a>
+      </nav>
+      <nav aria-label="Transparencia">
+        <h2>Transparencia</h2>
+        <a routerLink="/ayuda" fragment="soporte">Contacto de soporte</a>
+        <a routerLink="/ayuda" fragment="seguridad">Visitas y prevención</a>
+      </nav>
+    </div>
+    <p class="footer-note">Directorio demostrativo. Las fotos, los contactos y los precios son referenciales.</p>
   </div>
 </footer>
