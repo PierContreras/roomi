@@ -14,11 +14,20 @@
   <section class="stack compact">
     <h2>Habitaciones recomendadas para estudiantes</h2>
     <p>Trato directo con el propietario. Visita y coordina sin comisiones ni cobros en línea.</p>
-    <div class="room-grid">
-      @for (room of recommended(); track room.id) {
-        <app-room-card [room]="room" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
-      }
-    </div>
+    @if (published.isLoading()) {
+      <p role="status">Cargando habitaciones…</p>
+    } @else if (published.error()) {
+      <p role="alert">No pudimos cargar las habitaciones.</p>
+      <button class="button quiet" type="button" (click)="published.reload()">Reintentar</button>
+    } @else {
+      <div class="room-grid">
+        @for (room of recommended(); track room.id) {
+          <app-room-card [room]="room" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+        } @empty {
+          <p>Por ahora no hay habitaciones publicadas.</p>
+        }
+      </div>
+    }
     <a class="button secondary all" routerLink="/buscar">Ver todas las opciones</a>
   </section>
 </div>

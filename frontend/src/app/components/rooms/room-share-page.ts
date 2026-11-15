@@ -12,7 +12,7 @@ export class RoomSharePage {
   private readonly catalog = inject(RoomService);
   private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router);
-  protected readonly room = computed(() => this.catalog.findPublished(this.id()));
+  protected readonly room = this.catalog.detail(this.id);
   protected readonly feedback = signal<'idle' | 'copied' | 'manual'>('idle');
   protected readonly link = computed(() => {
     const path = this.router.serializeUrl(this.router.createUrlTree(['/habitaciones', this.id()]));

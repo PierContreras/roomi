@@ -36,8 +36,8 @@ La lista admite `zona`, `universidad`, `tipo`, `precio` (máximo), `minutos` (m�
 
 ## Probar con SQL Server
 
-1. Ten lista una base de datos de desarrollo y el controlador **Microsoft ODBC Driver 18 for SQL Server**.
-2. Desde `backend/`, copia `.env.example` a `.env`. Cambia `ROOMI_DATA_SOURCE` a `sqlserver` y configura `ROOMI_SQLSERVER_CONNECTION_STRING` con tu instancia, base y método de autenticación. Git ignora `.env`.
+1. Crea la base `ROOMI` en SQL Server y ten instalado **Microsoft ODBC Driver 18 for SQL Server**.
+2. Desde `backend/`, copia `.env.example` a `.env`. Cambia `ROOMI_DATA_SOURCE` a `sqlserver` y ajusta `DB_HOST` y `DB_NAME` a tu instancia y base. Deja `DB_USER` y `DB_PASSWORD` vacíos para usar autenticación de Windows. Si tu instancia local usa un certificado autofirmado, `DB_TRUST_SERVER_CERTIFICATE=yes` reproduce la opción **Certificado de servidor de confianza** de SSMS. Git ignora `.env`. Si ya tienes `ROOMI_SQLSERVER_CONNECTION_STRING` configurada, tiene prioridad sobre las variables `DB_*`.
 3. Ejecuta estos comandos. Omite `--datos-demo` si solo quieres crear la tabla.
 
 ```powershell
@@ -48,4 +48,4 @@ uv run --extra sqlserver --env-file .env uvicorn backend.main:app --reload
 
 El script crea `dbo.alojamientos` si la tabla aún no existe. Con `--datos-demo` agrega los ejemplos únicamente cuando falta su identificador. Para este catálogo inicial, la tabla guarda los servicios y las fotos como listas JSON.
 
-Angular sigue usando su servicio de demostración. La conexión desde Angular, la autenticación y las operaciones de escritura de la API quedan para etapas posteriores.
+El catálogo público de Angular consulta esta API. La autenticación y la gestión de anuncios del propietario y del administrador siguen siendo de demostración.

@@ -1,4 +1,5 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, input, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RoomService } from '../../services/room.service';
@@ -10,7 +11,7 @@ import { RoomService } from '../../services/room.service';
 export class RoomContactPage {
   readonly id = input.required<string>();
   private readonly catalog = inject(RoomService);
-  protected readonly room = computed(() => this.catalog.findPublished(this.id()));
+  protected readonly room = this.catalog.detail(this.id);
   protected readonly prepared = signal('');
   protected readonly busy = signal(false);
   protected readonly error = signal('');
@@ -27,8 +28,10 @@ export class RoomContactPage {
     this.busy.set(true);
     try {
       this.prepared.set(await this.catalog.prepareContact(this.id(), this.inquiry));
-    } catch {
-      this.error.set('El anuncio ya no está disponible.');
+    } catch (error) {
+      this.error.set(error instanceof HttpErrorResponse && error.status === 404
+        ? 'El anuncio ya no está disponible.'
+        : 'No pudimos verificar el anuncio. Intenta nuevamente.');
     } finally {
       this.busy.set(false);
     }

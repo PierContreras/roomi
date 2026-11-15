@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
-import { Room, RoomFilters, amenities, roomTypes, universities, zones } from '../../interfaces/room';
+import { PublicRoom, RoomFilters, amenities, roomTypes, universities, zones } from '../../interfaces/room';
 import { RoomCard } from './room-card';
 import { RoomMap } from './room-map';
 import { RoomService } from '../../services/room.service';
@@ -28,7 +28,7 @@ export class SearchPage {
   protected readonly catalog = inject(RoomService);
   private request = 0;
   protected readonly filters = signal(emptyFilters);
-  protected readonly rooms = signal<readonly Room[]>([]);
+  protected readonly rooms = signal<readonly PublicRoom[]>([]);
   protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   protected readonly showMap = signal(false);
 
@@ -47,12 +47,13 @@ export class SearchPage {
   }
 
   private loadParams(params: ParamMap) {
+    const minutes = nonNegative(params.get('minutos'));
     this.filters.set({
       zone: selectValue(zones, params.get('zona')),
       university: selectValue(universities, params.get('universidad')),
       type: selectValue(roomTypes, params.get('tipo')),
       maxPrice: nonNegative(params.get('precio')),
-      maxMinutes: nonNegative(params.get('minutos')),
+      maxMinutes: Number.isInteger(minutes) ? minutes : null,
       amenities: amenities.filter(amenity => params.getAll('servicio').includes(amenity)),
     });
     void this.load();

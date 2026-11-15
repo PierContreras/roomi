@@ -15,7 +15,8 @@ export class ExplorePage {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   protected readonly catalog = inject(RoomService);
-  protected readonly recommended = computed(() => this.catalog.published().slice(0, 3));
+  protected readonly published = this.catalog.published();
+  protected readonly recommended = computed(() => this.published.hasValue() ? this.published.value().slice(0, 3) : []);
 
   protected search(filters: RoomFilters) {
     void this.router.navigate(['/buscar'], {

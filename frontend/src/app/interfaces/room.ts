@@ -32,10 +32,13 @@ export interface RoomDraft {
   photos: readonly RoomPhoto[];
 }
 
-export interface Room extends RoomDraft {
+export interface PublicRoom extends RoomDraft {
   id: string;
-  ownerId: string;
   owner: string;
+}
+
+export interface Room extends PublicRoom {
+  ownerId: string;
   status: RoomStatus;
   reviewNote?: string;
 }

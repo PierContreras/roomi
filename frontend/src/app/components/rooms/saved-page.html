@@ -1,11 +1,17 @@
 <div class="container page">
   <h1>Habitaciones guardadas</h1>
-  <div class="room-grid">
-    @for (room of catalog.saved(); track room.id) {
-      <app-room-card [room]="room" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
-    }
-  </div>
-  @if (!catalog.saved().length) {
+  @if (published.isLoading()) {
+    <p role="status">Cargando habitaciones guardadas…</p>
+  } @else if (published.error()) {
+    <p role="alert">No pudimos cargar las habitaciones guardadas.</p>
+    <button class="button quiet" type="button" (click)="published.reload()">Reintentar</button>
+  } @else if (saved().length) {
+    <div class="room-grid">
+      @for (room of saved(); track room.id) {
+        <app-room-card [room]="room" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
+      }
+    </div>
+  } @else {
     <section class="panel empty">
       <h2>Aún no tienes habitaciones guardadas</h2>
       <p>Guarda las habitaciones que te interesan para compararlas después.</p>
