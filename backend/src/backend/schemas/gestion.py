@@ -1,0 +1,239 @@
+import base64
+import binascii
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+
+from backend.schemas.alojamiento import Alojamiento, Foto, Servicio, Tipo, Universidad, Zona
+
+Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+Correo = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=180, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
+Rol = Literal["student", "owner", "admin"]
+Estado = Literal["pending", "approved", "rejected", "withdrawn"]
+
+
+class Entrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Acceso(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'email': 'ana@example.com', 'password': 'ejemplo-no-real-123'}]})
+    email: Correo
+    password: str = Field(min_length=10, max_length=64)
+
+
+class Registro(Acceso):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'email': 'ana@example.com', 'password': 'ejemplo-no-real-123', 'name': 'Ana Pérez'}]})
+    name: Texto = Field(max_length=100)
+    role: Literal["student", "owner"] = "student"
+
+
+class Usuario(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'id': '11111111-1111-4111-8111-111111111111',
+            'name': 'Ana Pérez',
+            'email': 'ana@example.com',
+            'role': 'student',
+    }]})
+    id: str
+    name: str
+    email: str
+    role: Rol
+
+
+class Sesion(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'token': 'JWT_DE_EJEMPLO',
+            'user': {'id': '11111111-1111-4111-8111-111111111111',
+                     'name': 'Ana Pérez',
+                     'email': 'ana@example.com',
+                     'role': 'student'},
+    }]})
+    token: str
+    user: Usuario
+
+
+class Borrador(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'title': 'Habitación cerca del campus',
+            'zone': 'San Carlos',
+            'university': 'Continental',
+            'type': 'Habitación',
+            'price': 320,
+            'deposit': 100,
+            'minutes': 8,
+            'amenities': ['Wifi'],
+            'description': 'Habitación con luz natural.',
+            'rules': 'Pago mensual.',
+            'address': 'San Carlos, Huancayo',
+            'photos': [],
+            'latitude': -12.06,
+            'longitude': -75.21,
+            'distanceKm': 1.2,
+            'whatsapp': None,
+    }]})
+    title: Texto = Field(max_length=200)
+    zone: Zona
+    university: Universidad
+    type: Tipo
+    price: float = Field(ge=0, le=99999999.99)
+    deposit: float = Field(ge=0, le=99999999.99)
+    minutes: int = Field(ge=0, le=1440)
+    amenities: tuple[Servicio, ...] = Field(max_length=6)
+    description: Texto = Field(max_length=2000)
+    rules: Texto = Field(max_length=2000)
+    address: Texto = Field(max_length=250)
+    photos: tuple[Foto, ...] = Field(max_length=3)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    distanceKm: float = Field(ge=0, le=100)
+    whatsapp: str | None = Field(default=None, pattern=r"^[1-9][0-9]{7,14}$")
+
+    @field_validator("whatsapp", mode="before")
+    @classmethod
+    def normalizar_whatsapp(cls, numero):
+        if not isinstance(numero, str):
+            return numero
+        numero = numero.strip().removeprefix("+")
+        numero = "".join(numero.split()).replace("-", "")
+        if len(numero) == 9 and numero.startswith("9") and numero.isascii() and numero.isdigit():
+            numero = "51" + numero
+        return numero
+
+    @field_validator("photos")
+    @classmethod
+    def validar_fotos(cls, fotos):
+        for foto in fotos:
+            header, _, data = foto.src.partition(",")
+            if len(foto.alt) > 200 or len(data) > 533336:
+                raise ValueError("Cada foto puede tener hasta 400 KB.")
+            try:
+                binary = base64.b64decode(data, validate=True)
+            except binascii.Error:
+                raise ValueError("La foto no tiene un formato válido.") from None
+            valid = (
+                (header == "data:image/jpeg;base64" and binary.startswith(b"\xff\xd8\xff"))
+                or (header == "data:image/png;base64" and binary.startswith(b"\x89PNG\r\n\x1a\n"))
+                or (header == "data:image/webp;base64" and binary.startswith(b"RIFF") and binary[8:12] == b"WEBP")
+            )
+            if not valid or len(binary) > 400000:
+                raise ValueError("Usa una foto JPG, PNG o WebP de hasta 400 KB.")
+        return fotos
+
+
+class AnuncioGestionado(Alojamiento):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'id': 'anuncio-ejemplo',
+            'title': 'Habitación cerca del campus',
+            'zone': 'San Carlos',
+            'university': 'Continental',
+            'type': 'Habitación',
+            'price': 320,
+            'deposit': 100,
+            'minutes': 8,
+            'amenities': ['Wifi'],
+            'description': 'Habitación con luz natural.',
+            'rules': 'Pago mensual.',
+            'address': 'San Carlos, Huancayo',
+            'photos': [],
+            'owner': 'Ana Pérez',
+            'latitude': -12.06,
+            'longitude': -75.21,
+            'distanceKm': 1.2,
+            'contactAvailable': True,
+            'status': 'pending',
+            'ownerId': '11111111-1111-4111-8111-111111111111',
+            'reviewNote': None,
+            'revision': 1,
+            'whatsapp': None,
+    }]})
+    ownerId: str | None
+    status: Estado
+    reviewNote: str | None
+    revision: int
+
+
+class Decision(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'revision': 1, 'status': 'approved'}]})
+    revision: int = Field(ge=1)
+    status: Literal["approved", "rejected"]
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=800)] = ""
+
+    @model_validator(mode="after")
+    def motivo_del_rechazo(self):
+        if self.status == "rejected" and not self.note:
+            raise ValueError("Escribe el motivo del rechazo.")
+        return self
+
+
+class Retiro(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'status': 'withdrawn'}]})
+    status: Literal["withdrawn"]
+
+
+class Consulta(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'name': 'Ana Pérez',
+            'email': 'ana@example.com',
+            'message': 'Me interesa conocer el alojamiento.',
+            'consent': True,
+    }]})
+    name: Texto = Field(max_length=100)
+    email: Correo
+    message: Texto = Field(min_length=10, max_length=800)
+    consent: Literal[True]
+
+
+class ConsultaRecibida(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'id': 'ejemplo',
+            'roomId': 'anuncio-ejemplo',
+            'title': 'Habitación cerca del campus',
+            'name': 'Ana Pérez',
+            'email': 'ana@example.com',
+            'message': 'Me interesa conocer el alojamiento.',
+    }]})
+    id: str
+    roomId: str
+    title: str
+    name: str
+    email: str
+    message: str
+
+
+class Reporte(Entrada):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'message': 'La dirección del anuncio parece incorrecta.'}]})
+    message: Texto = Field(min_length=10, max_length=800)
+
+
+class Resena(Reporte):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'message': 'La habitación recibe luz natural.', 'rating': 4}]})
+    rating: int = Field(ge=1, le=5)
+
+
+class ResenaPublica(Resena):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'id': 'resena-ejemplo',
+            'name': 'Ana Pérez',
+            'message': 'La habitación recibe luz natural.',
+            'rating': 4,
+    }]})
+    id: str
+    name: str
+
+
+class ReporteRecibido(Reporte):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+            'id': 'ejemplo',
+            'roomId': 'anuncio-ejemplo',
+            'title': 'Habitación cerca del campus',
+            'message': 'La dirección del anuncio parece incorrecta.',
+    }]})
+    id: str
+    roomId: str
+    title: str
+
+
+class Creado(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{'id': 'recurso-ejemplo'}]})
+    id: str

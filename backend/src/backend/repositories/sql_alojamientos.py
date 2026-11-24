@@ -5,10 +5,20 @@ from backend.schemas.alojamiento import Alojamiento
 
 CONSULTA_PUBLICADOS = """
     SELECT id, title, zone, university, [type] AS [type], price, deposit,
-           minutes, amenities_json, description, rules, address, photos_json, [owner] AS [owner]
+           minutes, amenities_json, description, rules, address, photos_json, [owner],
+           latitude, longitude, distance_km AS distanceKm, whatsapp, CAST(CASE WHEN owner_id IS NULL THEN 0 ELSE 1 END AS BIT) AS contactAvailable
     FROM dbo.alojamientos
     WHERE [status] = ?
 """
+
+
+def convertir_anuncio(datos, modelo=Alojamiento):
+    try:
+        datos["amenities"] = json.loads(datos.pop("amenities_json"))
+        datos["photos"] = json.loads(datos.pop("photos_json"))
+        return modelo.model_validate(datos)
+    except ValueError as error:
+        raise ConexionSqlError("Los datos de alojamientos no cumplen el esquema esperado.") from error
 
 
 class RepositorioAlojamientosSql:
@@ -26,13 +36,4 @@ class RepositorioAlojamientosSql:
             columnas = [columna[0] for columna in cursor.description]
             filas = cursor.fetchall()
 
-        try:
-            alojamientos = []
-            for fila in filas:
-                datos = dict(zip(columnas, fila, strict=True))
-                datos["amenities"] = json.loads(datos.pop("amenities_json"))
-                datos["photos"] = json.loads(datos.pop("photos_json"))
-                alojamientos.append(Alojamiento.model_validate(datos))
-            return alojamientos
-        except ValueError as error:
-            raise ConexionSqlError("Los datos de alojamientos no cumplen el esquema esperado.") from error
+        return [convertir_anuncio(dict(zip(columnas, fila, strict=True))) for fila in filas]

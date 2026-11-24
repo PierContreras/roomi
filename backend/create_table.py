@@ -1,31 +1,23 @@
 import argparse
+import getpass
 import json
+from pathlib import Path
 
 from backend.db_connection import ConexionSqlError, abrir_conexion
 from backend.repositories.datos_demo import ALOJAMIENTOS_DEMO
+from backend.repositories.gestion import inscribir
+from backend.schemas.gestion import Registro
+from backend.services.seguridad import hash_password
 
-CREAR_TABLA = """
-IF OBJECT_ID(N'dbo.alojamientos', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.alojamientos (
-        id VARCHAR(100) NOT NULL PRIMARY KEY,
-        title NVARCHAR(200) NOT NULL,
-        zone NVARCHAR(60) NOT NULL,
-        university NVARCHAR(60) NOT NULL,
-        [type] NVARCHAR(40) NOT NULL,
-        price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-        deposit DECIMAL(10, 2) NOT NULL CHECK (deposit >= 0),
-        minutes INT NOT NULL CHECK (minutes >= 0),
-        amenities_json NVARCHAR(MAX) NOT NULL CHECK (ISJSON(amenities_json) = 1),
-        description NVARCHAR(2000) NOT NULL,
-        rules NVARCHAR(2000) NOT NULL,
-        address NVARCHAR(250) NOT NULL,
-        photos_json NVARCHAR(MAX) NOT NULL CHECK (ISJSON(photos_json) = 1),
-        [owner] NVARCHAR(200) NOT NULL,
-        [status] VARCHAR(12) NOT NULL CHECK ([status] IN ('pending', 'approved', 'rejected', 'withdrawn'))
-    );
-END;
-"""
+MIGRACIONES = Path(__file__).parent / "migrations"
+ESQUEMA_SQL = (
+    "000_catalogo.sql",
+    "001_gestion.sql",
+    "002_indices.sql",
+    "003_eliminacion_anuncios.sql",
+    "004_hash_contrasena_unicode.sql",
+    "005_ampliar_hash_contrasena.sql",
+)
 
 INSERTAR_DEMO = """
 INSERT INTO dbo.alojamientos (
@@ -38,13 +30,16 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.alojamientos WITH (UPDLOCK, HOLDLOCK) WHERE 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prepara la tabla de alojamientos de ROOMI.")
+    parser = argparse.ArgumentParser(description="Inicializa o actualiza el esquema de ROOMI.")
     parser.add_argument("--datos-demo", action="store_true", help="Inserta ejemplos que todavía no existan.")
+    parser.add_argument("--admin-email", help="Crea una cuenta de administración por consola.")
     opciones = parser.parse_args()
     try:
         with abrir_conexion() as conexion:
             cursor = conexion.cursor()
-            cursor.execute(CREAR_TABLA)
+            cursor.execute("SET XACT_ABORT ON")
+            for archivo in ESQUEMA_SQL:
+                cursor.execute((MIGRACIONES / archivo).read_text(encoding="utf-8"))
             if opciones.datos_demo:
                 for room in ALOJAMIENTOS_DEMO:
                     cursor.execute(
@@ -59,7 +54,18 @@ def main() -> None:
     except ConexionSqlError as error:
         parser.exit(1, f"{error}\n")
 
-    print("La tabla dbo.alojamientos está disponible.")
+    print("El esquema de ROOMI está disponible.")
+    if opciones.admin_email:
+        password = getpass.getpass("Contraseña de administrador: ")
+        if password != getpass.getpass("Confirma la contraseña: "):
+            parser.exit(1, "Las contraseñas no coinciden.\n")
+        try:
+            admin = Registro(name="Administración ROOMI", email=opciones.admin_email, password=password, role="owner")
+        except ValueError:
+            parser.exit(1, "Ingresa un correo válido y una contraseña de 10 a 64 caracteres.\n")
+        if not inscribir(admin.name, admin.email, "admin", hash_password(admin.password)):
+            parser.exit(1, "Ese correo ya está registrado. Usa el acceso existente u otro correo.\n")
+        print("Cuenta de administración creada.")
 
 
 if __name__ == "__main__":
