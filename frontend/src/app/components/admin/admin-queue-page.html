@@ -19,22 +19,16 @@
           <app-status-badge [status]="room.status" />
         </div>
         <p>{{ room.owner }} · {{ room.zone }} · S/ {{ room.price }} / mes</p>
+        @if (room.motivos?.length) {
+          <ul>@for (reason of room.motivos; track reason) { <li>{{ reasons[reason] }}</li> }</ul>
+        }
         <div><a class="button" [routerLink]="['/administracion', room.id]">Revisar anuncio<span class="sr-only"> {{ room.title }}</span></a></div>
       </article>
     } @empty {
       <div class="panel empty"><p>No hay anuncios pendientes de revisión.</p></div>
     }
   </section>
-  <details class="panel section">
-    <summary>Ver anuncios revisados ({{ reviewed().length }})</summary>
-    <ul class="stack">
-      @for (room of reviewed(); track room.id) {
-        <li><a [routerLink]="['/administracion', room.id]">{{ room.title }}</a> · <app-status-badge [status]="room.status" /></li>
-      } @empty {
-        <li>Aún no hay anuncios revisados.</li>
-      }
-    </ul>
-  </details>
+
   }
   <section class="panel section stack" aria-labelledby="reportes">
     <h2 id="reportes">Anuncios reportados</h2>

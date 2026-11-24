@@ -1,23 +1,14 @@
 import { isPlatformBrowser } from '@angular/common';
 import { DOCUMENT, PLATFORM_ID, Component, ElementRef, computed, effect, inject, input, model, signal, viewChild } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
-import { PublicRoom, Zone } from '../../interfaces/room';
+import { PublicRoom } from '../../interfaces/room';
 import { LeafletMap, LeafletMarker, UiLibraries } from '../../services/ui-libraries';
 import { roomPhotos } from './room-photos';
-
-type Point = [number, number];
-
-const zonePoints: Record<Zone, Point> = {
-  // Referencias de OpenStreetMap, redondeadas. Nunca describen la posición de un anuncio.
-  Centro: [-12.068, -75.210], // Plaza de la Constitución, way 88269258
-  'El Tambo': [-12.057, -75.216], // Plaza Bolognesi, way 671690276
-  'San Carlos': [-12.058, -75.204], // Barrio San Carlos, way 1033119219
-  Chilca: [-12.087, -75.208], // Municipalidad distrital, way 679580734
-};
+import { isHuancayoPoint, MapPoint, zonePoints } from './room-location';
 
 interface MapEntry {
   room: PublicRoom;
-  point: Point;
+  point: MapPoint;
   approximate: boolean;
 }
 
@@ -48,8 +39,7 @@ export class RoomMap {
   protected readonly tileError = signal(false);
   protected readonly entries = computed<MapEntry[]>(() => this.rooms().map(room => {
     const { latitude, longitude } = room;
-    if (latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude) &&
-        Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+    if (latitude != null && longitude != null && isHuancayoPoint(latitude, longitude)) {
       return { room, point: [latitude, longitude], approximate: false };
     }
     return { room, point: zonePoints[room.zone], approximate: true };
@@ -182,7 +172,7 @@ export class RoomMap {
 
   private fit(map: LeafletMap, entries: MapEntry[]) {
     const points = entries.map(entry => entry.point);
-    if (points.length > 1) map.fitBounds(points, { padding: [84, 100], maxZoom: 15, animate: false });
+    if (points.length > 1) map.fitBounds(points, { padding: [32, 48], maxZoom: 15, animate: false });
     else map.setView(points[0] ?? zonePoints.Centro, points.length ? 15 : 13, { animate: false });
   }
 

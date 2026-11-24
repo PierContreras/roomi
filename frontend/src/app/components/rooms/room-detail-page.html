@@ -111,11 +111,11 @@
                     [attr.aria-invalid]="errorKind() === 'message' || null"
                     [attr.aria-describedby]="errorKind() === 'message' ? 'feedback-error' : null"></textarea>
                 </label>
-                @if (error()) { <p class="error" id="feedback-error" role="alert">{{ error() }}</p> }
+                @if (error()) { <p class="feedback feedback-error" id="feedback-error" role="alert">{{ error() }}</p> }
                 <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : type === 'resenas' ? 'Publicar reseña' : 'Enviar reporte' }}</button>
               </form>
             }
-            @if (notice()) { <p role="status">{{ notice() }}</p> }
+            @if (notice()) { <p class="feedback feedback-success" role="status">{{ notice() }}</p> }
           } @else if (!session.user()) {
             <p><a routerLink="/acceso">Inicia sesión</a> para escribir una reseña o reportar el anuncio.</p>
           }

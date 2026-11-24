@@ -2,6 +2,8 @@ import { Component, input, output, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { amenities, Amenity, RoomDraft, RoomPhoto, roomTypes, universities, zones } from '../../interfaces/room';
 import { normalizeWhatsapp } from '../rooms/room-contact';
+import { isHuancayoPoint, MapPoint } from '../rooms/room-location';
+import { RoomLocationPicker } from './room-location-picker';
 
 const maxPhotoBytes = 400_000;
 
@@ -42,7 +44,7 @@ const emptyRoom: RoomFields = {
 
 @Component({
   selector: 'app-room-form',
-  imports: [FormsModule],
+  imports: [FormsModule, RoomLocationPicker],
   templateUrl: './room-form.html',
   styles: ['.thumbnails { display: flex; flex-wrap: wrap; gap: 10px; } .thumbnails img { display: block; width: 100px; height: 70px; object-fit: cover; border-radius: 8px; } .thumbnails button { margin-top: 5px; }'],
 })
@@ -56,6 +58,7 @@ export class RoomForm {
   protected readonly loadingPhotos = signal(false);
   protected readonly photoError = signal('');
   protected readonly submitted = signal(false);
+  protected readonly showLocationMap = signal(false);
   protected draft: RoomFields = { ...emptyRoom };
 
   ngOnChanges() {
@@ -111,12 +114,21 @@ export class RoomForm {
     return !this.draft.whatsapp || /^[1-9][0-9]{7,14}$/.test(this.draft.whatsapp);
   }
 
+  protected locationValid() {
+    return isHuancayoPoint(this.draft.latitude, this.draft.longitude);
+  }
+
+  protected setLocation([latitude, longitude]: MapPoint) {
+    this.draft.latitude = latitude;
+    this.draft.longitude = longitude;
+  }
+
   protected submit(form: NgForm) {
     this.submitted.set(true);
     this.normalizeWhatsapp();
     const { price, deposit, minutes, title, description, rules, address, latitude, longitude } = this.draft;
     if (form.invalid || !this.whatsappValid() || this.loadingPhotos() || price === null || deposit === null || minutes === null ||
-        latitude == null || longitude == null || !title.trim() || !description.trim() || !rules.trim() || !address.trim()) {
+        latitude == null || longitude == null || !this.locationValid() || !title.trim() || !description.trim() || !rules.trim() || !address.trim()) {
       form.control.markAllAsTouched();
       return;
     }

@@ -2,12 +2,11 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { apiError } from '../../services/session.service';
-import { RoomDraft } from '../../interfaces/room';
+import { ListingResult, moderationReasonLabels, RoomDraft } from '../../interfaces/room';
 import { RoomGallery } from '../rooms/room-gallery';
 import { RoomService } from '../../services/room.service';
 import { StatusBadge } from '../shared/status-badge';
 import { RoomForm } from './room-form';
-import { UiLibraries } from '../../services/ui-libraries';
 
 const unavailableListing = 'No encontramos este anuncio en tu cuenta.';
 
@@ -22,7 +21,6 @@ export class RoomEditorPage {
   protected readonly unavailableListing = unavailableListing;
   protected readonly loadError = computed(() =>
     this.editError(this.managed.error(), 'No pudimos cargar el anuncio. Intenta de nuevo o vuelve a Mis anuncios.'));
-  private readonly libraries = inject(UiLibraries);
   protected readonly existing = computed(() => {
     const id = this.id();
     return id && this.managed.hasValue()
@@ -31,7 +29,8 @@ export class RoomEditorPage {
   });
   protected readonly draft = signal<RoomDraft | undefined>(undefined);
   protected readonly preview = signal(false);
-  protected readonly saved = signal<RoomDraft | null>(null);
+  protected readonly saved = signal<(ListingResult & { title: string }) | null>(null);
+  protected readonly reasons = moderationReasonLabels;
   protected readonly busy = signal(false);
   protected readonly error = signal('');
 
@@ -40,14 +39,13 @@ export class RoomEditorPage {
     this.preview.set(true);
   }
 
-  protected async publish(draft: RoomDraft) {
+  protected async publish(draft: RoomDraft, borrador = false) {
     if (this.busy()) return;
     this.error.set('');
     this.busy.set(true);
     try {
-      await this.catalog.save(draft, this.id());
-      this.saved.set(draft);
-      void this.libraries.success('Publicación enviada a revisión');
+      const result = await this.catalog.save(draft, this.id(), borrador);
+      this.saved.set({ ...result, title: draft.title });
     } catch (error) {
       this.error.set(this.editError(error, 'No pudimos guardar. Revisa los datos y vuelve a intentar.'));
     } finally {

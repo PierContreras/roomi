@@ -3,7 +3,7 @@ export const universities = ['Continental', 'UNCP', 'UPLA', 'UTP'] as const;
 export const roomTypes = ['Habitación', 'Minidepartamento'] as const;
 export const amenities = ['Wifi', 'Baño privado', 'Amoblado', 'Lavandería', 'Cocineta', 'Agua caliente'] as const;
 export const statusLabels = {
-  pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada', withdrawn: 'Retirada',
+  borrador: 'Borrador', en_revision: 'En revisión', publicado: 'Publicado', rechazado: 'Rechazado', retirado: 'Retirado',
 } as const;
 
 export type RoomStatus = keyof typeof statusLabels;
@@ -49,6 +49,25 @@ export interface Room extends PublicRoom {
   status: RoomStatus;
   reviewNote?: string | null;
   revision?: number;
+  motivos?: string[];
+}
+
+export const moderationReasonLabels: Readonly<Record<string, string>> = {
+  datos_invalidos: 'Completa el título y la descripción del anuncio.',
+  sin_fotos: 'Agrega al menos una foto.',
+  precio_fuera_de_rango: 'El precio mensual está fuera del rango de publicación automática.',
+  contacto_externo: 'El título o la descripción incluye datos de contacto externos.',
+  termino_prohibido: 'El título o la descripción incluye un término restringido.',
+  propietario_suspendido: 'La cuenta del propietario tiene una suspensión activa.',
+  reportes_abiertos: 'La cuenta del propietario tiene reportes pendientes.',
+  reporte_recibido: 'El anuncio recibió un reporte.',
+  cambios_para_revision: 'El equipo revisará los cambios del anuncio.',
+};
+
+export interface ListingResult {
+  id: string;
+  status: RoomStatus;
+  motivos: string[];
 }
 
 export interface RoomFilters {

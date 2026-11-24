@@ -14,7 +14,7 @@ const questions = [
   { id: 'contacto', title: '¿Cómo puedo contactar al propietario?', answer: 'Abre la ficha de la habitación y selecciona Contactar al propietario. En este prototipo se prepara un mensaje de ejemplo. Puedes incluir la fecha que te interesa o preguntar qué servicios cubre el precio.' },
   { id: 'seguridad', title: '¿Qué debo verificar antes de alquilar?', answer: 'Visita la habitación, confirma la identidad del propietario y solicita por escrito el precio, la garantía y los servicios incluidos antes de acordar un pago.' },
   { id: 'campus', title: '¿Cómo encuentro habitaciones cerca de mi universidad?', answer: 'En Buscar, elige tu universidad y revisa el tiempo aproximado al campus de cada anuncio. Puedes combinar el filtro con zona, precio y servicios.' },
-  { id: 'publicacion', title: '¿Cómo publico una habitación?', answer: 'Entra con el perfil Propietario, completa la ficha y envíala a revisión. Puedes seguir el estado desde Mis anuncios.' },
+  { id: 'publicacion', title: '¿Cómo publico una habitación?', answer: 'Inicia sesión, completa la ficha y confirma la publicación. Tu anuncio aparecerá en el catálogo y podrás gestionarlo desde Mis anuncios.' },
 ];
 
 function normalize(text: string) {
