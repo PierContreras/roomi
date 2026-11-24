@@ -10,7 +10,7 @@ Después de instalar las dependencias y configurar `backend/.env` según la guí
 
 ```powershell
 cd .\backend
-.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app --host 127.0.0.1 --port 8000 --reload
+.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 ```powershell
