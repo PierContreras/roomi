@@ -1,8 +1,9 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { DemoUser, Role } from '../../interfaces/user';
-import { demoPassword, demoPhone, demoUsers, roleLabels, SessionService } from '../../services/session.service';
+import { User } from '../../interfaces/user';
+import { SessionService } from '../../services/session.service';
 
 @Component({
   imports: [FormsModule, RouterLink],
@@ -12,64 +13,71 @@ import { demoPassword, demoPhone, demoUsers, roleLabels, SessionService } from '
 export class AccessPage {
   readonly mode = input<'sign-in' | 'register'>('sign-in');
   readonly destino = input<string>();
+  readonly retorno = input<string>();
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   protected readonly registering = computed(() => this.mode() === 'register');
-  protected readonly profiles = demoUsers;
-  protected readonly roleLabels = roleLabels;
-  protected readonly password = demoPassword;
-  protected readonly phone = demoPhone;
-  protected readonly passwordStep = signal(false);
+  protected readonly contactReturn = computed(() => {
+    const target = this.retorno() ?? '';
+    return /^\/habitaciones\/[^/?#;]+\/contacto(?:[?#]|$)/.test(target) ? target : '';
+  });
   protected readonly error = signal('');
-  protected readonly registered = signal<DemoUser | null>(null);
-  protected details = { name: '', email: '', password: '', role: 'student' as Exclude<Role, 'admin'> };
+  protected readonly busy = signal(false);
+  protected readonly showPassword = signal(false);
+  protected readonly showConfirmation = signal(false);
+  protected details = {
+    name: '', email: '', password: '', confirmation: '',
+  };
 
-  protected demo(user: DemoUser) {
-    const session = this.session.signIn(user.email, demoPassword);
-    if (session) this.enter(session);
-  }
-
-  protected useUniversityEmail() {
-    this.details.email = this.profiles[0].email;
-    this.error.set('');
-    this.passwordStep.set(true);
-  }
-
-  protected submit(form: NgForm) {
+  protected async submit(form: NgForm) {
+    if (this.busy()) return;
     this.error.set('');
     if (form.invalid || (this.registering() && !this.details.name.trim())) {
       form.control.markAllAsTouched();
-      this.error.set('Revisa los datos marcados en el formulario.');
       return;
     }
-    const { name, email, password, role } = this.details;
-    if (this.registering()) {
-      const user = this.session.register(name, email, role);
-      if (user) this.registered.set(user);
-      else this.error.set('Este correo ya corresponde a un perfil de demostración.');
+    if (this.registering() && this.details.password !== this.details.confirmation) {
+      form.control.markAllAsTouched();
       return;
     }
-    if (!/^(?:[^\s@]+@[^\s@]+\.[^\s@]+|\d{9})$/.test(email.trim())) {
-      this.error.set('Revisa tu correo o teléfono. Ingresa un correo válido o un número de 9 dígitos.');
-      return;
+    const { name, email, password } = this.details;
+    this.busy.set(true);
+    try {
+      const profile = this.registering()
+        ? await this.session.register(name, email, password)
+        : await this.session.signIn(email, password);
+      this.enter(profile);
+    } catch (error) {
+      this.error.set(this.accessError(error));
+    } finally {
+      this.busy.set(false);
     }
-    if (!this.passwordStep()) {
-      this.passwordStep.set(true);
-      return;
-    }
-    const user = this.session.signIn(email, password);
-    if (user) this.enter(user);
-    else this.error.set('El correo, el teléfono o la contraseña de demostración no coinciden.');
   }
 
-  protected enter(user: DemoUser) {
-    const destination = this.destino();
-    if (user.role === 'owner') {
-      void this.router.navigateByUrl(destination === 'publicar' ? '/propietario/nuevo' : '/propietario');
-    } else if (user.role === 'admin') {
+  private accessError(error: unknown): string {
+    const action = this.registering() ? 'crear tu cuenta' : 'iniciar sesión';
+
+    if (error instanceof HttpErrorResponse) {
+      switch (error.status) {
+        case 401:
+          return 'El correo o la contraseña son incorrectos. Revisa ambos datos e inténtalo de nuevo.';
+        case 409:
+          return 'Ya existe una cuenta con este correo. Inicia sesión con ese correo o usa otro para registrarte.';
+        case 422:
+          return 'Revisa el formato del correo y que la contraseña tenga entre 10 y 64 caracteres.';
+        case 0:
+          return 'No pudimos conectarnos con ROOMI. Comprueba tu conexión e inténtalo de nuevo.';
+      }
+    }
+
+    return `El servicio de acceso no está disponible en este momento. Vuelve a intentar ${action} más tarde.`;
+  }
+
+  private enter(user: User) {
+    if (user.role === 'admin') {
       void this.router.navigateByUrl('/administracion');
     } else {
-      void this.router.navigateByUrl('/explorar');
+      void this.router.navigateByUrl(this.contactReturn() || (this.destino() === 'publicar' ? '/propietario/nuevo' : '/explorar'));
     }
   }
 }

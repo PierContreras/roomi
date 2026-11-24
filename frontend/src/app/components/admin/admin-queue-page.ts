@@ -9,6 +9,9 @@ import { StatusBadge } from '../shared/status-badge';
 })
 export class AdminQueuePage {
   private readonly catalog = inject(RoomService);
-  protected readonly pending = computed(() => this.catalog.rooms().filter(room => room.status === 'pending'));
-  protected readonly reviewed = computed(() => this.catalog.rooms().filter(room => room.status === 'approved' || room.status === 'rejected'));
+  protected readonly managed = this.catalog.managed('administracion');
+  protected readonly reports = this.catalog.reports();
+  private readonly rooms = computed(() => this.managed.hasValue() ? this.managed.value() : []);
+  protected readonly pending = computed(() => this.rooms().filter(room => room.status === 'pending'));
+  protected readonly reviewed = computed(() => this.rooms().filter(room => room.status === 'approved' || room.status === 'rejected'));
 }

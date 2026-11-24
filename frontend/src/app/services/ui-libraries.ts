@@ -43,7 +43,41 @@ interface PriceChartOptions {
 }
 
 type ChartConstructor = new (canvas: HTMLCanvasElement, options: PriceChartOptions) => PriceChart;
-type LibraryWindow = Window & { Swal?: SweetAlert; Chart?: ChartConstructor };
+type Coordinates = [number, number];
+
+export interface LeafletMap {
+  setView(center: Coordinates, zoom: number, options?: { animate: boolean }): this;
+  fitBounds(points: Coordinates[], options: { padding: Coordinates; maxZoom: number; animate: boolean }): this;
+  panInside(point: Coordinates, options: { padding: Coordinates; animate: boolean }): this;
+  zoomIn(delta: number, options: { animate: boolean }): this;
+  zoomOut(delta: number, options: { animate: boolean }): this;
+  invalidateSize(options: { pan: boolean }): this;
+  remove(): void;
+}
+
+interface Layer {
+  addTo(map: LeafletMap): this;
+  on(event: 'tileerror', callback: () => void): this;
+}
+
+interface LeafletIcon {
+  createIcon(): HTMLElement;
+}
+
+export interface LeafletMarker {
+  addTo(map: LeafletMap): this;
+  setZIndexOffset(offset: number): this;
+}
+
+interface Leaflet {
+  map(container: HTMLElement, options: { scrollWheelZoom: boolean; zoomControl: boolean; zoomAnimation: boolean }): LeafletMap;
+  tileLayer(url: string, options: { maxZoom: number; attribution: string }): Layer;
+  divIcon(options: { html: HTMLElement; iconSize: Coordinates; className: string }): LeafletIcon;
+  marker(point: Coordinates, options: { icon: LeafletIcon; keyboard: boolean }): LeafletMarker;
+  DomEvent: { disableClickPropagation(element: HTMLElement): void };
+}
+
+type LibraryWindow = Window & { Swal?: SweetAlert; Chart?: ChartConstructor; L?: Leaflet };
 
 @Injectable({ providedIn: 'root' })
 export class UiLibraries {
@@ -80,6 +114,23 @@ export class UiLibraries {
     return window.Chart;
   }
 
+  async leaflet() {
+    const window = this.document.defaultView as LibraryWindow | null;
+    if (!window) return undefined;
+    const base = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet';
+    const css = base + '.css';
+    if (!this.document.querySelector(`link[href="${css}"]`)) {
+      const link = this.document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = css;
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+      link.crossOrigin = 'anonymous';
+      this.document.head.append(link);
+    }
+    if (!window.L) await this.load(base + '.js', 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=');
+    return window.L;
+  }
+
   private async alert() {
     const window = this.document.defaultView as LibraryWindow | null;
     if (!window) return undefined;
@@ -87,7 +138,7 @@ export class UiLibraries {
     return window.Swal;
   }
 
-  private load(url: string) {
+  private load(url: string, integrity?: string) {
     const existing = this.pending.get(url);
     if (existing) return existing;
     const request = new Promise<void>(resolve => {
@@ -101,6 +152,10 @@ export class UiLibraries {
       };
       const timeout = setTimeout(() => finish(false), 2500);
       script.src = url;
+      if (integrity) {
+        script.integrity = integrity;
+        script.crossOrigin = 'anonymous';
+      }
       script.onload = () => finish(true);
       script.onerror = () => finish(false);
       this.document.head.append(script);

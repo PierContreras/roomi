@@ -1,6 +1,6 @@
 export type Role = 'student' | 'owner' | 'admin';
 
-export interface DemoUser {
+export interface User {
   id: string;
   name: string;
   email: string;

@@ -14,8 +14,9 @@
       <nav aria-label="Comunidad ROOMI">
         <h2>Comunidad</h2>
         <a routerLink="/ayuda" fragment="preguntas">Cómo funciona</a>
-        <a [routerLink]="session.user()?.role === 'owner' ? '/propietario/nuevo' : '/acceso'"
-          [queryParams]="session.user()?.role === 'owner' ? {} : { destino: 'publicar' }">Publicar habitación</a>
+        @if (session.user()?.role !== 'admin') {
+          <a routerLink="/propietario/nuevo">Publicar habitación</a>
+        }
         <a routerLink="/ayuda">Ayuda y soporte</a>
       </nav>
       <nav aria-label="Transparencia">

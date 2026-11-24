@@ -15,6 +15,7 @@ export type Amenity = typeof amenities[number];
 export interface RoomPhoto {
   src: string;
   alt: string;
+  illustrative?: boolean;
 }
 
 export interface RoomDraft {
@@ -30,17 +31,24 @@ export interface RoomDraft {
   rules: string;
   address: string;
   photos: readonly RoomPhoto[];
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
+  whatsapp?: string | null;
 }
 
-export interface PublicRoom extends RoomDraft {
+export interface PublicRoom extends Omit<RoomDraft, 'whatsapp'> {
   id: string;
   owner: string;
+  contactAvailable?: boolean;
 }
 
 export interface Room extends PublicRoom {
-  ownerId: string;
+  whatsapp?: string | null;
+  ownerId: string | null;
   status: RoomStatus;
-  reviewNote?: string;
+  reviewNote?: string | null;
+  revision?: number;
 }
 
 export interface RoomFilters {
@@ -49,5 +57,6 @@ export interface RoomFilters {
   type: RoomType | '';
   maxPrice: number | null;
   maxMinutes: number | null;
+  maxDistance: number | null;
   amenities: readonly Amenity[];
 }

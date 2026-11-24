@@ -6,13 +6,76 @@ import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
+import { Room, RoomDraft } from './interfaces/room';
 import { demoRooms } from './services/demo-rooms';
 import { RoomService } from './services/room.service';
+import { SessionService } from './services/session.service';
 import { UiLibraries } from './services/ui-libraries';
 
+let managed: Room[];
 const mockCatalog: HttpInterceptorFn = request => {
-  const rooms = demoRooms.filter(room => room.status === 'approved');
-  const { params, url } = request;
+  const rooms = managed.filter(room => room.status === 'approved');
+  const { params, method, url } = request;
+  expect(url.startsWith('/api/')).toBe(true);
+  const ownerRoute = url.startsWith('/api/propietario/') ||
+    (url.startsWith('/api/alojamientos') && ['PUT', 'PATCH', 'DELETE'].includes(method)) ||
+    (url === '/api/alojamientos' && method === 'POST');
+  if (ownerRoute || url.startsWith('/api/administracion/')) {
+    expect(request.headers.get('Authorization')).toMatch(ownerRoute ? /^Bearer test-(owner|student)$/ : /^Bearer test-admin$/);
+  } else if (url.endsWith('/contacto') || (url.endsWith('/consultas') && method === 'POST')) {
+    expect(request.headers.get('Authorization')).toBe('Bearer test-student');
+  } else if (url.startsWith('/api/auth/') || method === 'GET') {
+    expect(request.headers.has('Authorization')).toBe(false);
+  }
+  const reply = (body: unknown) => of(new HttpResponse({ body }));
+  if (url === '/api/auth/login' || url === '/api/auth/registro') {
+    const data = request.body as { email: string; password: string; role?: string };
+    if (url.endsWith('/registro')) expect(data.role).toBeUndefined();
+    if (data.password === 'incorrecta') {
+      return throwError(() => new HttpErrorResponse({ status: 401, error: { detail: 'El correo o la contraseña no coinciden.' } }));
+    }
+    if (data.email === 'servicio@roomi.test') {
+      return throwError(() => new HttpErrorResponse({ status: 503, error: { detail: 'Configura el secreto de sesión en el servidor.' } }));
+    }
+    const owner = data.email.startsWith('propietario');
+    const role = owner ? 'owner' : data.email.startsWith('administrador') ? 'admin' : 'student';
+    return reply({ token: 'test-' + role, user: { id: 'demo-' + role, name: 'Cuenta Prueba', email: data.email, role } });
+  }
+  if (url === '/api/propietario/alojamientos') {
+    const role = request.headers.get('Authorization')?.slice('Bearer test-'.length);
+    return reply(managed.filter(room => room.ownerId === 'demo-' + role));
+  }
+  if (url === '/api/administracion/alojamientos') return reply(managed.filter(room => room.status !== 'withdrawn'));
+  if (url === '/api/propietario/consultas' || url === '/api/administracion/reportes') return reply([]);
+  if (url.endsWith('/contacto')) return reply({ whatsapp: '51987654321', formulario: true });
+  if (url.endsWith('/resenas')) {
+    if (method === 'POST') {
+      expect(request.headers.get('Authorization')).toMatch(/^Bearer test-(student|owner)$/);
+      expect(request.body).toMatchObject({ rating: 4 });
+      return reply({ id: 'resena-prueba' });
+    }
+    return reply([]);
+  }
+  if (url.endsWith('/consultas') && method === 'POST') return reply({ id: 'consulta-prueba' });
+  if (method === 'POST' && url === '/api/alojamientos') {
+    managed = [{ ...(request.body as RoomDraft), id: 'nuevo', ownerId: 'demo-owner', owner: 'Cuenta Prueba', status: 'pending', revision: 1 }, ...managed];
+    return reply({ id: 'nuevo' });
+  }
+  const id = url.split('/')[3];
+  if (method === 'DELETE') {
+    managed = managed.filter(room => room.id !== id);
+    return of(new HttpResponse({ status: 204 }));
+  }
+  if (method === 'PUT') {
+    managed = managed.map(room => room.id === id ? { ...room, ...(request.body as RoomDraft), status: 'pending' } : room);
+    return reply({ id });
+  }
+  if (method === 'PATCH') {
+    const data = request.body as { status: Room['status']; note?: string };
+    const target = url.startsWith('/api/administracion') ? url.split('/')[4] : id;
+    managed = managed.map(room => room.id === target ? { ...room, status: data.status, reviewNote: data.note } : room);
+    return reply(null);
+  }
   if (url === '/api/alojamientos') {
     const results = rooms.filter(room =>
       (!params.has('zona') || room.zone === params.get('zona')) &&
@@ -31,7 +94,7 @@ const mockCatalog: HttpInterceptorFn = request => {
 
 describe('App', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [App], providers: [provideRouter([])] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [App], providers: [provideRouter([]), provideHttpClient()] }).compileComponents();
   });
 
   it('renders the site layout and opens and closes the mobile navigation', async () => {
@@ -40,22 +103,85 @@ describe('App', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('main#contenido')).toBeTruthy();
     expect(root.querySelector('footer')?.textContent).toContain('Huancayo');
-    const menu = root.querySelector<HTMLButtonElement>('button[aria-controls="navegacion"]')!;
+    const menu = root.querySelector<HTMLButtonElement>('button[aria-controls="navegacion-movil"]')!;
+    const drawer = root.querySelector<HTMLDialogElement>('#navegacion-movil')!;
+    const close = drawer.querySelector<HTMLButtonElement>('.drawer-close')!;
+    const last = [...drawer.querySelectorAll<HTMLElement>('a[href], button')].at(-1)!;
+    // jsdom lacks the dialog API and runs this fixture at its default desktop width.
+    menu.style.display = 'inline-flex';
+    drawer.showModal = () => { drawer.open = true; drawer.style.display = 'block'; };
+    drawer.close = () => { drawer.open = false; drawer.style.display = 'none'; };
+    const open = () => {
+      menu.click();
+      fixture.detectChanges();
+      expect(drawer.open).toBe(true);
+      expect(menu.getAttribute('aria-expanded')).toBe('true');
+      expect(document.activeElement).toBe(close);
+    };
+    const expectClosed = () => {
+      fixture.detectChanges();
+      expect(drawer.open).toBe(false);
+      expect(menu.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(menu);
+    };
     expect(menu.getAttribute('aria-expanded')).toBe('false');
-    menu.click();
-    fixture.detectChanges();
-    expect(menu.getAttribute('aria-expanded')).toBe('true');
-    menu.click();
-    fixture.detectChanges();
-    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(menu.getAttribute('aria-label')).toBe('Abrir menú');
+    open();
+    expect(menu.getAttribute('aria-label')).toBe('Cerrar menú');
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+    expect(document.activeElement).toBe(last);
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(document.activeElement).toBe(close);
+    drawer.dispatchEvent(new Event('cancel', { cancelable: true }));
+    expectClosed();
+    open();
+    drawer.dispatchEvent(new MouseEvent('click', { clientX: 500, clientY: 100, bubbles: true }));
+    expectClosed();
+    open();
+    close.click();
+    expectClosed();
   });
+});
+
+it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al cerrar sesión', async () => {
+  const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
+  const token = `cabecera.${payload}.firma`;
+  const user = { id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student' };
+  const http: HttpInterceptorFn = request => {
+    if (request.url === '/api/auth/login') return of(new HttpResponse({ body: { token, user } }));
+    expect(request.headers.get('Authorization')).toBe('Bearer ' + token);
+    return throwError(() => new HttpErrorResponse({ status: 503 }));
+  };
+  const configure = () => TestBed.configureTestingModule({ providers: [
+    provideRouter(routes, withComponentInputBinding()),
+    provideHttpClient(withInterceptors([http])),
+  ] });
+
+  sessionStorage.removeItem('roomi.session.v1');
+  try {
+    configure();
+    await TestBed.inject(SessionService).signIn(user.email, 'clave-de-prueba');
+    TestBed.resetTestingModule();
+    configure();
+
+    const url = '/propietario/nuevo?origen=panel';
+    const harness = await RouterTestingHarness.create(url);
+    expect(TestBed.inject(Router).url).toBe(url);
+    expect(harness.routeNativeElement?.textContent).toContain('Publicar habitación');
+    const session = TestBed.inject(SessionService);
+    expect(session.user()).toEqual(user);
+    session.signOut();
+    expect(sessionStorage.getItem('roomi.session.v1')).toBeNull();
+  } finally {
+    sessionStorage.removeItem('roomi.session.v1');
+  }
 });
 
 describe('Recorridos de ROOMI', () => {
   let harness: RouterTestingHarness;
 
   beforeEach(async () => {
-    localStorage.removeItem('roomi.rooms.v1');
+    managed = demoRooms.map(room => ({ ...room, contactAvailable: true, revision: 1 }));
     localStorage.removeItem('roomi.saved.v1');
     TestBed.configureTestingModule({ providers: [
       provideRouter(routes, withComponentInputBinding()),
@@ -81,11 +207,19 @@ describe('Recorridos de ROOMI', () => {
   }
 
   async function action(label: string) {
-    const item = [...page().querySelectorAll<HTMLButtonElement | HTMLAnchorElement>('button, a')]
-      .find(element => element.textContent?.trim().startsWith(label));
-    expect(item, label).toBeDefined();
-    item!.click();
+    const item = await vi.waitFor(async () => {
+      await stabilize();
+      const result = [...page().querySelectorAll<HTMLButtonElement | HTMLAnchorElement>('button, a')]
+        .find(element => element.textContent?.trim().startsWith(label));
+      expect(result, label).toBeDefined();
+      return result!;
+    });
+    item.click();
     await stabilize();
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(page().querySelector('button:disabled')?.textContent ?? '').not.toMatch(/Procesando|Guardando|Enviando/);
+    });
   }
 
   async function enter(name: string, value: string) {
@@ -98,11 +232,23 @@ describe('Recorridos de ROOMI', () => {
 
   async function chooseProfile(label: string) {
     await harness.navigateByUrl('/acceso');
-    await action(label);
+    const email = label === 'Propietario' ? 'propietario@roomi.test' : 'administrador@roomi.test';
+    await enter('correo', email);
+    await enter('contrasena', 'solo-pruebas-123');
+    await action('Iniciar sesión');
+    if (label === 'Propietario') await harness.navigateByUrl('/propietario');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(TestBed.inject(Router).url).toBe(label === 'Propietario' ? '/propietario' : '/administracion');
+    });
   }
 
-  it('busca, filtra, guarda un anuncio y prepara una consulta sin enviarla', async () => {
+  it('busca, filtra, guarda un anuncio y envía una consulta', async () => {
     await harness.navigateByUrl('/explorar');
+    expect(page().querySelector('h1')?.textContent).toContain('cerca de tu universidad en Huancayo');
+    expect(page().querySelector('#steps-title')?.textContent).toBe('Cómo funciona');
+    expect(page().querySelector('#rooms-title')?.textContent).toBe('Habitaciones destacadas');
+    expect(page().querySelector('a[href="/propietario/nuevo"]')?.textContent).toContain('publicar anuncio');
     await action('San Carlos');
     expect(TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap.get('zona')).toBe('San Carlos');
     expect(page().querySelector('[aria-label="Filtros aplicados"]')?.textContent).toContain('San Carlos');
@@ -119,6 +265,7 @@ describe('Recorridos de ROOMI', () => {
     expect(text()).toContain('No encontramos habitaciones con estos filtros');
 
     await enter('precio', '325');
+    await enter('distancia', '4');
     await action('Aplicar filtros');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
@@ -126,31 +273,46 @@ describe('Recorridos de ROOMI', () => {
     expect(page().querySelector('table tbody')?.textContent).toMatch(/San Carlos.*320.*320/);
     await action('Ver mapa');
     expect(page().querySelector('.map-open')).toBeTruthy();
-    page().querySelector<HTMLButtonElement>('button.marker')!.click();
-    await stabilize();
-    expect(page().querySelector('.map-caption')?.textContent).toContain('Cuarto iluminado');
+    expect(page().querySelector('.map-caption')?.textContent).toContain('Ubicación aproximada');
+    expect(page().querySelector('app-room-map a[href^="https://www.google.com/maps/"]')).toBeNull();
+    await action('Ubicar en el mapa');
+    expect(page().querySelector('.map-preview')?.textContent).toContain('Cuarto iluminado');
+    expect(page().querySelector('.result-card.selected')?.getAttribute('data-room-id')).toBe('san-carlos-320');
     await action('Ver listado');
     await action('Guardar');
     expect(TestBed.inject(RoomService).isSaved('san-carlos-320')).toBe(true);
     await action('Ver anuncio');
     expect(text()).toContain('Cuarto iluminado con escritorio y baño propio');
-    await action('Contactar al propietario');
-    await action('Preparar consulta');
+    expect(page().querySelector('a[href^="https://wa.me/"]')).toBeNull();
+    await action('Contactar propietario');
+    expect(text()).toContain('Entra a tu cuenta de ROOMI para contactar');
+    expect(TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap.get('retorno')).toContain('/habitaciones/san-carlos-320/contacto');
+    await enter('correo', 'consulta@roomi.test');
+    await enter('contrasena', 'solo-pruebas-123');
+    await action('Iniciar sesión');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(TestBed.inject(Router).url).toContain('/habitaciones/san-carlos-320/contacto');
+      expect(page().querySelector('a[href^="https://wa.me/51987654321"]')).toBeTruthy();
+    });
+    await action('Enviar consulta');
     expect(text()).toContain('Revisa los campos');
     await enter('nombre', 'Estudiante Prueba');
     await enter('correo', 'consulta@roomi.test');
     await enter('mensaje', '¿Puedo visitar la habitación el sábado?');
-    await action('Preparar consulta');
+    page().querySelector<HTMLInputElement>('[name="consentimiento"]')!.click();
+    await stabilize();
+    await action('Enviar consulta');
     await vi.waitFor(async () => {
       await stabilize();
-      expect(text()).toContain('Mensaje preparado');
+      expect(text()).toContain('Consulta enviada');
     });
-    expect(page().querySelector('textarea')?.value).toContain('consulta@roomi.test');
     await action('Volver al anuncio');
     await action('← Volver a los resultados');
     const params = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url).queryParamMap;
     expect(params.get('zona')).toBe('San Carlos');
     expect(params.get('precio')).toBe('325');
+    expect(params.get('distancia')).toBe('4');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
   });
@@ -197,25 +359,61 @@ describe('Recorridos de ROOMI', () => {
     await harness.navigateByUrl('/');
     expect(TestBed.inject(Router).url).toBe('/explorar');
     await harness.navigateByUrl('/acceso');
-    expect(text()).toContain('Inicia sesión o crea tu cuenta');
+    expect(text()).toContain('Inicia sesión en ROOMI');
     await action('Seguir explorando como invitado');
     expect(TestBed.inject(Router).url).toBe('/explorar');
     await harness.navigateByUrl('/propietario');
     expect(TestBed.inject(Router).url).toBe('/acceso');
-    await enter('correo', 'incorrecto');
-    await action('Continuar');
-    expect(text()).toContain('Revisa tu correo o teléfono');
+    await action('Iniciar sesión');
+    expect(text()).toContain('Escribe tu correo electrónico.');
+    expect(text()).toContain('Escribe tu contraseña.');
+    await enter('correo', 'usuario@correo');
+    await action('Iniciar sesión');
+    expect(text()).toContain('Escribe un correo válido');
     await enter('correo', 'propietario@roomi.test');
-    await action('Continuar');
     await enter('contrasena', 'incorrecta');
     await action('Iniciar sesión');
-    expect(text()).toContain('no coinciden');
+    expect(text()).toContain('El correo o la contraseña son incorrectos.');
     await harness.navigateByUrl('/registro');
+    expect(page().querySelector('[name="rol"]')).toBeNull();
     await enter('nombre', 'Cuenta Prueba');
     await enter('correo', 'nueva@roomi.test');
-    await enter('contrasena', 'prueba123');
+    await enter('contrasena', 'prueba12345');
+    expect(page().querySelector<HTMLInputElement>('[name="contrasena"]')?.type).toBe('password');
+    expect(page().querySelector('[aria-label="Mostrar contraseña"] .bi-eye-slash')).toBeTruthy();
+    page().querySelector<HTMLButtonElement>('[aria-label="Mostrar contraseña"]')?.click();
+    await stabilize();
+    expect(page().querySelector<HTMLInputElement>('[name="contrasena"]')?.type).toBe('text');
+    expect(page().querySelector('[aria-label="Ocultar contraseña"] .bi-eye')).toBeTruthy();
+    page().querySelector<HTMLButtonElement>('[aria-label="Ocultar contraseña"]')?.click();
+    await stabilize();
+    expect(page().querySelector<HTMLInputElement>('[name="contrasena"]')?.type).toBe('password');
+    await enter('confirmacion', 'otra-clave12345');
     await action('Crear cuenta');
-    expect(text()).toContain('Cuenta de demostración creada');
+    expect(text()).toContain('Las contraseñas deben coincidir.');
+    await enter('confirmacion', 'prueba12345');
+    await enter('correo', 'servicio@roomi.test');
+    await action('Crear cuenta');
+    expect(text()).toContain('Vuelve a intentar crear tu cuenta más tarde.');
+    expect(text()).not.toContain('Configura el secreto');
+    await enter('correo', 'nueva@roomi.test');
+    expect(text()).not.toContain('Vuelve a intentar crear tu cuenta más tarde.');
+    await action('Crear cuenta');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(TestBed.inject(Router).url).toBe('/explorar');
+    });
+    await harness.navigateByUrl('/habitaciones/san-carlos-320');
+    await action('Escribir reseña');
+    await enter('comentario', 'Comentario de prueba de la habitación.');
+    await action('Publicar reseña');
+    expect(text()).toContain('Selecciona de 1 a 5 estrellas.');
+    page().querySelector<HTMLInputElement>('[aria-label="4 estrellas"]')!.click();
+    await stabilize();
+    await action('Publicar reseña');
+    expect(text()).toContain('Reseña publicada.');
+    await harness.navigateByUrl('/propietario/nuevo');
+    expect(text()).toContain('Publicar habitación');
   });
 
   it('busca preguntas de ayuda y confirma una consulta simulada', async () => {
@@ -243,7 +441,7 @@ describe('Recorridos de ROOMI', () => {
     expect(text()).toContain('Sobre la habitación');
   });
 
-  it('crea, edita y retira un anuncio y refleja ambas decisiones de moderación', async () => {
+  it('crea, edita, pausa, reactiva y elimina un anuncio y refleja ambas decisiones de moderación', async () => {
     vi.spyOn(TestBed.inject(UiLibraries), 'confirm').mockResolvedValue(undefined);
     vi.spyOn(TestBed.inject(UiLibraries), 'success').mockResolvedValue(undefined);
     const createElement = document.createElement.bind(document);
@@ -261,14 +459,20 @@ describe('Recorridos de ROOMI', () => {
       return element;
     });
     await chooseProfile('Propietario');
-    expect(text()).toContain('Pendiente');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Pendiente');
+    });
     expect(text()).toContain('Aprobada');
     expect(text()).toContain('Rechazada');
-    await action('Publicar habitación');
+    await action('Publicar anuncio');
     await action('Revisar publicación');
     expect(text()).toContain('Escribe el título del anuncio.');
     await enter('titulo', 'Habitación de prueba');
     await enter('direccion', 'Pasaje de prueba 10');
+    await enter('latitud', '-12.06');
+    await enter('longitud', '-75.21');
+    await enter('distancia', '1.2');
     await enter('precio', '430');
     await enter('garantia', '100');
     await enter('minutos', '13');
@@ -292,12 +496,18 @@ describe('Recorridos de ROOMI', () => {
     expect(text()).toContain('Escribe un motivo');
     await enter('motivo', 'Añade referencias para ubicar el alojamiento.');
     await action('Rechazar anuncio');
-    expect(text()).toContain('Anuncio rechazado');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Anuncio rechazado');
+    });
     await action('Volver a la cola');
     await action('Revisar anuncio Habitación independiente en Chilca');
     await action('Aprobar anuncio');
-    expect(text()).toContain('Anuncio aprobado en la demostración');
-    expect(TestBed.inject(RoomService).rooms().find(room => room.id === 'chilca-en-revision')?.status).toBe('approved');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Anuncio aprobado.');
+    });
+    expect(managed.find(room => room.id === 'chilca-en-revision')?.status).toBe('approved');
 
     await chooseProfile('Propietario');
     expect(text()).toContain('Añade referencias para ubicar el alojamiento.');
@@ -310,7 +520,25 @@ describe('Recorridos de ROOMI', () => {
     expect(page().querySelector('dialog')?.open).toBe(false);
     await action('Retirar Habitación de prueba');
     await action('Retirar anuncio');
-    expect(text()).toContain('Publicación retirada');
-    expect([...page().querySelectorAll('article')].some(item => item.textContent?.includes('Habitación de prueba'))).toBe(false);
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Publicación retirada');
+      expect(text()).toContain('Retirada');
+    });
+    const retired = [...page().querySelectorAll('article')].find(item => item.textContent?.includes('Habitación de prueba'));
+    expect(retired?.textContent).toContain('Retirada');
+    expect(retired?.querySelector('button')?.textContent).toContain('Eliminar');
+    await action('Reactivar Habitación de prueba');
+    await action('Revisar publicación');
+    await action('Enviar a revisión');
+    expect(managed.find(item => item.id === 'nuevo')?.status).toBe('pending');
+    await action('Ver mis anuncios');
+    await action('Eliminar Habitación de prueba');
+    await action('Eliminar anuncio');
+    await vi.waitFor(async () => {
+      await stabilize();
+      expect(text()).toContain('Publicación eliminada.');
+      expect(text()).not.toContain('Habitación de prueba');
+    });
   });
 });

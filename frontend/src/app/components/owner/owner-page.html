@@ -1,11 +1,22 @@
 <div class="container page stack">
   <p class="small muted">Panel del propietario</p>
-  <div class="actions page-heading">
-    <h1>Mis anuncios</h1>
-    <a class="button" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Publicar habitación</a>
-  </div>
-  <p>Publica habitaciones y revisa el estado de tus anuncios.</p>
+  <header class="panel section actions owner-heading">
+    <div class="stack compact">
+      <h1>Mis anuncios</h1>
+      <p>Completa los datos, revisa la vista previa y envía tu anuncio a moderación.</p>
+    </div>
+    <a class="button" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Publicar anuncio</a>
+  </header>
   @if (notice()) { <p role="status">{{ notice() }}</p> }
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (managed.isLoading()) {
+    <p class="page-state" role="status">Cargando anuncios…</p>
+  } @else if (managed.error()) {
+    <div class="page-state stack compact">
+      <p role="alert">No pudimos cargar tus anuncios. Intenta de nuevo.</p>
+      <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
+    </div>
+  } @else {
   @for (room of listings(); track room.id) {
     <article class="panel section stack compact">
       <div class="actions">
@@ -15,15 +26,32 @@
       <p>{{ room.zone }} · S/ {{ room.price }} / mes</p>
       @if (room.reviewNote) { <p class="muted"><strong>Observación:</strong> {{ room.reviewNote }}</p> }
       <div class="actions">
-        <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">Editar<span class="sr-only"> {{ room.title }}</span></a>
-        <button type="button" class="button quiet" [attr.aria-disabled]="confirming() || null" (click)="confirmWithdrawal(room, confirmation)">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+        <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">{{ room.status === 'withdrawn' ? 'Reactivar' : 'Editar' }}<span class="sr-only"> {{ room.title }}</span></a>
+        @if (room.status !== 'withdrawn') {
+          <button type="button" class="button quiet" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'withdraw', confirmation)">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+        }
+        <button type="button" class="button danger" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'delete', confirmation)">Eliminar<span class="sr-only"> {{ room.title }}</span></button>
       </div>
     </article>
   } @empty {
     <div class="panel empty"><h2>Aún no tienes anuncios</h2><p>Publica tu primera habitación para enviarla a revisión.</p></div>
   }
-  <app-confirm-dialog #confirmation heading="Retirar publicación" approve="Retirar anuncio" [danger]="true"
-    (accepted)="withdraw()" (closed)="selected.set(null)">
-    <p>¿Quieres retirar «{{ selected()?.title }}» del directorio?</p>
+  }
+  <section class="panel section stack" aria-labelledby="consultas">
+    <h2 id="consultas">Consultas recibidas</h2>
+    @if (inquiries.isLoading()) { <p role="status">Cargando consultas…</p> }
+    @else if (inquiries.error()) {
+      <p role="alert">No pudimos cargar tus consultas.</p>
+      <div><button class="button quiet" type="button" (click)="inquiries.reload()">Reintentar</button></div>
+    } @else {
+      @for (item of inquiries.value() ?? []; track item.id) {
+        <article><h3>{{ item.title }}</h3><p>{{ item.message }}</p><p>{{ item.name }} · <a [href]="'mailto:' + item.email">{{ item.email }}</a></p></article>
+      } @empty { <p>Aún no tienes consultas.</p> }
+    }
+  </section>
+  <app-confirm-dialog #confirmation [heading]="confirmationText()?.heading ?? ''"
+    [approve]="confirmationText()?.approve ?? 'Confirmar'" [danger]="true"
+    (accepted)="updateListing()" (closed)="selected.set(null)">
+    <p>{{ confirmationText()?.prompt }}</p>
   </app-confirm-dialog>
 </div>

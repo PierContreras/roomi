@@ -1,23 +1,74 @@
-<section class="panel" aria-label="Mapa de zonas">
-  <div class="map" aria-label="Vista esquemática de Huancayo">
-    @for (marker of markers(); track marker.zone) {
-      <button type="button" class="marker" [style.left.%]="marker.x" [style.top.%]="marker.y"
-        [attr.aria-pressed]="active()?.zone === marker.zone" (click)="selected.set(marker.zone)">
-        {{ marker.zone }} <span>{{ marker.rooms.length }}</span>
-      </button>
-    } @empty { <p class="map-empty">Sin ubicaciones para mostrar</p> }
-  </div>
-  <div class="map-caption">
-    <p class="muted small">Mapa esquemático de Huancayo</p>
-    @if (active(); as marker) {
-      <p class="small"><strong>{{ marker.zone }}</strong></p>
-      <ul class="plain">
-        @for (room of marker.rooms; track room.id) {
-          <li><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">{{ room.title }} <strong>S/ {{ room.price }} al mes</strong></a></li>
+<section class="panel map-shell" [class.search-map]="showListingLinks()" aria-label="Mapa de alojamientos">
+  @if (rooms().length) {
+    <div class="map-caption">
+      @if (hasApproximate()) {
+        <p class="small muted"><strong>≈ Ubicación aproximada.</strong> Estos precios aparecen en un punto de referencia de su zona.</p>
+      }
+      @if (tileError() && !mapError()) {
+        <p class="small" role="status">El mapa base puede verse incompleto. Los precios siguen disponibles.</p>
+      }
+    </div>
+    <div class="map-area">
+      <div #mapCanvas class="leaflet-map" [hidden]="mapError()" role="region" aria-label="Mapa de Huancayo"></div>
+      @if (ready()) {
+        <div class="map-controls" role="group" aria-label="Controles del mapa">
+          <button type="button" class="button quiet" aria-label="Acercar" (click)="zoom('in')">+</button>
+          <button type="button" class="button quiet" aria-label="Alejar" (click)="zoom('out')">−</button>
+          <button type="button" class="button quiet fit" (click)="fitResults()">Ajustar a resultados</button>
+        </div>
+      }
+      @if (mapError()) {
+        <div class="fallback stack compact">
+          <p role="status">No se pudo cargar el mapa. Puedes consultar los alojamientos del listado.</p>
+          @if (showListingLinks()) {
+            <div class="actions">
+              @for (entry of entries(); track entry.room.id) {
+                <button type="button" class="button quiet" [attr.aria-pressed]="selected() === entry.room.id"
+                  (click)="selected.set(entry.room.id)">{{ entry.room.zone }} · S/ {{ entry.room.price }}</button>
+              }
+            </div>
+          }
+        </div>
+      } @else if (!ready()) {
+        <p class="fallback" role="status">Cargando mapa…</p>
+      }
+      @if (showListingLinks()) {
+        <div class="map-preview" aria-live="polite" aria-atomic="true">
+          @if (preview(); as entry) {
+            <article class="panel preview-card">
+              @if (previewPhoto(); as photo) {
+                <figure><img [src]="photo.src" [alt]="photo.alt" />@if (photo.illustrative) { <figcaption>Imagen ilustrativa</figcaption> }</figure>
+              }
+              <div class="preview-info">
+                <h3>{{ entry.room.title }}</h3>
+                <p><strong>S/ {{ entry.room.price }} / mes</strong> · {{ entry.room.zone }}</p>
+                <p class="small muted">
+                  @if (entry.room.distanceKm != null) { {{ entry.room.distanceKm }} km estimados al campus }
+                  @else { {{ entry.room.minutes }} min al campus }
+                  @if (entry.approximate) { · Ubicación aproximada }
+                </p>
+                <div class="actions">
+                  @if (ready()) {
+                    <button type="button" class="button quiet" (click)="centerPreview()">Centrar en el mapa</button>
+                  }
+                  <a class="button" [routerLink]="['/habitaciones', entry.room.id]" [queryParams]="detailQuery()">Ver detalle</a>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+    @if (!showListingLinks()) {
+      <ul class="map-caption plain">
+        @for (entry of entries(); track entry.room.id) {
+          <li><a [href]="mapsUrl(entry)" target="_blank" rel="noopener noreferrer">
+            {{ entry.approximate ? 'Consultar la zona en Google Maps' : 'Consultar la ubicación en Google Maps' }}
+          </a></li>
         }
       </ul>
-    } @else if (markers().length) {
-      <p class="small">Selecciona una zona para ver sus habitaciones.</p>
     }
-  </div>
+  } @else {
+    <p class="map-caption">Sin ubicaciones para mostrar.</p>
+  }
 </section>

@@ -1,0 +1,65 @@
+# Configuración local y credenciales
+.env
+.env.*
+!.env.example
+.envrc
+.npmrc
+.pypirc
+.netrc
+_netrc
+.aws/
+.ssh/
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+*.kdbx
+secrets/
+credentials.json
+service-account*.json
+
+# Dependencias y ejecución local
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.python_history
+.codex/
+
+# Compilación y cachés
+dist/
+build/
+out-tsc/
+.angular/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.uv-cache/
+.npm/
+*.egg-info/
+*.tsbuildinfo
+.coverage
+.coverage.*
+coverage/
+
+# Temporales y copias locales
+*.log
+*.tmp
+*.swp
+*.bak
+*.bacpac
+*.mdf
+*.ldf
+tmp/
+/.qa-roomi/
+Thumbs.db
+.DS_Store
+/NVIDIA Corporation/umdlogs/
+
+/roomi-*.jpg
+/roomi-*.png
+/ROOMI_*.diff
+/AUDITORIA.md

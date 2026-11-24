@@ -1,8 +1,13 @@
-<article class="panel room-card" [class.has-photo]="room().photos.length">
-  @if (room().photos[0]; as photo) {
+<article class="panel room-card" [class.has-photo]="cover()">
+  @if (cover(); as photo) {
     <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" tabindex="-1" aria-hidden="true">
-      <img [src]="photo.src" [alt]="photo.alt" loading="lazy" />
+      <img [src]="photo.src" [alt]="photo.alt"
+        [attr.loading]="prioritizeCover() ? null : 'lazy'"
+        [attr.fetchpriority]="prioritizeCover() ? 'high' : null" />
     </a>
+    @if (photo.illustrative) { <p class="photo-caption small muted">Imagen ilustrativa</p> }
+  } @else {
+    <p class="photo-caption small muted"><app-ui-icon name="photo" /> Sin fotos disponibles</p>
   }
   <div class="card-body">
     <div class="card-top">

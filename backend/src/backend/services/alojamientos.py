@@ -17,6 +17,9 @@ class ServicioAlojamientos:
             and (filtros.tipo is None or alojamiento.type == filtros.tipo)
             and (filtros.precio is None or alojamiento.price <= filtros.precio)
             and (filtros.minutos is None or alojamiento.minutes <= filtros.minutos)
+            and (filtros.distancia is None or (
+                alojamiento.distanceKm is not None and alojamiento.distanceKm <= filtros.distancia
+            ))
             and servicios.issubset(alojamiento.amenities)
         ]
 

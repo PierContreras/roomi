@@ -4,7 +4,7 @@ import { amenities, Amenity, RoomFilters, roomTypes, universities, zones } from 
 import { UiIcon } from '../shared/ui-icon';
 
 export const emptyFilters: RoomFilters = {
-  zone: '', university: '', type: '', maxPrice: null, maxMinutes: null, amenities: [],
+  zone: '', university: '', type: '', maxPrice: null, maxMinutes: null, maxDistance: null, amenities: [],
 };
 
 @Component({

@@ -5,71 +5,84 @@
       <a class="close" routerLink="/explorar" aria-label="Cerrar y seguir como invitado">×</a>
     </div>
     <div class="access-body stack">
-      @if (registered(); as profile) {
-        <section class="stack" role="status">
-          <p class="access-label">Cuenta ROOMI</p>
-          <h1>Cuenta de demostración creada</h1>
-          <p>Bienvenido a ROOMI, {{ profile.name }}. Tu sesión está activa para este recorrido.</p>
-          <button type="button" class="button" (click)="enter(profile)">Continuar</button>
-        </section>
-      } @else {
-        <div class="access-heading stack compact">
-          <p class="access-label">Cuenta ROOMI</p>
-          <h1>{{ registering() ? 'Crea tu cuenta en ROOMI' : 'Inicia sesión o crea tu cuenta' }}</h1>
-          @if (destino() === 'publicar') { <p class="small">Para publicar una habitación, elige un perfil de propietario.</p> }
-          <p>{{ registering() ? 'Usa datos ficticios para probar el registro.' : 'Accede para guardar anuncios o publicar una habitación en Huancayo.' }}</p>
-        </div>
-        <form #form="ngForm" class="stack" (ngSubmit)="submit(form)">
-          @if (registering()) {
-            <label>Nombre
-              <input name="nombre" required maxlength="100" [(ngModel)]="details.name" #name="ngModel" autocomplete="name" />
-              @if (name.touched && (name.invalid || !details.name.trim())) { <span class="error">Ingresa tu nombre.</span> }
-            </label>
-            <label>Tipo de cuenta
-              <select name="rol" [(ngModel)]="details.role">
-                <option value="student">Estudiante</option><option value="owner">Propietario</option>
-              </select>
-            </label>
-          }
-          <label>{{ registering() ? 'Correo electrónico' : 'Correo electrónico o teléfono' }}
-            <input name="correo" [type]="registering() ? 'email' : 'text'" required [email]="registering()"
-              maxlength="180" [(ngModel)]="details.email" #email="ngModel" autocomplete="username"
-              placeholder="estudiante@roomi.test" />
-            @if (email.touched && email.invalid) { <span class="error">Ingresa un {{ registering() ? 'correo válido' : 'correo o teléfono' }}.</span> }
-          </label>
-          @if (registering() || passwordStep()) {
-            <label>Contraseña
-              <input name="contrasena" type="password" required minlength="6" maxlength="64"
-                [(ngModel)]="details.password" #passwordField="ngModel"
-                [attr.autocomplete]="registering() ? 'new-password' : 'current-password'" />
-              @if (passwordField.touched && passwordField.invalid) { <span class="error">Ingresa al menos 6 caracteres.</span> }
-            </label>
-          }
-          @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button type="submit" class="button">{{ registering() ? 'Crear cuenta' : passwordStep() ? 'Iniciar sesión' : 'Continuar' }}</button>
-        </form>
+      <div class="access-heading stack compact">
+        <h1>{{ registering() ? 'Crea tu cuenta en ROOMI' : 'Inicia sesión en ROOMI' }}</h1>
+        @if (destino() === 'publicar') { <p>Entra a tu cuenta de ROOMI para publicar una habitación.</p> }
+        @if (contactReturn()) { <p>Entra a tu cuenta de ROOMI para contactar al propietario de esta habitación.</p> }
+      </div>
+      <form #form="ngForm" class="stack" (ngSubmit)="submit(form)" (input)="error.set('')">
         @if (registering()) {
-          <p class="small">¿Ya tienes una cuenta? <a routerLink="/acceso" queryParamsHandling="preserve">Inicia sesión</a>.</p>
-        } @else {
-          <a class="button secondary" routerLink="/registro" queryParamsHandling="preserve">Crear cuenta</a>
-          <div class="separator"><span>o</span></div>
-          <div class="stack compact alternatives">
-            <button type="button" class="button quiet" (click)="demo(profiles[0])">Continuar con Google <span class="method">Demo</span></button>
-            <button type="button" class="button quiet" (click)="useUniversityEmail()">Continuar con correo universitario</button>
+          <div class="password-field">
+            <label for="access-name">Nombre</label>
+            @let nameInvalid = (name.touched || form.submitted) && !details.name.trim();
+            <input class="form-control" id="access-name" name="nombre" required maxlength="100"
+              [(ngModel)]="details.name" #name="ngModel" autocomplete="name"
+              [class.is-invalid]="nameInvalid" [attr.aria-invalid]="nameInvalid || null"
+              [attr.aria-describedby]="nameInvalid ? 'name-error' : null" />
+            @if (nameInvalid) { <p class="small error" id="name-error" role="alert">Escribe tu nombre.</p> }
           </div>
         }
-        <a class="guest" routerLink="/explorar">Seguir explorando como invitado <span aria-hidden="true">→</span></a>
-        <aside class="demo-note"><strong>Entorno demostrativo.</strong> Usa datos ficticios. El acceso de Google es simulado.</aside>
-        <details class="demo-profiles">
-          <summary>Perfiles de demostración</summary>
-          <p>Contraseña de prueba: <strong>{{ password }}</strong>. Teléfono ficticio del estudiante: <strong>{{ phone }}</strong>.</p>
-          <div class="profile-list">
-            @for (profile of profiles; track profile.id) {
-              <button type="button" class="button secondary" (click)="demo(profile)">{{ roleLabels[profile.role] }}</button>
+        <div class="password-field">
+          <label for="access-email">Correo electrónico</label>
+          @let emailInvalid = (email.touched || form.submitted) && email.invalid;
+          <input class="form-control" id="access-email" name="correo" type="email" required email
+            pattern="[^\s@]+@[^\s@]+\.[^\s@]+" maxlength="180" [(ngModel)]="details.email" #email="ngModel"
+            autocomplete="username" [class.is-invalid]="emailInvalid" [attr.aria-invalid]="emailInvalid || null"
+            [attr.aria-describedby]="emailInvalid ? 'email-error' : null" />
+          @if (emailInvalid) {
+            <p class="small error" id="email-error" role="alert">{{ email.hasError('required') ? 'Escribe tu correo electrónico.' : 'Escribe un correo válido, por ejemplo usuario@correo.com.' }}</p>
+          }
+        </div>
+        <div class="password-field">
+          <label for="access-password">Contraseña</label>
+          @let passwordInvalid = (password.touched || form.submitted) && password.invalid;
+          <div class="password-control">
+            <input class="form-control" id="access-password" name="contrasena" [type]="showPassword() ? 'text' : 'password'"
+              required minlength="10" maxlength="64" [(ngModel)]="details.password" #password="ngModel"
+              [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+              [class.is-invalid]="passwordInvalid" [attr.aria-invalid]="passwordInvalid || null"
+              [attr.aria-describedby]="passwordInvalid ? 'password-error' : registering() ? 'password-requirements' : null" />
+            <button type="button" class="btn password-toggle" aria-controls="access-password"
+              [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              (click)="showPassword.set(!showPassword())">
+              <i class="bi" [class.bi-eye]="showPassword()" [class.bi-eye-slash]="!showPassword()" aria-hidden="true"></i>
+            </button>
+          </div>
+          @if (passwordInvalid) {
+            <p class="small error" id="password-error" role="alert">{{ password.hasError('required') ? 'Escribe tu contraseña.' : 'La contraseña debe tener entre 10 y 64 caracteres.' }}</p>
+          } @else if (registering()) {
+            <span class="small muted" id="password-requirements">Usa entre 10 y 64 caracteres.</span>
+          }
+        </div>
+        @if (registering()) {
+          @let confirmationInvalid = (confirmation.touched || form.submitted) && (!details.confirmation || details.password !== details.confirmation);
+          <div class="password-field">
+            <label for="access-confirmation">Confirmar contraseña</label>
+            <div class="password-control">
+              <input class="form-control" id="access-confirmation" name="confirmacion" [type]="showConfirmation() ? 'text' : 'password'"
+                required maxlength="64" [(ngModel)]="details.confirmation" #confirmation="ngModel" autocomplete="new-password"
+                [class.is-invalid]="confirmationInvalid" [attr.aria-invalid]="confirmationInvalid || null"
+                [attr.aria-describedby]="confirmationInvalid ? 'confirmation-error' : null" />
+              <button type="button" class="btn password-toggle" aria-controls="access-confirmation"
+                [attr.aria-label]="showConfirmation() ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'"
+                (click)="showConfirmation.set(!showConfirmation())">
+                <i class="bi" [class.bi-eye]="showConfirmation()" [class.bi-eye-slash]="!showConfirmation()" aria-hidden="true"></i>
+              </button>
+            </div>
+            @if (confirmationInvalid) {
+              <p class="small error" id="confirmation-error" role="alert">{{ details.confirmation ? 'Las contraseñas deben coincidir.' : 'Vuelve a escribir tu contraseña.' }}</p>
             }
           </div>
-        </details>
+        }
+        @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+        <button type="submit" class="button" [disabled]="busy()">{{ busy() ? 'Procesando…' : registering() ? 'Crear cuenta' : 'Iniciar sesión' }}</button>
+      </form>
+      @if (registering()) {
+        <p class="small">¿Ya tienes una cuenta? <a routerLink="/acceso" queryParamsHandling="preserve">Inicia sesión</a>.</p>
+      } @else {
+        <p class="small">¿Aún no tienes una cuenta? <a routerLink="/registro" queryParamsHandling="preserve">Crear cuenta</a></p>
       }
+      <a class="guest" routerLink="/explorar">Seguir explorando como invitado <span aria-hidden="true">→</span></a>
     </div>
   </article>
 </div>

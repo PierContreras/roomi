@@ -1,10 +1,12 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 import os
-from typing import TYPE_CHECKING
+from pathlib import Path
 
-if TYPE_CHECKING:
-    from pyodbc import Connection
+import pyodbc
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 
 
 class ConexionSqlError(RuntimeError):
@@ -24,7 +26,7 @@ def _cadena_conexion() -> str:
     base = os.getenv("DB_NAME", "").strip()
     driver = os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server").strip()
     if not all((host, base, driver)):
-        raise ConexionSqlError("Configura DB_HOST, DB_NAME y DB_DRIVER en el backend.")
+        raise ConexionSqlError("Revisa backend/.env.")
 
     usuario = os.getenv("DB_USER", "").strip()
     password = os.getenv("DB_PASSWORD", "")
@@ -49,14 +51,13 @@ def _cadena_conexion() -> str:
     return ";".join(opciones) + ";"
 
 
-@contextmanager
-def abrir_conexion() -> Iterator["Connection"]:
-    cadena = _cadena_conexion()
+def validar_configuracion_sql() -> None:
+    _cadena_conexion()
 
-    try:
-        import pyodbc
-    except ImportError as error:
-        raise ConexionSqlError("Instala el extra sqlserver para usar SQL Server.") from error
+
+@contextmanager
+def abrir_conexion() -> Iterator[pyodbc.Connection]:
+    cadena = _cadena_conexion()
 
     try:
         conexion = pyodbc.connect(cadena, timeout=5)

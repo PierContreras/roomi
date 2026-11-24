@@ -10,3 +10,4 @@ img { display: block; width: 100%; height: clamp(140px, 18vw, 210px); object-fit
 .price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-caption { margin: 0; padding: 6px 14px; background: var(--soft); }

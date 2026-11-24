@@ -1,51 +1,72 @@
 # Backend de ROOMI
 
-API en FastAPI para el directorio de alojamiento estudiantil. Expone la consulta de anuncios publicados con datos de demostración en memoria o con SQL Server.
+FastAPI recibe las solicitudes de Angular, aplica validación y permisos y guarda los datos en SQL Server mediante `pyodbc` y Microsoft ODBC Driver 18. `uv sync --locked` instala las dependencias de Python.
 
-## Iniciar
+## Autenticación
 
-Desde la raíz del repositorio, en PowerShell:
+Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas existentes con rol `student` u `owner` tienen los mismos permisos de usuario. El rol `admin` tiene acceso al panel de moderación.
+
+`POST /api/auth/registro` y `POST /api/auth/login` devuelven el perfil y un JWT firmado con HS256 mediante PyJWT. Configura `ROOMI_JWT_SECRET` con una clave aleatoria de al menos 32 bytes. El token vence después de una hora y se envía mediante `Authorization: Bearer <token>` en las solicitudes protegidas.
+
+Los registros nuevos y las cuentas de administración creadas por consola usan `argon2-cffi` con Argon2id. SQL Server guarda el hash en `dbo.usuarios.password_hash`, de tipo `NVARCHAR(250) NOT NULL`. Las cuentas anteriores con scrypt conservan su contraseña y su hash se actualiza a Argon2id tras un inicio de sesión correcto.
+
+## Eliminar una publicación
+
+El propietario puede llamar a `DELETE /api/alojamientos/{anuncio_id}` con su JWT. La operación devuelve `204` y quita el anuncio del catálogo y de Mis anuncios. Las consultas, reseñas, reportes y decisiones de moderación asociados se conservan en la base.
+
+## Instalar el esquema en SQL Server
+
+Desde la raíz del repositorio, ejecuta lo siguiente con una cuenta autorizada para administrar la base local.
 
 ```powershell
-cd .\backend
-uv sync
-uv run uvicorn backend.main:app --reload
+sqlcmd -S . -E -C -b -i .\backend\migrations\instalar_roomi.sql
 ```
 
-Abre [Swagger UI](http://127.0.0.1:8000/docs). Si la descarga de dependencias está restringida y ya tienes FastAPI y Uvicorn instalados en tu Python, puedes usar `python -m uvicorn backend.main:app --app-dir src --reload`.
+El script crea `BD_ROOMI` en instalaciones nuevas. Si la base existente se llama `ROOMI`, la renombra antes de aplicar las migraciones. Cierra las conexiones a esa base antes de ejecutar el cambio de nombre. Tras el cambio, usa `DB_NAME=BD_ROOMI` en `.env`. El script puede volver a ejecutarse y muestra las seis tablas esperadas.
 
-| Método | Ruta | Resultado |
-| --- | --- | --- |
-| GET | `/api/salud` | Confirma que la API está disponible |
-| GET | `/api/alojamientos` | Lista de anuncios publicados, con filtros opcionales |
-| GET | `/api/alojamientos/{anuncio_id}` | Ficha pública. Devuelve 404 si el anuncio no está disponible |
+## Ejecutar en Windows
 
-La lista admite `zona`, `universidad`, `tipo`, `precio` (máximo), `minutos` (máximo) y uno o varios valores `servicio`. Por ejemplo, prueba `/api/alojamientos?zona=San%20Carlos&precio=330&servicio=Wifi`.
+Desde `backend`, instala las dependencias y prepara el archivo local de configuración.
 
-## Capas
+```powershell
+uv sync --locked
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
 
-| Ruta | Responsabilidad |
+Configura la instancia de SQL Server en `.env`. Para una instalación nueva, genera el valor de `ROOMI_JWT_SECRET` con `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdalo en `.env`. Si la instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para ese entorno.
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+El arranque mediante `python.exe -m uvicorn` es compatible con Smart App Control. La aplicación carga `backend/.env` automáticamente. Las variables ya definidas en el entorno tienen prioridad. Usa `.env.example` para compartir la configuración de ejemplo y guarda las credenciales únicamente en `.env` o en el entorno del servidor.
+
+Si ya hay un proceso de Uvicorn en el puerto 8000, detenlo con `Ctrl+C` y vuelve a iniciar con el comando anterior. Después abre `/api/salud` para comprobar la conexión a `BD_ROOMI` y `/api/alojamientos` para comprobar el catálogo público.
+
+Si necesitas crear la primera cuenta de administración, ejecuta el siguiente comando. La contraseña se solicita en consola.
+
+```powershell
+.\.venv\Scripts\python.exe create_table.py --admin-email administrador@roomi.test
+```
+
+## Autorización y errores de la API
+
+| Estado | Criterio |
 | --- | --- |
-| `src/backend/main.py` | Crea FastAPI, monta las rutas y habilita peticiones desde Angular en el puerto 4200 |
-| `src/backend/apis/` | Recibe peticiones HTTP y devuelve las respuestas |
-| `src/backend/services/` | Aplica los filtros y las reglas de consulta |
-| `src/backend/repositories/` | Define el contrato de repositorio y sus implementaciones en memoria y SQL Server |
-| `src/backend/schemas/` | Define los contratos de entrada y de respuesta con Pydantic |
-| `src/backend/db_connection.py` | Abre y cierra las conexiones ODBC |
-| `create_table.py` | Crea la tabla de alojamientos en una base existente y, si se solicita, agrega ejemplos |
+| 401 | La operación exige una sesión válida y la sesión está ausente, es inválida o venció. En el acceso, las credenciales no coinciden. |
+| 403 | La sesión es válida, pero el rol no permite la operación. Por ejemplo, un arrendatario no puede moderar anuncios. |
+| 404 | El recurso no existe o la operación no está disponible para esa cuenta por titularidad. Editar, retirar o eliminar un anuncio ajeno se trata como si no existiera. La reseña del anuncio propio también se oculta con este estado. |
+| 409 | La solicitud entra en conflicto con el estado actual, como un correo duplicado, una reseña repetida o una decisión de moderación desactualizada. |
+| 422 | La solicitud tiene datos inválidos. La respuesta incluye mensajes en español por campo. |
 
-## Probar con SQL Server
+OpenAPI documenta los estados aplicables a cada operación con el modelo compartido `ErrorApi`. Las respuestas protegidas con 401 incluyen `WWW-Authenticate: Bearer`.
 
-1. Crea la base `ROOMI` en SQL Server y ten instalado **Microsoft ODBC Driver 18 for SQL Server**.
-2. Desde `backend/`, copia `.env.example` a `.env`. Cambia `ROOMI_DATA_SOURCE` a `sqlserver` y ajusta `DB_HOST` y `DB_NAME` a tu instancia y base. Deja `DB_USER` y `DB_PASSWORD` vacíos para usar autenticación de Windows. Si tu instancia local usa un certificado autofirmado, `DB_TRUST_SERVER_CERTIFICATE=yes` reproduce la opción **Certificado de servidor de confianza** de SSMS. Git ignora `.env`. Si ya tienes `ROOMI_SQLSERVER_CONNECTION_STRING` configurada, tiene prioridad sobre las variables `DB_*`.
-3. Ejecuta estos comandos. Omite `--datos-demo` si solo quieres crear la tabla.
+## Estructura
 
-```powershell
-uv sync --extra sqlserver
-uv run --extra sqlserver --env-file .env python create_table.py --datos-demo
-uv run --extra sqlserver --env-file .env uvicorn backend.main:app --reload
-```
+- `src/backend/apis/` expone el catálogo, acceso, paneles, moderación, contacto, reseñas y reportes.
+- `src/backend/schemas/` define los contratos HTTP.
+- `src/backend/services/` aplica filtros y proporciona el hash y la firma de sesiones.
+- `src/backend/repositories/` consulta y actualiza SQL Server.
+- `migrations/` y `create_table.py` preparan la base y su esquema.
 
-El script crea `dbo.alojamientos` si la tabla aún no existe. Con `--datos-demo` agrega los ejemplos únicamente cuando falta su identificador. Para este catálogo inicial, la tabla guarda los servicios y las fotos como listas JSON.
-
-El catálogo público de Angular consulta esta API. La autenticación y la gestión de anuncios del propietario y del administrador siguen siendo de demostración.
+[Swagger local](http://127.0.0.1:8000/docs) · [Estado de la API](http://127.0.0.1:8000/api/salud)

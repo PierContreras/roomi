@@ -1,0 +1,13 @@
+USE [master];
+GO
+IF DB_ID(N'ROOMI') IS NOT NULL AND DB_ID(N'BD_ROOMI') IS NOT NULL
+    THROW 50001, 'Ya existen ROOMI y BD_ROOMI. Verifica cuál contiene los datos de la aplicación.', 1;
+
+IF DB_ID(N'BD_ROOMI') IS NULL
+BEGIN
+    IF DB_ID(N'ROOMI') IS NOT NULL
+        ALTER DATABASE [ROOMI] MODIFY NAME = [BD_ROOMI];
+    ELSE
+        CREATE DATABASE [BD_ROOMI];
+END;
+GO

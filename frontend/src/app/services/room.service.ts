@@ -3,18 +3,23 @@ import { inject, Injectable, Signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, firstValueFrom, of, throwError } from 'rxjs';
 import { browserState } from './browser-state';
-import { demoRooms } from './demo-rooms';
-import { DemoUser } from '../interfaces/user';
+import { SessionService } from './session.service';
 import { PublicRoom, Room, RoomDraft, RoomFilters } from '../interfaces/room';
 
-const catalogUrl = '/api/alojamientos';
+const api = '/api';
+const catalogUrl = `${api}/alojamientos`;
+
+interface Report { id: string; roomId: string; title: string; message: string }
+interface Inquiry extends Report { name: string; email: string }
+interface Review { id: string; name: string; rating: number; message: string }
+interface Created { id: string }
 
 @Injectable({ providedIn: 'root' })
 export class RoomService {
   private readonly http = inject(HttpClient);
-  private readonly catalog = browserState<readonly Room[]>('roomi.rooms.v1', demoRooms);
+  private readonly session = inject(SessionService);
   private readonly savedState = browserState<readonly string[]>('roomi.saved.v1', []);
-  readonly rooms = this.catalog.value;
+
   published() {
     return rxResource({ stream: () => this.http.get<PublicRoom[]>(catalogUrl) });
   }
@@ -35,6 +40,7 @@ export class RoomService {
     if (filters.type) params = params.set('tipo', filters.type);
     if (filters.maxPrice !== null) params = params.set('precio', filters.maxPrice);
     if (filters.maxMinutes !== null) params = params.set('minutos', filters.maxMinutes);
+    if (filters.maxDistance !== null) params = params.set('distancia', filters.maxDistance);
     for (const amenity of filters.amenities) params = params.append('servicio', amenity);
     return firstValueFrom(this.http.get<PublicRoom[]>(catalogUrl, { params }));
   }
@@ -48,42 +54,64 @@ export class RoomService {
     this.savedState.set(this.isSaved(id) ? ids.filter(saved => saved !== id) : [...ids, id]);
   }
 
-  save(draft: RoomDraft, user: DemoUser, id?: string) {
-    const existing = id && this.findOwned(id, user.id);
-    if (user.role !== 'owner' || (id && !existing)) return null;
-    const room: Room = {
-      ...draft, id: id ?? crypto.randomUUID(), ownerId: user.id,
-      owner: user.name, status: 'pending',
-    };
-    this.catalog.set(existing
-      ? this.rooms().map(current => current.id === id ? room : current)
-      : [room, ...this.rooms()]);
-    return room;
+  managed(role: 'propietario' | 'administracion') {
+    return rxResource({ stream: () => this.http.get<Room[]>(`${api}/${role}/alojamientos`, this.auth()) });
   }
 
-  withdraw(id: string, ownerId: string) {
-    const room = this.findOwned(id, ownerId);
-    if (!room) return false;
-    this.catalog.set(this.rooms().map(current => current.id === id ? { ...room, status: 'withdrawn' } : current));
-    return true;
+  inquiries() {
+    return rxResource({ stream: () => this.http.get<Inquiry[]>(`${api}/propietario/consultas`, this.auth()) });
   }
 
-  review(id: string, admin: DemoUser, decision: 'approved' | 'rejected', note: string) {
-    const room = this.rooms().find(current => current.id === id && current.status === 'pending');
-    const reason = note.trim();
-    if (admin.role !== 'admin' || !room || (decision === 'rejected' && !reason)) return false;
-    const reviewed: Room = { ...room, status: decision, reviewNote: decision === 'rejected' ? reason : undefined };
-    this.catalog.set(this.rooms().map(current => current.id === id ? reviewed : current));
-    return true;
+  reports() {
+    return rxResource({ stream: () => this.http.get<Report[]>(`${api}/administracion/reportes`, this.auth()) });
   }
 
-  findOwned(id: string, ownerId: string) {
-    return this.rooms().find(room => room.id === id && room.ownerId === ownerId && room.status !== 'withdrawn');
+  reviews(id: Signal<string>) {
+    return rxResource({ params: id, stream: ({ params }) =>
+      this.http.get<Review[]>(`${catalogUrl}/${encodeURIComponent(params)}/resenas`),
+    });
   }
 
-  async prepareContact(roomId: string, inquiry: { name: string; email: string; message: string }) {
-    await firstValueFrom(this.getDetail(roomId));
-    return 'Hola, soy ' + inquiry.name.trim() + '. ' + inquiry.message.trim() + '\nCorreo de contacto: ' + inquiry.email.trim();
+  save(draft: RoomDraft, id?: string) {
+    const { title, zone, university, type, price, deposit, minutes, amenities,
+      description, rules, address, photos, latitude, longitude, distanceKm, whatsapp } = draft;
+    const body = { title, zone, university, type, price, deposit, minutes,
+      amenities, description, rules, address, photos, latitude, longitude, distanceKm, whatsapp: whatsapp || null };
+    return firstValueFrom(id
+      ? this.http.put<Created>(`${catalogUrl}/${encodeURIComponent(id)}`, body, this.auth())
+      : this.http.post<Created>(catalogUrl, body, this.auth()));
+  }
+
+  withdraw(id: string) {
+    return firstValueFrom(this.http.patch<void>(`${catalogUrl}/${encodeURIComponent(id)}/estado`,
+      { status: 'withdrawn' }, this.auth()));
+  }
+
+  delete(id: string) {
+    return firstValueFrom(this.http.delete<void>(`${catalogUrl}/${encodeURIComponent(id)}`, this.auth()));
+  }
+
+  review(id: string, status: 'approved' | 'rejected', note: string, revision: number) {
+    return firstValueFrom(this.http.patch<void>(`${api}/administracion/alojamientos/${encodeURIComponent(id)}`,
+      { status, note, revision }, this.auth()));
+  }
+
+  sendContact(id: string, inquiry: { name: string; email: string; message: string; consent: boolean }) {
+    return firstValueFrom(this.http.post<Created>(`${catalogUrl}/${encodeURIComponent(id)}/consultas`, inquiry, this.auth()));
+  }
+
+  contact(id: Signal<string>) {
+    return rxResource({ params: id, stream: ({ params }) => this.http.get<{ whatsapp: string | null; formulario: boolean }>(
+      `${catalogUrl}/${encodeURIComponent(params)}/contacto`, this.auth(),
+    ) });
+  }
+
+  submitFeedback(id: string, type: 'resenas' | 'reportes', body: { message: string; rating?: number }) {
+    return firstValueFrom(this.http.post<Created>(`${catalogUrl}/${encodeURIComponent(id)}/${type}`, body, this.auth()));
+  }
+
+  private auth() {
+    return { headers: this.session.headers() };
   }
 
   private getDetail(id: string) {
