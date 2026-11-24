@@ -1,11 +1,10 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { SessionService } from '../../services/session.service';
+import { apiError } from '../../services/session.service';
 import { RoomGallery } from '../rooms/room-gallery';
 import { RoomService } from '../../services/room.service';
 import { StatusBadge } from '../shared/status-badge';
-import { UiLibraries } from '../../services/ui-libraries';
 
 @Component({
   imports: [RouterLink, FormsModule, RoomGallery, StatusBadge],
@@ -13,28 +12,32 @@ import { UiLibraries } from '../../services/ui-libraries';
 })
 export class AdminReviewPage {
   readonly id = input.required<string>();
-  private readonly session = inject(SessionService);
   private readonly catalog = inject(RoomService);
-  private readonly libraries = inject(UiLibraries);
-  protected readonly room = computed(() => this.catalog.rooms().find(room =>
-    room.id === this.id() && room.status !== 'withdrawn',
-  ));
+  protected readonly managed = this.catalog.managed('administracion');
+  protected readonly room = computed(() => this.managed.hasValue()
+    ? this.managed.value().find(room => room.id === this.id()) : undefined);
+  protected readonly busy = signal(false);
   protected readonly notice = signal('');
   protected readonly error = signal('');
   protected reason = '';
 
-  protected review(decision: 'approved' | 'rejected') {
+  protected async review(decision: 'approved' | 'rejected') {
+    const revision = this.room()?.revision;
+    if (this.busy() || revision === undefined) return;
     this.error.set('');
     if (decision === 'rejected' && !this.reason.trim()) {
       this.error.set('Escribe un motivo para que el propietario sepa qué debe corregir.');
       return;
     }
-    const admin = this.session.user();
-    if (!admin || !this.catalog.review(this.id(), admin, decision, this.reason)) {
-      this.error.set('El anuncio ya no está pendiente de revisión.');
-      return;
+    this.busy.set(true);
+    try {
+      await this.catalog.review(this.id(), decision, decision === 'rejected' ? this.reason : '', revision);
+      this.notice.set(decision === 'approved' ? 'Anuncio aprobado.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
+      this.managed.reload();
+    } catch (error) {
+      this.error.set(apiError(error, 'No pudimos registrar la decisión.'));
+    } finally {
+      this.busy.set(false);
     }
-    this.notice.set(decision === 'approved' ? 'Anuncio aprobado en la demostración.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
-    void this.libraries.success(decision === 'approved' ? 'Anuncio aprobado' : 'Decisión registrada');
   }
 }

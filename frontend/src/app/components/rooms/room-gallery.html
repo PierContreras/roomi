@@ -1,6 +1,7 @@
 <section aria-label="Galería de la habitación">
   @if (photos()[index()]; as photo) {
     <img [src]="photo.src" [alt]="photo.alt" />
+    @if (photo.illustrative) { <p class="small muted">Imagen ilustrativa del anuncio de demostración.</p> }
     @if (photos().length > 1) {
       <div class="controls" role="group" aria-label="Cambiar fotografía">
         <button type="button" class="button secondary" (click)="move(-1)"><app-ui-icon name="chevronLeft" /> Anterior</button>

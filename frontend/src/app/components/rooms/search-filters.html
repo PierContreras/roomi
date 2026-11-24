@@ -2,18 +2,18 @@
   <div class="essential">
     <label><span class="filter-label"><app-ui-icon name="campus" /> Universidad</span>
       <select name="universidad" [(ngModel)]="draft.university">
-        <option value="">Todas las universidades</option>
+        <option value="">Todas</option>
         @for (university of universities; track university) { <option [value]="university">{{ university }}</option> }
       </select>
     </label>
     <label><span class="filter-label"><app-ui-icon name="pin" /> Zona</span>
       <select name="zona" [(ngModel)]="draft.zone">
-        <option value="">Todas las zonas</option>
+        <option value="">Todas</option>
         @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
       </select>
     </label>
     <button type="submit" class="button"><app-ui-icon name="search" /> Buscar habitaciones</button>
-    <button type="button" class="button secondary" [attr.aria-expanded]="expanded()" aria-controls="advanced-filters"
+    <button type="button" class="button secondary filter-toggle" [attr.aria-expanded]="expanded()" aria-controls="advanced-filters"
       (click)="expanded.update(open => !open)"><app-ui-icon name="filters" /> Filtros: precio, tipo y servicios</button>
   </div>
   <div class="advanced" id="advanced-filters" [hidden]="!expanded()">
@@ -25,6 +25,10 @@
       <label>Tiempo máximo al campus (min)
         <input type="number" name="tiempo" min="0" step="1" [pattern]="wholeMinutes" [(ngModel)]="draft.maxMinutes" #minutes="ngModel" />
         @if (minutes.invalid) { <span class="error">Ingresa un número entero desde 0 minutos.</span> }
+      </label>
+      <label>Distancia máxima al campus (km)
+        <input type="number" name="distancia" min="0" max="100" step="any" [(ngModel)]="draft.maxDistance" #distance="ngModel" />
+        @if (distance.invalid) { <span class="error">Ingresa entre 0 y 100 km.</span> }
       </label>
       <label>Tipo de alojamiento
         <select name="tipo" [(ngModel)]="draft.type">

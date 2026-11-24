@@ -11,12 +11,19 @@
     <section class="panel section stack compact" role="status">
       <h1>Publicación enviada a revisión</h1>
       <p>{{ current.title }}</p>
-      <div><app-status-badge [status]="current.status" /></div>
+      <div><app-status-badge status="pending" /></div>
       <p>Consulta el estado de tu publicación en Mis anuncios.</p>
       <div><a class="button" routerLink="/propietario">Ver mis anuncios</a></div>
     </section>
+  } @else if (id() && managed.isLoading()) {
+    <p class="page-state" role="status">Cargando anuncio…</p>
+  } @else if (id() && managed.error()) {
+    <div class="page-state stack compact">
+      <p role="alert">{{ loadError() }}</p>
+      <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
+    </div>
   } @else if (id() && !existing()) {
-    <div class="panel empty"><h1>Anuncio no disponible</h1><a class="button" routerLink="/propietario">Volver a mis anuncios</a></div>
+    <div class="panel empty"><h1>Anuncio no disponible</h1><p>{{ unavailableListing }}</p><a class="button" routerLink="/propietario">Volver a mis anuncios</a></div>
   } @else {
     <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
     @if ((preview() ? draft() : undefined); as item) {
@@ -33,12 +40,12 @@
         <p class="muted">El anuncio quedará pendiente de aprobación.</p>
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
         <div class="actions">
-          <button type="button" class="button" (click)="publish(item)">Enviar a revisión</button>
+          <button type="button" class="button" [disabled]="busy()" (click)="publish(item)">{{ busy() ? 'Guardando…' : 'Enviar a revisión' }}</button>
           <button type="button" class="button secondary" (click)="preview.set(false)">Volver al formulario</button>
         </div>
       </section>
     } @else {
-      <p>Completa los datos con información ficticia y revisa el anuncio antes de enviarlo.</p>
+      <p>Completa los datos y revisa el anuncio antes de enviarlo.</p>
       <app-room-form [initial]="draft() ?? existing()" (saved)="review($event)" />
     }
   }

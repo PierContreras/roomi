@@ -14,13 +14,28 @@ const angularApp = new AngularNodeAppEngine();
 
 const apiOrigin = new URL(process.env['ROOMI_API_URL'] ?? 'http://127.0.0.1:8000').origin;
 
-app.get(['/api/alojamientos', '/api/alojamientos/:id'], async (req, res) => {
+app.use('/api', express.raw({ type: 'application/json', limit: '2mb' }), async (req, res) => {
   try {
-    const response = await fetch(apiOrigin + req.originalUrl, { signal: AbortSignal.timeout(10_000) });
+    const headers = new Headers();
+    for (const name of ['authorization', 'content-type']) {
+      const value = req.get(name);
+      if (value) headers.set(name, value);
+    }
+    const response = await fetch(apiOrigin + req.originalUrl, {
+      method: req.method,
+      headers,
+      body: Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : undefined,
+      signal: AbortSignal.timeout(10_000),
+    });
+    res.set('Cache-Control', 'no-store');
+    const challenge = response.headers.get('www-authenticate');
+    if (challenge) res.set('WWW-Authenticate', challenge);
+    const location = response.headers.get('location');
+    if (location) res.set('Location', location);
     const body = await response.text();
     res.status(response.status).type('json').send(body);
   } catch {
-    res.status(502).json({ detail: 'El catálogo no está disponible.' });
+    res.status(502).json({ detail: 'La API de ROOMI no está disponible.' });
   }
 });
 

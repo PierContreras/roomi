@@ -1,8 +1,11 @@
 <form #form="ngForm" class="panel section stack" (ngSubmit)="submit(form)">
   <h2>Datos de la habitación</h2>
+  <p class="small muted">Completa los campos requeridos para abrir la vista previa.</p>
   <label>Título
-    <input name="titulo" required maxlength="100" [(ngModel)]="draft.title" #title="ngModel" />
-    @if (title.touched && !draft.title.trim()) { <span class="error">Escribe el título del anuncio.</span> }
+    <input name="titulo" required maxlength="100" [(ngModel)]="draft.title" #title="ngModel"
+        [attr.aria-invalid]="(title.touched && !draft.title.trim()) || null"
+        [attr.aria-describedby]="title.touched && !draft.title.trim() ? 'titulo-error' : null" />
+    @if (title.touched && !draft.title.trim()) { <span class="error" id="titulo-error" role="alert">Escribe el título del anuncio.</span> }
   </label>
   <div class="form-grid">
     <label>Zona
@@ -21,22 +24,57 @@
       </select>
     </label>
   </div>
+  <div class="form-grid">
+    <label>Latitud <input name="latitud" type="number" required min="-90" max="90" step="any" [(ngModel)]="draft.latitude" #latitude="ngModel"
+        [attr.aria-invalid]="(latitude.touched && latitude.invalid) || null"
+        [attr.aria-describedby]="latitude.touched && latitude.invalid ? 'latitud-error' : null" />
+      @if (latitude.touched && latitude.invalid) { <span class="error" id="latitud-error" role="alert">Ingresa una latitud entre −90 y 90.</span> }</label>
+    <label>Longitud <input name="longitud" type="number" required min="-180" max="180" step="any" [(ngModel)]="draft.longitude" #longitude="ngModel"
+        [attr.aria-invalid]="(longitude.touched && longitude.invalid) || null"
+        [attr.aria-describedby]="longitude.touched && longitude.invalid ? 'longitud-error' : null" />
+      @if (longitude.touched && longitude.invalid) { <span class="error" id="longitud-error" role="alert">Ingresa una longitud entre −180 y 180.</span> }</label>
+  </div>
+  <label>Distancia estimada al campus (km)
+    <input name="distancia" type="number" required min="0" max="100" step="any" [(ngModel)]="draft.distanceKm" #distance="ngModel"
+        [attr.aria-invalid]="(distance.touched && distance.invalid) || null"
+        [attr.aria-describedby]="distance.touched && distance.invalid ? 'distancia-error' : null" />
+      @if (distance.touched && distance.invalid) { <span class="error" id="distancia-error" role="alert">Ingresa una distancia entre 0 y 100 km.</span> }
+  </label>
+  <p class="small muted">Usa un punto cercano a la habitación. Puedes copiar su latitud y longitud desde
+    <a href="https://www.google.com/maps/search/?api=1&amp;query=Huancayo%2C%20Per%C3%BA" target="_blank" rel="noopener noreferrer">Google Maps</a>.
+  </p>
+  <label>WhatsApp de contacto (opcional)
+    <input name="whatsapp" type="tel" autocomplete="tel" maxlength="24" [(ngModel)]="draft.whatsapp"
+      (blur)="normalizeWhatsapp()" #whatsapp="ngModel"
+      [attr.aria-invalid]="((whatsapp.touched || submitted()) && !whatsappValid()) || null"
+      [attr.aria-describedby]="(whatsapp.touched || submitted()) && !whatsappValid() ? 'whatsapp-help whatsapp-error' : 'whatsapp-help'" />
+    <span class="small muted" id="whatsapp-help">Escribe tu celular peruano de nueve dígitos o un número con código de país. Solo usuarios con sesión iniciada podrán verlo.</span>
+    @if ((whatsapp.touched || submitted()) && !whatsappValid()) { <span class="error" id="whatsapp-error" role="alert">Escribe un número de WhatsApp válido.</span> }
+  </label>
   <label>Dirección referencial
-    <input name="direccion" required maxlength="160" [(ngModel)]="draft.address" #address="ngModel" />
-    @if (address.touched && !draft.address.trim()) { <span class="error">Indica una dirección ficticia.</span> }
+    <input name="direccion" required maxlength="160" [(ngModel)]="draft.address" #address="ngModel"
+        [attr.aria-invalid]="(address.touched && !draft.address.trim()) || null"
+        [attr.aria-describedby]="address.touched && !draft.address.trim() ? 'direccion-error' : null" />
+    @if (address.touched && !draft.address.trim()) { <span class="error" id="direccion-error" role="alert">Indica una dirección.</span> }
   </label>
   <div class="form-grid">
     <label>Precio mensual (S/)
-      <input name="precio" required type="number" min="1" max="10000" step="0.01" [(ngModel)]="draft.price" #price="ngModel" />
-      @if (price.touched && price.invalid) { <span class="error">Ingresa un valor entre S/ 1 y S/ 10 000.</span> }
+      <input name="precio" required type="number" min="1" max="10000" step="0.01" [(ngModel)]="draft.price" #price="ngModel"
+        [attr.aria-invalid]="(price.touched && price.invalid) || null"
+        [attr.aria-describedby]="price.touched && price.invalid ? 'precio-error' : null" />
+      @if (price.touched && price.invalid) { <span class="error" id="precio-error" role="alert">Ingresa un valor entre S/ 1 y S/ 10 000.</span> }
     </label>
     <label>Garantía (S/)
-      <input name="garantia" required type="number" min="0" max="10000" step="0.01" [(ngModel)]="draft.deposit" #deposit="ngModel" />
-      @if (deposit.touched && deposit.invalid) { <span class="error">Ingresa un valor entre S/ 0 y S/ 10 000.</span> }
+      <input name="garantia" required type="number" min="0" max="10000" step="0.01" [(ngModel)]="draft.deposit" #deposit="ngModel"
+        [attr.aria-invalid]="(deposit.touched && deposit.invalid) || null"
+        [attr.aria-describedby]="deposit.touched && deposit.invalid ? 'garantia-error' : null" />
+      @if (deposit.touched && deposit.invalid) { <span class="error" id="garantia-error" role="alert">Ingresa un valor entre S/ 0 y S/ 10 000.</span> }
     </label>
     <label>Minutos al campus
-      <input name="minutos" required type="number" min="0" max="180" [(ngModel)]="draft.minutes" #minutes="ngModel" />
-      @if (minutes.touched && minutes.invalid) { <span class="error">Ingresa un valor entre 0 y 180.</span> }
+      <input name="minutos" required type="number" min="0" max="180" [(ngModel)]="draft.minutes" #minutes="ngModel"
+        [attr.aria-invalid]="(minutes.touched && minutes.invalid) || null"
+        [attr.aria-describedby]="minutes.touched && minutes.invalid ? 'minutos-error' : null" />
+      @if (minutes.touched && minutes.invalid) { <span class="error" id="minutos-error" role="alert">Ingresa un valor entre 0 y 180.</span> }
     </label>
   </div>
   <fieldset>
@@ -49,17 +87,21 @@
     </div>
   </fieldset>
   <label>Descripción
-    <textarea name="descripcion" rows="4" required maxlength="1200" [(ngModel)]="draft.description" #description="ngModel"></textarea>
-    @if (description.touched && !draft.description.trim()) { <span class="error">Describe la habitación.</span> }
+    <textarea name="descripcion" rows="4" required maxlength="1200" [(ngModel)]="draft.description" #description="ngModel"
+        [attr.aria-invalid]="(description.touched && !draft.description.trim()) || null"
+        [attr.aria-describedby]="description.touched && !draft.description.trim() ? 'descripcion-error' : null"></textarea>
+    @if (description.touched && !draft.description.trim()) { <span class="error" id="descripcion-error" role="alert">Describe la habitación.</span> }
   </label>
   <label>Condiciones de alquiler
-    <textarea name="condiciones" rows="3" required maxlength="800" [(ngModel)]="draft.rules" #rules="ngModel"></textarea>
-    @if (rules.touched && !draft.rules.trim()) { <span class="error">Ingresa las condiciones de alquiler.</span> }
+    <textarea name="condiciones" rows="3" required maxlength="800" [(ngModel)]="draft.rules" #rules="ngModel"
+        [attr.aria-invalid]="(rules.touched && !draft.rules.trim()) || null"
+        [attr.aria-describedby]="rules.touched && !draft.rules.trim() ? 'condiciones-error' : null"></textarea>
+    @if (rules.touched && !draft.rules.trim()) { <span class="error" id="condiciones-error" role="alert">Ingresa las condiciones de alquiler.</span> }
   </label>
-  <label>Fotografías referenciales (opcional)
+  <label>Fotos de la habitación (opcional)
     <input #photos type="file" name="fotos" accept="image/jpeg,image/png,image/webp" multiple [disabled]="loadingPhotos()"
       (change)="addPhotos(photos)" />
-    <span class="muted">Hasta 3 fotografías de 400 KB cada una.</span>
+    <span class="muted">Sube hasta 3 fotos JPG, PNG o WebP. La primera aparecerá en el listado.</span>
   </label>
   @if (photoError()) { <p class="error" role="alert">{{ photoError() }}</p> }
   @if (loadingPhotos()) { <p role="status">Cargando fotografías…</p> }

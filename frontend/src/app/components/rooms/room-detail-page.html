@@ -4,33 +4,46 @@
     <span aria-hidden="true">/</span><span aria-current="page">Ficha de la habitación</span>
   </nav>
   @if (room.isLoading()) {
-    <p role="status">Cargando anuncio…</p>
+    <p class="page-state" role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
-    <p role="alert">No pudimos cargar el anuncio.</p>
-    <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
+    <div class="page-state stack compact">
+      <p role="alert">No pudimos cargar el anuncio. Intenta de nuevo o vuelve a buscar.</p>
+      <div class="actions">
+        <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
+        <a class="button secondary" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">{{ navigation.back().label }}</a>
+      </div>
+    </div>
   } @else if (room.value(); as current) {
     <div class="listing-heading">
       <h1>{{ current.title }}</h1>
+    </div>
+    <div class="listing-contact">
+      <p class="listing-price"><strong>S/ {{ current.price }}</strong> <span>/ mes</span></p>
+      @if (current.contactAvailable) {
+        <a class="button listing-contact-action" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar propietario</a>
+      } @else {
+        <p class="small muted">El propietario aún no ha habilitado el contacto para este anuncio.</p>
+      }
+    </div>
+    <div class="listing-meta">
+      <ul class="listing-facts plain">
+        <li>{{ current.type }}</li>
+        <li><app-ui-icon name="pin" /> {{ current.zone }}, Huancayo</li>
+        <li><app-ui-icon name="clock" /> {{ current.minutes }} min al campus {{ current.university }}</li>
+        @if (current.distanceKm != null) { <li>{{ current.distanceKm }} km estimados al campus</li> }
+      </ul>
       <div class="actions">
         <a class="button quiet" [routerLink]="['compartir']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="share" /> Compartir anuncio</a>
-        <button type="button" class="button secondary" aria-label="Guardar anuncio" [attr.aria-pressed]="catalog.isSaved(current.id)"
+        <button type="button" class="button secondary" [attr.aria-label]="catalog.isSaved(current.id) ? 'Guardado, quitar de guardados' : 'Guardar anuncio'" [attr.aria-pressed]="catalog.isSaved(current.id)"
           (click)="catalog.toggleSaved(current.id)"><app-ui-icon name="heart" [filled]="catalog.isSaved(current.id)" /> {{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
       </div>
     </div>
-    <ul class="listing-facts plain">
-      <li>{{ current.type }}</li>
-      <li><app-ui-icon name="pin" /> {{ current.zone }}, Huancayo</li>
-      <li><app-ui-icon name="clock" /> {{ current.minutes }} min al campus {{ current.university }}</li>
-    </ul>
-    <app-room-gallery [photos]="current.photos" />
+    <app-room-gallery [photos]="photos()" />
     <div class="split details">
       <aside class="panel section contact-aside">
-        <h2>S/ {{ current.price }} <span class="small muted">/ mes</span></h2>
+        <h2 class="listing-summary-title">Datos del alquiler</h2>
         <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
         <p>Propietario: <strong>{{ current.owner }}</strong></p>
-        <div class="stack compact">
-          <a class="button" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar al propietario</a>
-        </div>
       </aside>
       <div class="stack listing-info">
         <nav class="actions detail-links" aria-label="Secciones del anuncio">
@@ -53,10 +66,64 @@
           <h2>Condiciones de alquiler</h2>
           <p>{{ current.rules }}</p>
         </section>
+        <section class="stack compact detail-section" id="resenas">
+          <h2>Reseñas</h2>
+          @if (reviews.isLoading()) { <p role="status">Cargando reseñas…</p> }
+          @else if (reviews.error()) {
+            <p role="alert">No pudimos cargar las reseñas.</p>
+            <div><button class="button quiet" type="button" (click)="reviews.reload()">Reintentar</button></div>
+          } @else {
+            @for (review of reviews.value() ?? []; track review.id) {
+              <article>
+                <p><strong>{{ review.name }}</strong></p>
+                <span class="review-stars" role="img" [attr.aria-label]="review.rating + ' de 5 estrellas'">
+                  @for (value of stars; track value) { <span aria-hidden="true">{{ value <= review.rating ? '★' : '☆' }}</span> }
+                </span>
+                <p>{{ review.message }}</p>
+              </article>
+            } @empty { <p>Este alojamiento aún no tiene reseñas.</p> }
+          }
+          @if (session.publicAccount()) {
+            <div class="actions">
+              <button class="button secondary" type="button" [disabled]="busy()" (click)="choose('resenas')">Escribir reseña</button>
+              <button class="button quiet" type="button" [disabled]="busy()" (click)="choose('reportes')">Reportar anuncio</button>
+            </div>
+            @if (feedback(); as type) {
+              <form #feedbackForm="ngForm" class="stack compact" (ngSubmit)="send(feedbackForm)">
+                @if (type === 'resenas') {
+                  <fieldset>
+                    <legend>Puntuación</legend>
+                    <div class="rating-options">
+                      @for (value of stars; track value) {
+                        <label>
+                          <input type="radio" class="sr-only" name="puntuacion" [value]="value" [(ngModel)]="rating"
+                            [attr.aria-label]="value === 1 ? '1 estrella' : value + ' estrellas'"
+                            [attr.aria-describedby]="errorKind() === 'rating' ? 'feedback-error' : null" />
+                          <span aria-hidden="true">{{ value <= (rating ?? 0) ? '★' : '☆' }}</span>
+                        </label>
+                      }
+                    </div>
+                  </fieldset>
+                }
+                @if (type === 'resenas') { <p class="small muted">La reseña se publica con el nombre de tu cuenta.</p> }
+                <label>{{ type === 'resenas' ? 'Reseña' : 'Motivo del reporte' }}
+                  <textarea name="comentario" required minlength="10" maxlength="800" [(ngModel)]="message"
+                    [attr.aria-invalid]="errorKind() === 'message' || null"
+                    [attr.aria-describedby]="errorKind() === 'message' ? 'feedback-error' : null"></textarea>
+                </label>
+                @if (error()) { <p class="error" id="feedback-error" role="alert">{{ error() }}</p> }
+                <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : type === 'resenas' ? 'Publicar reseña' : 'Enviar reporte' }}</button>
+              </form>
+            }
+            @if (notice()) { <p role="status">{{ notice() }}</p> }
+          } @else if (!session.user()) {
+            <p><a routerLink="/acceso">Inicia sesión</a> para escribir una reseña o reportar el anuncio.</p>
+          }
+        </section>
         <section class="stack compact detail-section" id="ubicacion">
           <h2>Ubicación aproximada</h2>
-          <p>{{ current.address }} · Dirección ficticia</p>
-          <app-room-map [rooms]="[current]" />
+          <p>{{ current.address }}</p>
+          <app-room-map [rooms]="[current]" [showListingLinks]="false" />
         </section>
       </div>
     </div>

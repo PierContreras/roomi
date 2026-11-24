@@ -1,6 +1,5 @@
 :host { display: block; }
 header { background: white; border-bottom: 1px solid var(--border); }
-.notice { margin: 0; padding: 6px 16px; text-align: center; color: #e0eef0; background: var(--brand); font-size: .6875rem; letter-spacing: .03em; }
 .bar { display: flex; align-items: center; gap: clamp(16px, 3vw, 40px); min-height: 74px; }
 .brand { color: var(--brand); font-size: 1.75rem; font-weight: 750; text-decoration: none; letter-spacing: -.045em; }
 nav { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 10px; }
@@ -8,15 +7,56 @@ nav { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap:
 nav a:not(.button) { display: flex; align-items: center; gap: 7px; padding: 11px 10px; border-radius: 8px; text-decoration: none; font-size: .875rem; font-weight: 640; }
 nav a:not(.button):hover, nav a.active { background: var(--soft); color: var(--brand); }
 .access-active { box-shadow: 0 0 0 3px #dbe5e9; }
-.menu, .mobile-nav { display: none; }
+.account { position: relative; margin: 0; }
+.account summary { cursor: pointer; margin: 0; list-style: none; }
+.account summary::-webkit-details-marker { display: none; }
+.account-options { position: absolute; z-index: 30; inset: calc(100% + var(--space-1)) 0 auto auto; min-width: max-content; padding: var(--space-1); box-shadow: var(--shadow-panel); }
+.account:not([open]) .account-options { display: none; }
+.account-options .button { width: 100%; }
+.menu, .mobile-nav, .mobile-drawer { display: none; }
 @media (max-width: 940px) {
+  :host { --mobile-nav-height: calc(57px + max(4px, env(safe-area-inset-bottom))); }
   .bar { flex-wrap: wrap; justify-content: space-between; min-height: 72px; gap: 0; }
   .menu { display: inline-flex; }
-  nav { display: none; flex-basis: 100%; border-top: 1px solid var(--border); }
-  nav.open { display: grid; gap: 12px; padding-block: 12px 16px; }
-  .nav-links, .account-links { display: grid; }
-  .account-links { padding-top: 12px; border-top: 1px solid var(--border); }
-  .nav-links .primary-link { display: none; }
+  .menu, .drawer-close { width: 44px; height: 44px; padding: 0; font-size: 1.25rem; }
+  .desktop-nav { display: none; }
+  .mobile-drawer {
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: min(80vw, 320px);
+    max-width: none;
+    height: calc(100dvh - var(--mobile-nav-height));
+    max-height: none;
+    margin: 0;
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-3) var(--space-3) max(var(--space-3), env(safe-area-inset-left));
+    border: 0;
+    background: var(--white);
+    color: var(--ink);
+    box-shadow: var(--shadow-panel);
+    overflow: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-100%);
+    transition: transform 270ms ease-in, display 270ms allow-discrete, overlay 270ms allow-discrete;
+  }
+  .mobile-drawer[open] { display: block; transform: translateX(0); transition-timing-function: ease-out; }
+  .mobile-drawer::backdrop {
+    bottom: var(--mobile-nav-height);
+    background: rgb(16 43 45 / 0);
+    transition: background-color 270ms ease-in, display 270ms allow-discrete, overlay 270ms allow-discrete;
+  }
+  .mobile-drawer[open]::backdrop { background: rgb(16 43 45 / .56); transition-timing-function: ease-out; }
+  @starting-style {
+    .mobile-drawer[open] { transform: translateX(-100%); }
+    .mobile-drawer[open]::backdrop { background: rgb(16 43 45 / 0); }
+  }
+  .drawer-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+  .drawer-heading h2 { margin: 0; font-family: var(--body); }
+  .drawer-nav { display: grid; justify-content: stretch; gap: var(--space-3); margin-top: var(--space-3); }
+  .drawer-nav .nav-links, .drawer-nav .account-links { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .drawer-nav .account-links { padding-top: var(--space-3); border-top: 1px solid var(--border); }
+  .drawer-nav .account summary { width: 100%; justify-content: flex-start; }
+  .drawer-nav .account-options { position: static; margin-top: var(--space-1); }
+  .drawer-nav a { min-height: 44px; min-width: 0; overflow-wrap: anywhere; }
   .mobile-nav {
     position: fixed; z-index: 20; inset: auto 0 0;
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -25,4 +65,7 @@ nav a:not(.button):hover, nav a.active { background: var(--soft); color: var(--b
   }
   .mobile-nav a:not(.button) { flex-direction: column; justify-content: center; gap: 2px; min-height: 52px; padding: 4px 2px; font-size: .75rem; }
   .mobile-nav app-ui-icon { font-size: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-drawer, .mobile-drawer::backdrop { transition: none !important; }
 }

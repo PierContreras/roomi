@@ -4,53 +4,80 @@
     <span aria-hidden="true">/</span><span aria-current="page">Contacto</span>
   </nav>
   @if (room.isLoading()) {
-    <p role="status">Cargando anuncio…</p>
+    <p class="page-state" role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
     <p role="alert">No pudimos cargar el anuncio.</p>
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
     <h1>Contacta al propietario</h1>
     <p>Consulta por la disponibilidad, las condiciones de alquiler o una visita.</p>
-    <div class="split">
-      @if (prepared()) {
-        <section class="panel section stack compact" role="status">
-          <h2>Mensaje preparado</h2>
-          <p>La consulta se simuló. Puedes revisar o copiar el mensaje.</p>
-          <label>Consulta
-            <textarea #messageField rows="5" [value]="prepared()" readonly></textarea>
-          </label>
-          <div class="actions">
-            <button type="button" class="button" (click)="copy(messageField)"><app-ui-icon name="message" /> Copiar mensaje</button>
-            <button type="button" class="button secondary" (click)="prepared.set('')">Editar consulta</button>
-            <a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button quiet">Volver al anuncio</a>
-          </div>
-          @if (copyFeedback()) { <p class="small" role="status">{{ copyFeedback() }}</p> }
-        </section>
-      } @else {
-        <form #form="ngForm" class="panel section stack" (ngSubmit)="prepare(form)">
-          <label>Nombre
-            <input name="nombre" autocomplete="name" required maxlength="100" [(ngModel)]="inquiry.name" #name="ngModel" />
-            @if (name.touched && name.invalid) { <span class="error">Ingresa tu nombre.</span> }
-          </label>
-          <label>Correo electrónico
-            <input name="correo" type="email" autocomplete="email" required email maxlength="180" [(ngModel)]="inquiry.email" #email="ngModel" />
-            @if (email.touched && email.invalid) { <span class="error">Ingresa un correo válido.</span> }
-          </label>
-          <label>Mensaje
-            <textarea name="mensaje" rows="5" required minlength="10" maxlength="800" [(ngModel)]="inquiry.message" #message="ngModel"></textarea>
-            @if (message.touched && message.invalid) { <span class="error">Escribe entre 10 y 800 caracteres.</span> }
-          </label>
-          @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-          <button class="button" type="submit" [disabled]="busy()"><app-ui-icon name="message" /> {{ busy() ? 'Preparando…' : 'Preparar consulta' }}</button>
-        </form>
+    @if (contact.isLoading()) {
+      <p class="page-state" role="status">Cargando las opciones de contacto…</p>
+    } @else if (contact.error()) {
+      <div class="page-state stack compact">
+        <p role="alert">No pudimos cargar las opciones de contacto. Intenta de nuevo o vuelve al anuncio.</p>
+        <div><button class="button quiet" type="button" (click)="contact.reload()">Reintentar</button></div>
+      </div>
+    } @else if (contact.value(); as options) {
+      @if (options.whatsapp) {
+        <div class="actions">
+          <a class="button" [href]="whatsappUrl(options.whatsapp, current.title)" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp" aria-hidden="true"></i> Contactar por WhatsApp</a>
+        </div>
       }
-      <aside class="panel section">
-        <h2>Datos del anuncio</h2>
-        <p>{{ current.title }}</p>
-        <p>{{ current.zone }} · S/ {{ current.price }} / mes</p>
-        <p class="small muted">Propietario y contacto ficticios. Usa datos de ejemplo.</p>
-      </aside>
-    </div>
+      <div class="split">
+        @if (sent()) {
+          <section class="panel section stack compact" role="status">
+            <h2>Consulta enviada</h2>
+            <p>El propietario puede leerla en su panel.</p>
+            <div><a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button quiet">Volver al anuncio</a></div>
+          </section>
+        } @else if (options.formulario) {
+          <form #form="ngForm" class="panel section stack" (ngSubmit)="send(form)">
+            <div class="stack compact">
+              <label for="contact-name">Nombre</label>
+              @let invalidName = name.touched && !inquiry.name.trim();
+              <input id="contact-name" name="nombre" autocomplete="name" required maxlength="100" [(ngModel)]="inquiry.name" #name="ngModel"
+                [attr.aria-invalid]="invalidName || null"
+                [attr.aria-describedby]="invalidName ? 'nombre-error' : null" />
+              @if (invalidName) { <span class="error" id="nombre-error" role="alert">Ingresa tu nombre.</span> }
+            </div>
+            <div class="stack compact">
+              <label for="contact-email">Correo electrónico</label>
+              <input id="contact-email" name="correo" type="email" autocomplete="email" required email maxlength="180" [(ngModel)]="inquiry.email" #email="ngModel"
+                [attr.aria-invalid]="(email.touched && email.invalid) || null"
+                [attr.aria-describedby]="email.touched && email.invalid ? 'correo-error' : null" />
+              @if (email.touched && email.invalid) { <span class="error" id="correo-error" role="alert">Ingresa un correo válido.</span> }
+            </div>
+            <div class="stack compact">
+              <label for="contact-message">Mensaje</label>
+              @let invalidMessage = message.touched && (message.invalid || inquiry.message.trim().length < 10);
+              <textarea id="contact-message" name="mensaje" rows="5" required minlength="10" maxlength="800" [(ngModel)]="inquiry.message" #message="ngModel"
+                [attr.aria-invalid]="invalidMessage || null"
+                [attr.aria-describedby]="invalidMessage ? 'mensaje-error' : null"></textarea>
+              @if (invalidMessage) { <span class="error" id="mensaje-error" role="alert">Escribe entre 10 y 800 caracteres.</span> }
+            </div>
+            <label class="check">
+              <input name="consentimiento" type="checkbox" required [(ngModel)]="inquiry.consent" #consent="ngModel"
+                [attr.aria-invalid]="((consent.touched || form.submitted) && consent.invalid) || null"
+                [attr.aria-describedby]="(consent.touched || form.submitted) && consent.invalid ? 'consent-error' : null" />
+              Acepto compartir mi nombre, correo y mensaje con el propietario para que pueda responder.
+            </label>
+            @if ((consent.touched || form.submitted) && consent.invalid) {
+              <p id="consent-error" class="error" role="alert">Marca la casilla para enviar tu consulta al propietario.</p>
+            }
+            @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+            <button class="button" type="submit" [disabled]="busy()"><app-ui-icon name="message" /> {{ busy() ? 'Enviando…' : 'Enviar consulta' }}</button>
+          </form>
+        } @else if (!options.whatsapp) {
+          <p class="panel section">El anuncio no tiene un contacto publicado.</p>
+        }
+        <aside class="panel section">
+          <h2>Datos del anuncio</h2>
+          <p>{{ current.title }}</p>
+          <p>{{ current.zone }} · S/ {{ current.price }} / mes</p>
+        </aside>
+      </div>
+    }
   } @else {
     <div class="panel empty"><h1>Anuncio no disponible</h1><a class="button" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">{{ navigation.back().label }}</a></div>
   }

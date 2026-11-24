@@ -17,15 +17,17 @@
     </div>
   }
   @switch (state()) {
-    @case ('loading') { <p class="panel empty" role="status">Buscando habitaciones…</p> }
+    @case ('loading') { <p class="page-state" role="status">Buscando habitaciones…</p> }
     @case ('error') {
-      <div class="panel empty"><p role="alert">No se pudo cargar el catálogo de habitaciones.</p>
-        <button type="button" class="button" (click)="load()">Volver a intentar</button></div>
+      <div class="page-state stack compact">
+        <p role="alert">{{ searchError() }}</p>
+        <div><button type="button" class="button quiet" (click)="load()">Reintentar</button></div>
+      </div>
     }
     @case ('ready') {
       <div class="results-heading">
         <h2 aria-live="polite">{{ rooms().length }} {{ rooms().length === 1 ? 'habitación encontrada' : 'habitaciones encontradas' }}</h2>
-        @if (rooms().length) {
+        @if (rooms().length || showMap()) {
           <div class="actions result-controls">
             <label class="sort">Ordenar por
               <select name="orden" [value]="sort()" (change)="changeView({ orden: $any($event.target).value || null })">
@@ -38,24 +40,39 @@
               <app-ui-icon name="compare" /> {{ showChart() ? 'Ocultar comparación' : 'Comparar precios' }}
             </button>
             <div class="view-options" role="group" aria-label="Vista de resultados">
-              <button type="button" class="button quiet" [attr.aria-pressed]="!showMap()" (click)="changeView({ vista: null })"><app-ui-icon name="list" /> Ver listado</button>
+              <button type="button" class="button quiet" [attr.aria-pressed]="!showMap()" (click)="showList()"><app-ui-icon name="list" /> Ver listado</button>
               <button type="button" class="button quiet" [attr.aria-pressed]="showMap()" (click)="changeView({ vista: 'mapa' })"><app-ui-icon name="map" /> Ver mapa</button>
             </div>
           </div>
         }
       </div>
+      @if (showMap()) {
+        <div class="actions map-zones" role="group" aria-label="Filtrar resultados por zona">
+          <button type="button" class="button quiet" [attr.aria-pressed]="!filters().zone"
+            (click)="changeView({ zona: null, zonaMapa: null })">Todas las zonas</button>
+          @for (zone of resultZones; track zone) {
+            <button type="button" class="button quiet" [attr.aria-pressed]="filters().zone === zone"
+              (click)="changeView({ zona: zone, zonaMapa: null })">{{ zone }}</button>
+          }
+        </div>
+      }
       @if (rooms().length) {
         @if (showChart()) {
           <app-price-ranges [rooms]="rooms()" />
         }
         <div class="results" [class.map-open]="showMap()">
-          <section class="room-grid" aria-label="Resultados">
+          <section #resultList class="room-grid" aria-label="Resultados">
             @for (room of orderedRooms(); track room.id) {
-              <app-room-card [room]="room" [detailQuery]="detailQuery()" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+              <div class="result-card" [class.selected]="selectedRoom() === room.id" [attr.data-room-id]="room.id">
+                <app-room-card [room]="room" [prioritizeCover]="$first" [detailQuery]="detailQuery()" [saved]="catalog.isSaved(room.id)" (saveToggled)="catalog.toggleSaved($event)" />
+                <button class="button quiet locate" type="button" [attr.aria-pressed]="selectedRoom() === room.id"
+                  [attr.aria-label]="'Ubicar en el mapa: ' + room.title" (click)="showOnMap(room.id)"><app-ui-icon name="pin" /> Ubicar en el mapa</button>
+              </div>
             }
           </section>
           @if (showMap()) {
-            <app-room-map [rooms]="orderedRooms()" [detailQuery]="detailQuery()" [selected]="mapZone()" (selectedChange)="changeView({ zonaMapa: $event })" />
+            <app-room-map #mapPanel tabindex="-1" role="group" aria-label="Vista de mapa"
+              [rooms]="rooms()" [detailQuery]="detailQuery()" [selected]="selectedRoom()" (selectedChange)="selectFromMap($event)" />
           }
         </div>
       } @else {

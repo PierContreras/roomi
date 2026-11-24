@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Params } from '@angular/router';
 
-export const filterParamKeys = ['zona', 'universidad', 'tipo', 'precio', 'minutos', 'servicio'];
+export const filterParamKeys = ['zona', 'universidad', 'tipo', 'precio', 'minutos', 'distancia', 'servicio'];
 const searchParamKeys = [...filterParamKeys, 'vista', 'zonaMapa', 'orden'];
 
 export function searchQuery(params: ParamMap): Params {
