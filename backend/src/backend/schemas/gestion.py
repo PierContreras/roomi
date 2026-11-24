@@ -2,18 +2,32 @@ import base64
 import binascii
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from datetime import datetime
+
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator
 
 from backend.schemas.alojamiento import Alojamiento, Foto, Servicio, Tipo, Universidad, Zona
 
 Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Correo = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=180, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
 Rol = Literal["student", "owner", "admin"]
-Estado = Literal["pending", "approved", "rejected", "withdrawn"]
+Estado = Literal["borrador", "en_revision", "publicado", "rechazado", "retirado"]
 
 
 class Entrada(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+def normalizar_numero_whatsapp(numero):
+    if not isinstance(numero, str):
+        return numero
+    digitos = "".join(numero.strip().removeprefix("+").split()).replace("-", "")
+    if len(digitos) == 9 and digitos.startswith("9") and digitos.isascii() and digitos.isdigit():
+        return "51" + digitos
+    return digitos
+
+
+WhatsApp = Annotated[str, StringConstraints(pattern=r"^[1-9][0-9]{7,14}$"), BeforeValidator(normalizar_numero_whatsapp)]
 
 
 class Acceso(Entrada):
@@ -87,18 +101,7 @@ class Borrador(Entrada):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     distanceKm: float = Field(ge=0, le=100)
-    whatsapp: str | None = Field(default=None, pattern=r"^[1-9][0-9]{7,14}$")
-
-    @field_validator("whatsapp", mode="before")
-    @classmethod
-    def normalizar_whatsapp(cls, numero):
-        if not isinstance(numero, str):
-            return numero
-        numero = numero.strip().removeprefix("+")
-        numero = "".join(numero.split()).replace("-", "")
-        if len(numero) == 9 and numero.startswith("9") and numero.isascii() and numero.isdigit():
-            numero = "51" + numero
-        return numero
+    whatsapp: WhatsApp | None = None
 
     @field_validator("photos")
     @classmethod
@@ -121,6 +124,10 @@ class Borrador(Entrada):
         return fotos
 
 
+class SolicitudAnuncio(Borrador):
+    borrador: bool = False
+
+
 class AnuncioGestionado(Alojamiento):
     model_config = ConfigDict(json_schema_extra={"examples": [{
             'id': 'anuncio-ejemplo',
@@ -141,7 +148,7 @@ class AnuncioGestionado(Alojamiento):
             'longitude': -75.21,
             'distanceKm': 1.2,
             'contactAvailable': True,
-            'status': 'pending',
+            'status': 'en_revision',
             'ownerId': '11111111-1111-4111-8111-111111111111',
             'reviewNote': None,
             'revision': 1,
@@ -151,35 +158,43 @@ class AnuncioGestionado(Alojamiento):
     status: Estado
     reviewNote: str | None
     revision: int
+    motivos: list[str] = Field(default_factory=list)
 
 
-class Decision(Entrada):
-    model_config = ConfigDict(json_schema_extra={"examples": [{'revision': 1, 'status': 'approved'}]})
+class Motivo(Entrada):
+    note: Texto = Field(max_length=800)
+
+
+class Decision(Motivo):
     revision: int = Field(ge=1)
-    status: Literal["approved", "rejected"]
-    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=800)] = ""
+    status: Literal["publicado", "rechazado"]
 
-    @model_validator(mode="after")
-    def motivo_del_rechazo(self):
-        if self.status == "rejected" and not self.note:
-            raise ValueError("Escribe el motivo del rechazo.")
-        return self
+
+class HistorialDecision(BaseModel):
+    id: str
+    anuncio_id: str
+    accion: str
+    motivo: str
+    responsable_id: str | None
+    fecha: datetime
 
 
 class Retiro(Entrada):
-    model_config = ConfigDict(json_schema_extra={"examples": [{'status': 'withdrawn'}]})
-    status: Literal["withdrawn"]
+    model_config = ConfigDict(json_schema_extra={"examples": [{'status': 'retirado'}]})
+    status: Literal["retirado"]
 
 
 class Consulta(Entrada):
     model_config = ConfigDict(json_schema_extra={"examples": [{
             'name': 'Ana Pérez',
+            'whatsapp': '51987654321',
             'email': 'ana@example.com',
             'message': 'Me interesa conocer el alojamiento.',
             'consent': True,
     }]})
     name: Texto = Field(max_length=100)
-    email: Correo
+    whatsapp: WhatsApp
+    email: Correo | None = None
     message: Texto = Field(min_length=10, max_length=800)
     consent: Literal[True]
 
@@ -197,7 +212,8 @@ class ConsultaRecibida(BaseModel):
     roomId: str
     title: str
     name: str
-    email: str
+    whatsapp: str | None
+    email: str | None
     message: str
 
 
@@ -237,3 +253,8 @@ class ReporteRecibido(Reporte):
 class Creado(BaseModel):
     model_config = ConfigDict(json_schema_extra={"examples": [{'id': 'recurso-ejemplo'}]})
     id: str
+
+
+class ResultadoAnuncio(Creado):
+    status: Estado
+    motivos: list[str]

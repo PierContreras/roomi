@@ -151,15 +151,16 @@ class Salud(BaseModel):
 )
 def salud() -> Salud:
     with abrir_conexion() as conexion:
-        base, tablas, eliminacion = conexion.cursor().execute("""
-            SELECT DB_NAME(), COUNT(*), COL_LENGTH(N'dbo.alojamientos', N'deleted_at')
+        base, tablas, eliminacion, motivos = conexion.cursor().execute("""
+            SELECT DB_NAME(), COUNT(*), COL_LENGTH(N'dbo.alojamientos', N'deleted_at'),
+                COL_LENGTH(N'dbo.alojamientos', N'motivos_revision')
             FROM sys.tables
             WHERE schema_id = SCHEMA_ID(N'dbo') AND name IN (
-                N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes'
+                N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes',
+                N'decisiones_moderacion', N'suspensiones_propietario', N'servicios',
+                N'alojamiento_servicios', N'alojamiento_fotos', N'alojamiento_titular_historico'
             )
         """).fetchone()
-    if tablas != 6:
-        raise HTTPException(503, "Faltan tablas del esquema de ROOMI.")
-    if eliminacion is None:
+    if tablas != 12 or eliminacion is None or motivos is None:
         raise HTTPException(503, "Actualiza el esquema de ROOMI con las migraciones.")
     return Salud(estado="ok", origen="sqlserver", base=base)

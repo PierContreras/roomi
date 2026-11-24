@@ -4,3 +4,15 @@ class AlojamientoNoEncontrado(LookupError):
 
 class ResenaPropiaNoPermitida(ValueError):
     """La persona que publicó el alojamiento no puede calificarlo."""
+
+
+class ModeracionNoEncontrada(Exception):
+    pass
+
+
+class TransicionInvalida(Exception):
+    pass
+
+
+class ConflictoDeInteres(Exception):
+    pass
