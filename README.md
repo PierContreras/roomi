@@ -14,6 +14,6 @@ cd .\backend
 ```
 
 ```powershell
-cd .\frontend
-npm.cmd start
+npm install
+ng serve
 ```
