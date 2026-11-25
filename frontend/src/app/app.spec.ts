@@ -154,6 +154,24 @@ describe('App', () => {
     close.click();
     expectClosed();
   });
+
+  it('muestra la cuenta y devuelve el foco al cerrar el menú con Escape', async () => {
+    vi.spyOn(TestBed.inject(SessionService), 'user').mockReturnValue({
+      id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student',
+    });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const account = root.querySelector<HTMLDetailsElement>('.desktop-nav .account')!;
+    const trigger = account.querySelector('summary')!;
+    account.open = true;
+    expect(account.querySelector('.account-name')?.textContent).toContain('Cuenta de prueba');
+    const action = account.querySelector<HTMLButtonElement>('.account-action')!;
+    action.focus();
+    action.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(account.open).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
 });
 
 it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al cerrar sesión', async () => {
@@ -260,6 +278,9 @@ describe('Recorridos de ROOMI', () => {
   }
 
   it('busca, filtra, guarda un anuncio y envía una consulta', async () => {
+    managed = managed.map(room => room.id === 'san-carlos-320' ? {
+      ...room, photos: [{ src: '/foto-uno.jpg', alt: 'Habitación' }, { src: '/foto-dos.jpg', alt: 'Escritorio' }],
+    } : room);
     await harness.navigateByUrl('/explorar');
     expect(page().querySelector('h1')?.textContent).toContain('cerca de tu universidad en Huancayo');
     expect(page().querySelector('#steps-title')?.textContent).toBe('Cómo funciona');
@@ -285,6 +306,10 @@ describe('Recorridos de ROOMI', () => {
     await action('Aplicar filtros');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
+    expect(page().querySelector('.search-zones [aria-pressed="true"]')?.textContent).toContain('San Carlos');
+    page().querySelector<HTMLButtonElement>('[aria-label="Foto siguiente"]')!.click();
+    await stabilize();
+    expect(page().querySelector('.photo-count')?.textContent).toContain('Foto 2 de 2');
     await action('Comparar precios');
     expect(page().querySelector('table tbody')?.textContent).toMatch(/San Carlos.*320.*320/);
     await action('Ver mapa');

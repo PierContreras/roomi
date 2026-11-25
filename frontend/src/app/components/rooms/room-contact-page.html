@@ -1,4 +1,4 @@
-<div class="container page">
+<div class="container page room-contact-page">
   <nav class="route-trail" aria-label="Ubicación">
     <a [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
     <span aria-hidden="true">/</span><span aria-current="page">Contacto</span>
@@ -9,8 +9,10 @@
     <p role="alert">No pudimos cargar el anuncio.</p>
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
-    <h1>Contacta al propietario</h1>
-    <p>Consulta por la disponibilidad, las condiciones de alquiler o una visita.</p>
+    <header class="section-intro">
+      <h1>Contacta al propietario</h1>
+      <p>Deja tu WhatsApp para consultar disponibilidad o coordinar una visita.</p>
+    </header>
     @if (contact.isLoading()) {
       <p class="page-state" role="status">Cargando las opciones de contacto…</p>
     } @else if (contact.error()) {
@@ -78,10 +80,10 @@
         } @else {
           <p class="panel section">El anuncio no tiene un contacto publicado.</p>
         }
-        <aside class="panel section">
+        <aside class="panel section contact-context">
           <h2>Datos del anuncio</h2>
-          <p>{{ current.title }}</p>
-          <p>{{ current.zone }} · S/ {{ current.price }} / mes</p>
+          <p><strong>{{ current.title }}</strong></p>
+          <p class="muted">{{ current.zone }} · S/ {{ current.price }} / mes</p>
         </aside>
       </div>
     }

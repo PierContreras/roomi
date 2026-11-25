@@ -1,13 +1,13 @@
 <form class="panel filters" aria-label="Buscar habitaciones" #form="ngForm" (ngSubmit)="form.valid && applied.emit(draft)">
   <div class="essential">
     <label><span class="filter-label"><app-ui-icon name="campus" /> Universidad</span>
-      <select name="universidad" [(ngModel)]="draft.university">
+      <select class="form-select" name="universidad" [(ngModel)]="draft.university">
         <option value="">Todas</option>
         @for (university of universities; track university) { <option [value]="university">{{ university }}</option> }
       </select>
     </label>
     <label><span class="filter-label"><app-ui-icon name="pin" /> Zona</span>
-      <select name="zona" [(ngModel)]="draft.zone">
+      <select class="form-select" name="zona" [(ngModel)]="draft.zone">
         <option value="">Todas</option>
         @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
       </select>
@@ -19,19 +19,19 @@
   <div class="advanced" id="advanced-filters" [hidden]="!expanded()">
     <div class="form-grid">
       <label>Precio máximo (S/)
-        <input type="number" name="precio" min="0" [(ngModel)]="draft.maxPrice" #price="ngModel" />
+        <input class="form-control" type="number" name="precio" min="0" [(ngModel)]="draft.maxPrice" #price="ngModel" />
         @if (price.invalid) { <span class="error">Ingresa un precio desde S/ 0.</span> }
       </label>
       <label>Tiempo máximo al campus (min)
-        <input type="number" name="tiempo" min="0" step="1" [pattern]="wholeMinutes" [(ngModel)]="draft.maxMinutes" #minutes="ngModel" />
+        <input class="form-control" type="number" name="tiempo" min="0" step="1" [pattern]="wholeMinutes" [(ngModel)]="draft.maxMinutes" #minutes="ngModel" />
         @if (minutes.invalid) { <span class="error">Ingresa un número entero desde 0 minutos.</span> }
       </label>
       <label>Distancia máxima al campus (km)
-        <input type="number" name="distancia" min="0" max="100" step="any" [(ngModel)]="draft.maxDistance" #distance="ngModel" />
+        <input class="form-control" type="number" name="distancia" min="0" max="100" step="any" [(ngModel)]="draft.maxDistance" #distance="ngModel" />
         @if (distance.invalid) { <span class="error">Ingresa entre 0 y 100 km.</span> }
       </label>
       <label>Tipo de alojamiento
-        <select name="tipo" [(ngModel)]="draft.type">
+        <select class="form-select" name="tipo" [(ngModel)]="draft.type">
           <option value="">Todos los tipos</option>
           @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
         </select>

@@ -1,6 +1,11 @@
 <div class="container page">
-  <div class="actions page-heading">
-    <h1>Habitaciones guardadas</h1>
+  <header class="section-intro saved-heading">
+    <div>
+      <h1>Habitaciones guardadas</h1>
+      @if (published.hasValue() && saved().length) {
+        <p>{{ saved().length }} {{ saved().length === 1 ? 'habitación guardada' : 'habitaciones guardadas' }}</p>
+      }
+    </div>
     <div class="actions">
       <a class="button secondary" routerLink="/buscar"><app-ui-icon name="search" /> Seguir buscando</a>
       @if (saved().length >= 2) {
@@ -9,7 +14,7 @@
         </button>
       }
     </div>
-  </div>
+  </header>
   @if (published.isLoading()) {
     <p role="status">Cargando habitaciones guardadas…</p>
   } @else if (published.error()) {
@@ -22,7 +27,7 @@
         <div class="compare-selects">
           @for (id of pair(); track $index; let index = $index) {
             <label>Habitación {{ index + 1 }}
-              <select [name]="'comparar-' + index" [value]="id" (change)="selectRoom(index === 0 ? 0 : 1, $any($event.target).value)">
+              <select class="form-select" [name]="'comparar-' + index" [value]="id" (change)="selectRoom(index === 0 ? 0 : 1, $any($event.target).value)">
                 @for (room of saved(); track room.id) {
                   @if (room.id !== pair()[1 - index]) {
                     <option [value]="room.id" [selected]="room.id === id">{{ room.title }}</option>

@@ -17,6 +17,8 @@ const paths = {
   message: 'M4 4h16v12H9l-5 4Zm4 5h8m-8 4h5',
   chevronLeft: 'm15 18-6-6 6-6',
   chevronRight: 'm9 18 6-6-6-6',
+  chevronDown: 'm6 9 6 6 6-6',
+  signOut: 'M10 17l5-5-5-5m5 5H3m9-8h8v16h-8',
   photo: 'M3 4h18v16H3Zm0 12 5-5 4 4 3-3 6 6M15 8h.01',
   plus: 'M12 5v14M5 12h14',
   user: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2',

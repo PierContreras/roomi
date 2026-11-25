@@ -1,0 +1,12 @@
+.account { position: relative; margin: 0; }
+.account summary { cursor: pointer; margin: 0; list-style: none; }
+.account summary::-webkit-details-marker { display: none; }
+.account-trigger .account-chevron { width: .85em; height: .85em; margin-inline-start: 3px; }
+.account[open] .account-trigger { background: var(--soft); border-color: var(--border); }
+.account[open] .account-chevron { transform: rotate(180deg); }
+.account-options { position: absolute; z-index: 30; inset: calc(100% + 8px) 0 auto auto; width: min(220px, calc(100vw - 32px)); padding: 6px; border-radius: 12px; box-shadow: var(--shadow-panel); }
+.account:not([open]) .account-options { display: none; }
+.account-name { margin: 0 0 4px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--ink); font-size: .875rem; font-weight: 650; overflow-wrap: anywhere; }
+.account-action { display: flex; align-items: center; gap: 8px; min-height: 44px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--error); font: inherit; font-size: .875rem; font-weight: 650; text-align: left; }
+.account-action:hover, .account-action:focus-visible { background: #fdf0f2; }
+.account-action:focus-visible { outline-offset: -2px; }

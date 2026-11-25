@@ -7,8 +7,10 @@
     <p role="alert">No pudimos cargar el anuncio.</p>
     <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
   } @else if (room(); as current) {
-    <h1>{{ current.title }}</h1>
-    <div class="actions"><app-status-badge [status]="current.status" /><span class="muted">{{ current.owner }}</span></div>
+    <header class="section-intro stack compact">
+      <h1>{{ current.title }}</h1>
+      <div class="actions"><app-status-badge [status]="current.status" /><span class="muted">{{ current.owner }}</span></div>
+    </header>
     <div class="split">
       <article class="panel section stack">
         <app-room-gallery [photos]="current.photos" />

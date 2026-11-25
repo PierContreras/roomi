@@ -1,10 +1,19 @@
 <article class="panel room-card" [class.has-photo]="cover()">
   @if (cover(); as photo) {
-    <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" tabindex="-1" aria-hidden="true">
-      <img [src]="photo.src" [alt]="photo.alt"
-        [attr.loading]="prioritizeCover() ? null : 'lazy'"
-        [attr.fetchpriority]="prioritizeCover() ? 'high' : null" />
-    </a>
+    <div class="card-photos">
+      <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" tabindex="-1" aria-hidden="true">
+        <img [src]="photo.src" [alt]="photo.alt"
+          [attr.loading]="prioritizeCover() ? null : 'lazy'"
+          [attr.fetchpriority]="prioritizeCover() && activePhoto() === 0 ? 'high' : null" />
+      </a>
+      @if (photos().length > 1) {
+        <div class="photo-controls" role="group" [attr.aria-label]="'Fotos de ' + room().title">
+          <button class="photo-button" type="button" aria-label="Foto anterior" (click)="changePhoto(-1)"><app-ui-icon name="chevronLeft" /></button>
+          <span class="photo-count" aria-live="polite">Foto {{ activePhoto() + 1 }} de {{ photos().length }}</span>
+          <button class="photo-button" type="button" aria-label="Foto siguiente" (click)="changePhoto(1)"><app-ui-icon name="chevronRight" /></button>
+        </div>
+      }
+    </div>
     @if (photo.illustrative) { <p class="photo-caption small muted">Imagen ilustrativa</p> }
   } @else {
     <p class="photo-caption small muted"><app-ui-icon name="photo" /> Sin fotos disponibles</p>
@@ -20,9 +29,9 @@
     </div>
     <h3>{{ room().title }}</h3>
     <p class="muted small"><app-ui-icon name="clock" /> {{ room().minutes }} min al campus {{ room().university }}</p>
-    <p>{{ room().description }}</p>
+    <p class="description">{{ room().description }}</p>
     @if (room().amenities.length) {
-      <p class="muted small">{{ room().amenities.join(', ') }}</p>
+      <p class="amenities muted small">{{ room().amenities.join(', ') }}</p>
     }
     <p class="price"><strong>S/ {{ room().price }}</strong><span class="muted small"> al mes</span></p>
     <div class="card-actions">

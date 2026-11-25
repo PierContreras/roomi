@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, linkedSignal, output } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { PublicRoom } from '../../interfaces/room';
 import { UiIcon } from '../shared/ui-icon';
@@ -16,5 +16,12 @@ export class RoomCard {
   readonly prioritizeCover = input(false);
   readonly detailQuery = input<Params>({});
   readonly saveToggled = output<string>();
-  protected readonly cover = computed(() => roomPhotos(this.room())[0]);
+  protected readonly photos = computed(() => roomPhotos(this.room()));
+  protected readonly activePhoto = linkedSignal({ source: this.photos, computation: () => 0 });
+  protected readonly cover = computed(() => this.photos()[this.activePhoto()]);
+
+  protected changePhoto(step: number) {
+    const count = this.photos().length;
+    if (count > 1) this.activePhoto.update(index => (index + step + count) % count);
+  }
 }

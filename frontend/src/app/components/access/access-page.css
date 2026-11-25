@@ -1,6 +1,6 @@
 .access { padding-block: clamp(24px, 5vw, 62px); }
 .access-card { max-width: 520px; margin-inline: auto; overflow: hidden; box-shadow: 0 12px 28px rgb(19 46 53 / 9%); }
-.access-bar { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 8px clamp(18px, 4vw, 32px); border-bottom: 1px solid var(--border); }
+.access-bar { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 8px clamp(18px, 4vw, 32px); background: var(--soft); border-bottom: 1px solid var(--border); }
 .brand { font-size: 1.45rem; font-weight: 750; color: var(--brand); text-decoration: none; letter-spacing: -.04em; }
 .close { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); font-size: 1.5rem; text-decoration: none; border-radius: 8px; }
 .close:hover { background: var(--surface); }

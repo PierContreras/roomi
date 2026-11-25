@@ -10,8 +10,10 @@
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
     <section class="panel section stack share">
-      <h1>Comparte este anuncio</h1>
-      <p>{{ current.title }} · S/ {{ current.price }} / mes</p>
+      <header class="section-intro">
+        <h1>Comparte este anuncio</h1>
+        <p>{{ current.title }} · S/ {{ current.price }} / mes</p>
+      </header>
       <label>Enlace del anuncio
         <input #linkField type="text" [value]="link()" readonly />
       </label>
@@ -23,7 +25,9 @@
       }
       <div class="actions">
         <a class="button quiet" [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()">Volver al anuncio</a>
-        <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar al propietario</a>
+        @if (current.contactAvailable) {
+          <a class="button secondary" [routerLink]="['/habitaciones', current.id, 'contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar al propietario</a>
+        }
       </div>
     </section>
   } @else {

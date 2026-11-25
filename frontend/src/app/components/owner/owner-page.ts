@@ -31,6 +31,7 @@ type ListingAction = keyof typeof listingActions;
 @Component({
   imports: [RouterLink, StatusBadge, ConfirmDialog, UiIcon],
   templateUrl: './owner-page.html',
+  styleUrl: './owner-page.css',
 })
 export class OwnerPage {
   private readonly catalog = inject(RoomService);
@@ -39,6 +40,8 @@ export class OwnerPage {
   protected readonly managed = this.catalog.managed('propietario');
   protected readonly inquiries = this.catalog.inquiries();
   protected readonly listings = computed(() => this.managed.hasValue() ? this.managed.value() : []);
+  protected readonly publishedCount = computed(() => this.listings().filter(room => room.status === 'publicado').length);
+  protected readonly reviewCount = computed(() => this.listings().filter(room => room.status === 'en_revision').length);
   protected readonly updating = signal(false);
   protected readonly error = signal('');
   protected readonly selected = signal<{ room: Room; action: ListingAction } | null>(null);

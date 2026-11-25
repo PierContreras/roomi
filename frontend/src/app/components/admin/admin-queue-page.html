@@ -1,7 +1,8 @@
 <div class="container page stack">
-  <p class="small muted">Panel de administración</p>
-  <h1>Revisión de anuncios</h1>
-  <p>Revisa los datos, las condiciones de alquiler y las fotos antes de decidir si el anuncio se publica.</p>
+  <header class="section-intro">
+    <h1>Revisión de anuncios</h1>
+    <p>Revisa los datos, las condiciones de alquiler y las fotos antes de decidir si el anuncio se publica.</p>
+  </header>
   @if (managed.isLoading()) {
     <p class="page-state" role="status">Cargando anuncios…</p>
   } @else if (managed.error()) {

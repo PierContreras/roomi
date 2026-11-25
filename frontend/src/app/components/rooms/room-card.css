@@ -1,12 +1,20 @@
 :host { display: block; }
 .room-card { position: relative; height: 100%; display: flex; flex-direction: column; }
-img { display: block; width: 100%; height: clamp(140px, 18vw, 210px); object-fit: cover; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
+.room-card:focus-within { border-color: var(--control-border); }
+.card-photos { position: relative; }
+.photo-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.photo-button { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink); }
+.photo-count { padding: 4px 10px; border-radius: 999px; background: var(--brand); color: var(--white); font-size: .75rem; }
+.cover { display: block; background: var(--soft); border-radius: var(--radius) var(--radius) 0 0; }
+img { display: block; width: 100%; height: clamp(160px, 19vw, 224px); object-fit: cover; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
 .card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .location { color: var(--muted); font-weight: 700; margin: 0; }
 .favorite { width: 44px; padding: 0; flex: none; border-radius: 50%; background: white; }
 .favorite[aria-pressed="true"] { color: #962c50; background: #fff3f6; border-color: #e7b8c7; }
 .has-photo .favorite { position: absolute; top: 12px; right: 12px; }
+.description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.amenities { margin-bottom: var(--space-3); }
 .price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }

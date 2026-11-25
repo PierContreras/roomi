@@ -42,12 +42,16 @@
         <a routerLink="/ayuda" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMenu()"><app-ui-icon name="help" /> Ayuda</a>
       </div>
       <div class="account-links">
-        @if (session.user()) {
+        @if (session.user(); as user) {
           <details #account class="account" (focusout)="closeAccountOnBlur(account, $event)"
             (keydown.escape)="closeAccountOnEscape(account, $event)">
-            <summary class="button quiet"><app-ui-icon name="user" /> Mi cuenta</summary>
+            <summary class="button quiet account-trigger">
+              <app-ui-icon name="user" /> Mi cuenta
+              <app-ui-icon class="account-chevron" name="chevronDown" />
+            </summary>
             <div class="panel account-options">
-              <button type="button" class="button quiet" (click)="signOut()">Cerrar sesión</button>
+              <p class="account-name">{{ user.name }}</p>
+              <button type="button" class="account-action" (click)="signOut()"><app-ui-icon name="signOut" /> Cerrar sesión</button>
             </div>
           </details>
         } @else {

@@ -33,7 +33,10 @@
   } @else if (id() && !existing()) {
     <div class="panel empty"><h1>Anuncio no disponible</h1><p>{{ unavailableListing }}</p><a class="button" routerLink="/propietario">Volver a mis anuncios</a></div>
   } @else {
-    <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
+    <header class="section-intro">
+      <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
+      @if (!preview()) { <p>Completa los datos y revisa el anuncio antes de enviarlo.</p> }
+    </header>
     @if ((preview() ? draft() : undefined); as item) {
       <section class="panel section stack">
         <h2>Revisa tu publicación</h2>
@@ -55,7 +58,6 @@
         </div>
       </section>
     } @else {
-      <p>Completa los datos y revisa el anuncio antes de enviarlo.</p>
       <app-room-form [initial]="draft() ?? existing()" (saved)="review($event)" />
     }
   }
