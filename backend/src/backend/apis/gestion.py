@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
@@ -5,10 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.repositories import gestion as repo
 from backend.schemas.gestion import (
-    Acceso, AnuncioGestionado, Borrador, Consulta, ConsultaRecibida, Creado, Decision,
+    Acceso, AnuncioGestionado, Consulta, ConsultaRecibida, Creado, Decision,
     Registro, Reporte, ReporteRecibido, Resena, ResenaPublica, Retiro, Sesion, Usuario,
+    Motivo, HistorialDecision, ResultadoAnuncio, SolicitudAnuncio,
 )
-from backend.services.exceptions import ResenaPropiaNoPermitida
+from backend.services.exceptions import (
+    ConflictoDeInteres, ModeracionNoEncontrada, ResenaPropiaNoPermitida, TransicionInvalida,
+)
 from backend.services.seguridad import (
     HASH_FICTICIO, clave_jwt, emitir_token, hash_password, leer_token, necesita_rehash, verifica_password,
 )
@@ -25,6 +29,26 @@ UBICACION = {
 PROTEGIDA = {401: {'description': 'Sesión ausente, inválida o vencida.'}, 403: {'description': 'Rol sin permiso.'}}
 
 
+MODERACION = {
+    **PROTEGIDA,
+    404: {"description": "Recurso inexistente o no disponible para la cuenta."},
+    409: {"description": "La transición no está permitida o la revisión cambió."},
+    422: {"description": "Datos de entrada inválidos."},
+}
+
+
+@contextmanager
+def errores_moderacion():
+    try:
+        yield
+    except ModeracionNoEncontrada:
+        raise HTTPException(404, "El recurso no está disponible.") from None
+    except TransicionInvalida:
+        raise HTTPException(409, "La acción no está disponible en el estado actual.") from None
+    except ConflictoDeInteres:
+        raise HTTPException(403, "conflicto_de_interes") from None
+
+
 def require(*roles):
     def usuario_actual(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> Usuario:
         row = repo.usuario(leer_token(credentials.credentials)) if credentials else None
@@ -38,6 +62,8 @@ def require(*roles):
 
 
 cuenta_publica = require("student", "owner")
+titular = require("student", "owner", "admin")
+administrador = require("admin")
 
 
 @router.post("/auth/registro",
@@ -87,11 +113,11 @@ def perfil(user: Usuario = require("student", "owner", "admin")) -> Usuario:
 
 @router.get("/propietario/alojamientos",
     tags=["Propietario"],
-    description="Incluye los anuncios pausados de la cuenta. Los eliminados se ocultan.",
+    description="Incluye los anuncios de la cuenta que siguen disponibles.",
     summary="Listar anuncios propios",
     responses=PROTEGIDA,
 )
-def anuncios_propios(user: Usuario = cuenta_publica) -> list[AnuncioGestionado]:
+def anuncios_propios(user: Usuario = titular) -> list[AnuncioGestionado]:
     return repo.anuncios(user.id)
 
 
@@ -102,62 +128,56 @@ def anuncios_propios(user: Usuario = cuenta_publica) -> list[AnuncioGestionado]:
     description="Devuelve la ficha privada del anuncio propio, aunque todavía no esté publicado.",
     responses={**PROTEGIDA, 404: {"description": "Anuncio propio disponible no encontrado."}},
 )
-def anuncio_propio(anuncio_id: Id, user: Usuario = cuenta_publica) -> AnuncioGestionado:
+def anuncio_propio(anuncio_id: Id, user: Usuario = titular) -> AnuncioGestionado:
     anuncio = repo.anuncio_propio(anuncio_id, user.id)
     if anuncio is None:
         raise HTTPException(404, "El anuncio no está disponible.")
     return anuncio
 
 
-@router.post("/alojamientos",
-    status_code=201,
-    tags=["Alojamientos"],
-    description="Guarda un borrador propio y lo envía a moderación. La ficha pública requiere aprobación.",
-    summary="Crear un anuncio pendiente",
-    responses={**UBICACION, **PROTEGIDA},
-)
-def publicar(data: Borrador, response: Response, user: Usuario = cuenta_publica) -> Creado:
-    anuncio_id = repo.guardar(data, user)
-    response.headers["Location"] = f"/api/propietario/alojamientos/{anuncio_id}"
-    return Creado(id=anuncio_id)
+@router.post("/alojamientos", status_code=201, tags=["Alojamientos"],
+             responses={**UBICACION, **MODERACION}, summary="Crear un borrador o evaluar su publicación")
+def publicar(data: SolicitudAnuncio, response: Response, user: Usuario = titular) -> ResultadoAnuncio:
+    with errores_moderacion():
+        resultado = repo.guardar(data, user, borrador=data.borrador)
+    response.headers["Location"] = f"/api/propietario/alojamientos/{resultado.id}"
+    return resultado
 
 
-@router.put("/alojamientos/{anuncio_id}",
-    tags=["Alojamientos"],
-    description="Reemplaza los datos editables de un anuncio propio, incluso si está pausado, y envía una nueva revisión.",
-    summary="Reemplazar un anuncio propio y reenviarlo a moderación",
-    responses={**PROTEGIDA, 404: {"description": "Anuncio inexistente, no editable o de otro titular."}},
-)
-def reemplazar(anuncio_id: Id, data: Borrador, user: Usuario = cuenta_publica) -> Creado:
-    if not repo.guardar(data, user, anuncio_id):
-        raise HTTPException(404, "El anuncio no está disponible para edición.")
-    return Creado(id=anuncio_id)
+@router.put("/alojamientos/{anuncio_id}", tags=["Alojamientos"], responses=MODERACION,
+            summary="Actualizar un anuncio propio")
+def reemplazar(anuncio_id: Id, data: SolicitudAnuncio, user: Usuario = titular) -> ResultadoAnuncio:
+    with errores_moderacion():
+        return repo.guardar(data, user, anuncio_id, borrador=data.borrador)
 
 
-@router.patch("/alojamientos/{anuncio_id}/estado",
-    status_code=204,
-    tags=["Alojamientos"],
-    description="Pausa el anuncio, lo oculta del catálogo y conserva su historial. El propietario puede reenviarlo a revisión.",
-    summary="Retirar un anuncio propio y conservar su historial",
-    responses={**PROTEGIDA, 404: {"description": "Anuncio inexistente, no retirable o de otro titular."}},
-)
-def retirar(anuncio_id: Id, data: Retiro, user: Usuario = cuenta_publica) -> Response:
-    if not repo.retirar(anuncio_id, user.id):
-        raise HTTPException(404, "El anuncio no está disponible para retiro.")
+@router.post("/alojamientos/{anuncio_id}/enviar", tags=["Alojamientos"], responses=MODERACION,
+             summary="Enviar un borrador a evaluación")
+def enviar(anuncio_id: Id, user: Usuario = titular) -> ResultadoAnuncio:
+    with errores_moderacion():
+        return repo.enviar(anuncio_id, user.id, "borrador")
+
+
+@router.post("/alojamientos/{anuncio_id}/reactivar", tags=["Alojamientos"], responses=MODERACION,
+             summary="Reevaluar un anuncio retirado")
+def reactivar(anuncio_id: Id, user: Usuario = titular) -> ResultadoAnuncio:
+    with errores_moderacion():
+        return repo.enviar(anuncio_id, user.id, "retirado")
+
+
+@router.patch("/alojamientos/{anuncio_id}/estado", status_code=204, tags=["Alojamientos"],
+              responses=MODERACION, summary="Retirar un anuncio publicado")
+def retirar(anuncio_id: Id, data: Retiro, user: Usuario = titular) -> Response:
+    with errores_moderacion():
+        repo.retirar(anuncio_id, user.id)
     return Response(status_code=204)
 
 
-@router.delete(
-    "/alojamientos/{anuncio_id}",
-    status_code=204,
-    tags=["Alojamientos"],
-    summary="Eliminar un anuncio propio",
-    description="Quita la publicación del catálogo y de Mis anuncios. Conserva su historial asociado.",
-    responses={**PROTEGIDA, 404: {"description": "Anuncio propio disponible no encontrado."}},
-)
-def eliminar(anuncio_id: Id, user: Usuario = cuenta_publica) -> Response:
-    if not repo.eliminar(anuncio_id, user.id):
-        raise HTTPException(404, "El anuncio no está disponible para eliminación.")
+@router.delete("/alojamientos/{anuncio_id}", status_code=204, tags=["Alojamientos"],
+               responses=MODERACION, summary="Eliminar un anuncio propio y conservar su historial")
+def eliminar(anuncio_id: Id, user: Usuario = titular) -> Response:
+    with errores_moderacion():
+        repo.eliminar(anuncio_id, user.id)
     return Response(status_code=204)
 
 
@@ -171,33 +191,40 @@ def consultas(user: Usuario = cuenta_publica) -> list[ConsultaRecibida]:
     return repo.consultar_bandeja(user.id)
 
 
-@router.get("/administracion/alojamientos",
-    tags=["Administración"],
-    description="Devuelve los anuncios pendientes y las decisiones visibles para moderación.",
-    summary="Listar la cola y las decisiones recientes de los anuncios",
-    responses=PROTEGIDA,
-)
-def cola(user: Usuario = require("admin")) -> list[AnuncioGestionado]:
+@router.get("/administracion/alojamientos", tags=["Administración"], responses=MODERACION,
+            summary="Listar anuncios en revisión")
+def cola(user: Usuario = administrador) -> list[AnuncioGestionado]:
     return repo.anuncios()
 
 
-@router.patch("/administracion/alojamientos/{anuncio_id}",
-    status_code=204,
-    tags=["Administración"],
-    description="Aplica una decisión a la revisión pendiente. El rechazo requiere un motivo.",
-    summary="Aprobar o rechazar la revisión vigente",
-    responses={
-        **PROTEGIDA,
-        404: {"description": "Anuncio inexistente o eliminado."},
-        409: {"description": "Anuncio revisado, pausado o sustituido."},
-    },
-)
-def revisar(anuncio_id: Id, data: Decision, user: Usuario = require("admin")) -> Response:
-    resultado = repo.moderar(anuncio_id, user.id, data)
-    if resultado is None:
-        raise HTTPException(404, "Alojamiento no encontrado.")
-    if not resultado:
-        raise HTTPException(409, "El anuncio cambió. Vuelve a cargarlo antes de decidir.")
+@router.patch("/administracion/alojamientos/{anuncio_id}", status_code=204,
+              tags=["Administración"], responses=MODERACION, summary="Decidir una revisión vigente")
+def revisar(anuncio_id: Id, data: Decision, user: Usuario = administrador) -> Response:
+    with errores_moderacion():
+        repo.moderar(anuncio_id, user.id, data)
+    return Response(status_code=204)
+
+
+@router.get("/administracion/alojamientos/{anuncio_id}/historial", tags=["Administración"],
+            responses=MODERACION, summary="Consultar el historial de decisiones")
+def historial(anuncio_id: Id, user: Usuario = administrador) -> list[HistorialDecision]:
+    with errores_moderacion():
+        return repo.historial(anuncio_id)
+
+
+@router.post("/administracion/propietarios/{propietario_id}/suspender", status_code=204,
+             tags=["Administración"], responses=MODERACION, summary="Suspender un propietario")
+def suspender(propietario_id: Id, data: Motivo, user: Usuario = administrador) -> Response:
+    with errores_moderacion():
+        repo.suspension(propietario_id, user.id, data.note)
+    return Response(status_code=204)
+
+
+@router.post("/administracion/propietarios/{propietario_id}/levantar-suspension", status_code=204,
+             tags=["Administración"], responses=MODERACION, summary="Levantar la suspensión de un propietario")
+def levantar_suspension(propietario_id: Id, data: Motivo, user: Usuario = administrador) -> Response:
+    with errores_moderacion():
+        repo.suspension(propietario_id, user.id, data.note, levantar=True)
     return Response(status_code=204)
 
 

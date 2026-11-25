@@ -52,6 +52,9 @@
                     <button type="button" class="button quiet" (click)="centerPreview()">Centrar en el mapa</button>
                   }
                   <a class="button" [routerLink]="['/habitaciones', entry.room.id]" [queryParams]="detailQuery()">Ver detalle</a>
+                  <a class="button quiet" [href]="mapsUrl(entry)" target="_blank" rel="noopener noreferrer">
+                    {{ entry.approximate ? 'Ver la zona en Google Maps' : 'Abrir en Google Maps' }}
+                  </a>
                 </div>
               </div>
             </article>

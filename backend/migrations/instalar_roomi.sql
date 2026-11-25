@@ -19,6 +19,12 @@ GO
 GO
 :r .\backend\migrations\005_ampliar_hash_contrasena.sql
 GO
+:r .\backend\migrations\006_moderacion_mixta.sql
+GO
+:r .\backend\migrations\007_normalizar_catalogo.sql
+GO
+:r .\backend\migrations\008_whatsapp_consultas.sql
+GO
 COMMIT TRANSACTION;
 GO
 
@@ -26,6 +32,8 @@ SELECT DB_NAME() AS base_de_datos;
 SELECT name AS tabla_roomi
 FROM sys.tables
 WHERE schema_id = SCHEMA_ID(N'dbo')
-  AND name IN (N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes')
+  AND name IN (N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes',
+               N'decisiones_moderacion', N'suspensiones_propietario', N'servicios',
+               N'alojamiento_servicios', N'alojamiento_fotos', N'alojamiento_titular_historico')
 ORDER BY name;
 GO

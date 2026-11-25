@@ -4,16 +4,24 @@
     <ol class="publication-steps" aria-label="Pasos para publicar">
       <li [attr.aria-current]="!preview() ? 'step' : null">Datos del alojamiento</li>
       <li [attr.aria-current]="preview() && !saved() ? 'step' : null">Vista previa</li>
-      <li [attr.aria-current]="saved() ? 'step' : null">En revisión</li>
+      <li [attr.aria-current]="saved() ? 'step' : null">Resultado</li>
     </ol>
   }
   @if (saved(); as current) {
-    <section class="panel section stack compact" role="status">
-      <h1>Publicación enviada a revisión</h1>
+    <section class="feedback feedback-success section stack compact" role="status">
+      <h1>{{ current.status === 'publicado' ? 'Anuncio publicado' : current.status === 'en_revision' ? 'Anuncio en revisión' : 'Cambios guardados' }}</h1>
       <p>{{ current.title }}</p>
-      <div><app-status-badge status="pending" /></div>
-      <p>Consulta el estado de tu publicación en Mis anuncios.</p>
-      <div><a class="button" routerLink="/propietario">Ver mis anuncios</a></div>
+      <div><app-status-badge [status]="current.status" /></div>
+      @if (current.status === 'publicado') { <p>Tu anuncio ya está disponible en el catálogo.</p> }
+      @if (current.motivos.length) {
+        <ul>@for (reason of current.motivos; track reason) { <li>{{ reasons[reason] }}</li> }</ul>
+      }
+      <div class="actions">
+        @if (current.status === 'publicado') {
+          <a class="button" [routerLink]="['/habitaciones', current.id]">Ver anuncio publicado</a>
+        }
+        <a class="button secondary" routerLink="/propietario">Ver mis anuncios</a>
+      </div>
     </section>
   } @else if (id() && managed.isLoading()) {
     <p class="page-state" role="status">Cargando anuncio…</p>
@@ -25,7 +33,10 @@
   } @else if (id() && !existing()) {
     <div class="panel empty"><h1>Anuncio no disponible</h1><p>{{ unavailableListing }}</p><a class="button" routerLink="/propietario">Volver a mis anuncios</a></div>
   } @else {
-    <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
+    <header class="section-intro">
+      <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
+      @if (!preview()) { <p>Completa los datos y revisa el anuncio antes de enviarlo.</p> }
+    </header>
     @if ((preview() ? draft() : undefined); as item) {
       <section class="panel section stack">
         <h2>Revisa tu publicación</h2>
@@ -37,15 +48,16 @@
         <p>{{ item.address }}</p>
         @if (item.amenities.length) { <p>{{ item.amenities.join(' · ') }}</p> }
         @if (item.photos.length) { <app-room-gallery [photos]="item.photos" /> }
-        <p class="muted">El anuncio quedará pendiente de aprobación.</p>
-        @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+        @if (error()) { <p id="publication-error" class="feedback feedback-error" role="alert">{{ error() }}</p> }
         <div class="actions">
-          <button type="button" class="button" [disabled]="busy()" (click)="publish(item)">{{ busy() ? 'Guardando…' : 'Enviar a revisión' }}</button>
+          <button type="button" class="button" [disabled]="busy()" [attr.aria-describedby]="error() ? 'publication-error' : null" (click)="publish(item)">{{ busy() ? 'Guardando…' : (id() ? 'Guardar cambios' : 'Publicar anuncio') }}</button>
+          @if (!id()) {
+            <button type="button" class="button secondary" [disabled]="busy()" (click)="publish(item, true)">Guardar borrador</button>
+          }
           <button type="button" class="button secondary" (click)="preview.set(false)">Volver al formulario</button>
         </div>
       </section>
     } @else {
-      <p>Completa los datos y revisa el anuncio antes de enviarlo.</p>
       <app-room-form [initial]="draft() ?? existing()" (saved)="review($event)" />
     }
   }

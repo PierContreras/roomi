@@ -5,3 +5,4 @@
 .comparison thead { background: var(--soft); }
 .comparison tr > :first-child { width: 27%; }
 @media (max-width: 560px) { .compare-selects { grid-template-columns: 1fr; } }
+.saved-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: var(--space-4); }

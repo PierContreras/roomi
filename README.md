@@ -4,6 +4,10 @@ Buscador de alojamientos estudiantiles en Huancayo. Angular presenta la interfaz
 
 [Backend y base de datos](backend/README.md) · [Frontend](frontend/README.md)
 
+## Presentación en Windows
+
+Para la evaluación presencial, ROOMI usa la compilación de Angular y la base `BD_ROOMI`. Consulta la [guía de sustentación](docs/sustentacion.md) para reiniciar la web y recorrer los criterios de evaluación.
+
 ## Arranque local en Windows
 
 Después de instalar las dependencias y configurar `backend/.env` según la guía del backend, ejecuta estos comandos en dos terminales PowerShell desde la raíz del repositorio.

@@ -10,7 +10,7 @@ import { UiIcon } from './ui-icon';
   selector: 'app-site-header',
   imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, UiIcon],
   templateUrl: './site-header.html',
-  styleUrl: './site-header.css',
+  styleUrls: ['./site-header.css', './site-header-account.css'],
 })
 export class SiteHeader {
   protected readonly session = inject(SessionService);

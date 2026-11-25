@@ -21,18 +21,36 @@ export class AdminReviewPage {
   protected readonly error = signal('');
   protected reason = '';
 
-  protected async review(decision: 'approved' | 'rejected') {
-    const revision = this.room()?.revision;
-    if (this.busy() || revision === undefined) return;
+  protected async suspend(ownerId: string, lift = false) {
+    if (this.busy()) return;
     this.error.set('');
-    if (decision === 'rejected' && !this.reason.trim()) {
-      this.error.set('Escribe un motivo para que el propietario sepa qué debe corregir.');
+    if (!this.reason.trim()) {
+      this.error.set('Escribe el motivo de la suspensión o de su levantamiento.');
       return;
     }
     this.busy.set(true);
     try {
-      await this.catalog.review(this.id(), decision, decision === 'rejected' ? this.reason : '', revision);
-      this.notice.set(decision === 'approved' ? 'Anuncio aprobado.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
+      await this.catalog.suspend(ownerId, this.reason, lift);
+      this.notice.set(lift ? 'Suspensión levantada.' : 'Propietario suspendido.');
+    } catch (error) {
+      this.error.set(apiError(error, 'No pudimos actualizar la suspensión.'));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected async review(decision: 'publicado' | 'rechazado') {
+    const revision = this.room()?.revision;
+    if (this.busy() || revision === undefined) return;
+    this.error.set('');
+    if (!this.reason.trim()) {
+      this.error.set('Escribe el motivo de la decisión.');
+      return;
+    }
+    this.busy.set(true);
+    try {
+      await this.catalog.review(this.id(), decision, this.reason, revision);
+      this.notice.set(decision === 'publicado' ? 'Anuncio aprobado.' : 'Anuncio rechazado. El propietario puede ver el motivo.');
       this.managed.reload();
     } catch (error) {
       this.error.set(apiError(error, 'No pudimos registrar la decisión.'));

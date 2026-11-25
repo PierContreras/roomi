@@ -14,7 +14,7 @@ import { UiLibraries } from './services/ui-libraries';
 
 let managed: Room[];
 const mockCatalog: HttpInterceptorFn = request => {
-  const rooms = managed.filter(room => room.status === 'approved');
+  const rooms = managed.filter(room => room.status === 'publicado');
   const { params, method, url } = request;
   expect(url.startsWith('/api/')).toBe(true);
   const ownerRoute = url.startsWith('/api/propietario/') ||
@@ -45,8 +45,14 @@ const mockCatalog: HttpInterceptorFn = request => {
     const role = request.headers.get('Authorization')?.slice('Bearer test-'.length);
     return reply(managed.filter(room => room.ownerId === 'demo-' + role));
   }
-  if (url === '/api/administracion/alojamientos') return reply(managed.filter(room => room.status !== 'withdrawn'));
-  if (url === '/api/propietario/consultas' || url === '/api/administracion/reportes') return reply([]);
+  if (url === '/api/administracion/alojamientos') return reply(managed.filter(room => room.status === 'en_revision'));
+  if (url === '/api/propietario/consultas') {
+    return reply([{
+      id: 'consulta-recibida', roomId: 'nuevo', title: 'Anuncio de prueba',
+      name: 'Estudiante Prueba', whatsapp: '51912345678', email: null, message: 'Quisiera coordinar una visita.',
+    }]);
+  }
+  if (url === '/api/administracion/reportes') return reply([]);
   if (url.endsWith('/contacto')) return reply({ whatsapp: '51987654321', formulario: true });
   if (url.endsWith('/resenas')) {
     if (method === 'POST') {
@@ -56,19 +62,26 @@ const mockCatalog: HttpInterceptorFn = request => {
     }
     return reply([]);
   }
-  if (url.endsWith('/consultas') && method === 'POST') return reply({ id: 'consulta-prueba' });
+  if (url.endsWith('/consultas') && method === 'POST') {
+    expect(request.body).toMatchObject({ whatsapp: '51912345678', email: null, consent: true });
+    return reply({ id: 'consulta-prueba' });
+  }
   if (method === 'POST' && url === '/api/alojamientos') {
-    managed = [{ ...(request.body as RoomDraft), id: 'nuevo', ownerId: 'demo-owner', owner: 'Cuenta Prueba', status: 'pending', revision: 1 }, ...managed];
-    return reply({ id: 'nuevo' });
+    managed = [{ ...(request.body as RoomDraft), id: 'nuevo', ownerId: 'demo-owner', owner: 'Cuenta Prueba', status: 'publicado', revision: 1 }, ...managed];
+    return reply({ id: 'nuevo', status: 'publicado', motivos: [] });
   }
   const id = url.split('/')[3];
+  if (method === 'POST' && url.endsWith('/reactivar')) {
+    managed = managed.map(room => room.id === id ? { ...room, status: 'publicado' } : room);
+    return reply({ id, status: 'publicado', motivos: [] });
+  }
   if (method === 'DELETE') {
     managed = managed.filter(room => room.id !== id);
     return of(new HttpResponse({ status: 204 }));
   }
   if (method === 'PUT') {
-    managed = managed.map(room => room.id === id ? { ...room, ...(request.body as RoomDraft), status: 'pending' } : room);
-    return reply({ id });
+    managed = managed.map(room => room.id === id ? { ...room, ...(request.body as RoomDraft), status: 'publicado' } : room);
+    return reply({ id, status: 'publicado', motivos: [] });
   }
   if (method === 'PATCH') {
     const data = request.body as { status: Room['status']; note?: string };
@@ -141,6 +154,24 @@ describe('App', () => {
     close.click();
     expectClosed();
   });
+
+  it('muestra la cuenta y devuelve el foco al cerrar el menú con Escape', async () => {
+    vi.spyOn(TestBed.inject(SessionService), 'user').mockReturnValue({
+      id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student',
+    });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const account = root.querySelector<HTMLDetailsElement>('.desktop-nav .account')!;
+    const trigger = account.querySelector('summary')!;
+    account.open = true;
+    expect(account.querySelector('.account-name')?.textContent).toContain('Cuenta de prueba');
+    const action = account.querySelector<HTMLButtonElement>('.account-action')!;
+    action.focus();
+    action.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(account.open).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
 });
 
 it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al cerrar sesión', async () => {
@@ -181,7 +212,10 @@ describe('Recorridos de ROOMI', () => {
   let harness: RouterTestingHarness;
 
   beforeEach(async () => {
-    managed = demoRooms.map(room => ({ ...room, contactAvailable: true, revision: 1 }));
+    managed = demoRooms.map(room => ({
+      ...room, contactAvailable: true, revision: 1,
+      ...(room.id === 'san-carlos-320' ? { latitude: 0, longitude: 0 } : {}),
+    }));
     localStorage.removeItem('roomi.saved.v1');
     TestBed.configureTestingModule({ providers: [
       provideRouter(routes, withComponentInputBinding()),
@@ -244,6 +278,9 @@ describe('Recorridos de ROOMI', () => {
   }
 
   it('busca, filtra, guarda un anuncio y envía una consulta', async () => {
+    managed = managed.map(room => room.id === 'san-carlos-320' ? {
+      ...room, photos: [{ src: '/foto-uno.jpg', alt: 'Habitación' }, { src: '/foto-dos.jpg', alt: 'Escritorio' }],
+    } : room);
     await harness.navigateByUrl('/explorar');
     expect(page().querySelector('h1')?.textContent).toContain('cerca de tu universidad en Huancayo');
     expect(page().querySelector('#steps-title')?.textContent).toBe('Cómo funciona');
@@ -269,6 +306,10 @@ describe('Recorridos de ROOMI', () => {
     await action('Aplicar filtros');
     await stabilize();
     expect(text()).toContain('1 habitación encontrada');
+    expect(page().querySelector('.search-zones [aria-pressed="true"]')?.textContent).toContain('San Carlos');
+    page().querySelector<HTMLButtonElement>('[aria-label="Foto siguiente"]')!.click();
+    await stabilize();
+    expect(page().querySelector('.photo-count')?.textContent).toContain('Foto 2 de 2');
     await action('Comparar precios');
     expect(page().querySelector('table tbody')?.textContent).toMatch(/San Carlos.*320.*320/);
     await action('Ver mapa');
@@ -277,6 +318,9 @@ describe('Recorridos de ROOMI', () => {
     expect(page().querySelector('app-room-map a[href^="https://www.google.com/maps/"]')).toBeNull();
     await action('Ubicar en el mapa');
     expect(page().querySelector('.map-preview')?.textContent).toContain('Cuarto iluminado');
+    expect(page().querySelector('.map-preview')?.textContent).toContain('Ubicación aproximada');
+    const mapsLink = page().querySelector<HTMLAnchorElement>('.map-preview a[href^="https://www.google.com/maps/"]');
+    expect(new URL(mapsLink!.href).searchParams.get('query')).toBe('San Carlos, Huancayo, Perú');
     expect(page().querySelector('.result-card.selected')?.getAttribute('data-room-id')).toBe('san-carlos-320');
     await action('Ver listado');
     await action('Guardar');
@@ -293,12 +337,12 @@ describe('Recorridos de ROOMI', () => {
     await vi.waitFor(async () => {
       await stabilize();
       expect(TestBed.inject(Router).url).toContain('/habitaciones/san-carlos-320/contacto');
-      expect(page().querySelector('a[href^="https://wa.me/51987654321"]')).toBeTruthy();
+      expect(page().querySelector('a[href^="https://wa.me/51987654321"]')).toBeNull();
     });
     await action('Enviar consulta');
     expect(text()).toContain('Revisa los campos');
     await enter('nombre', 'Estudiante Prueba');
-    await enter('correo', 'consulta@roomi.test');
+    await enter('whatsapp', '912 345 678');
     await enter('mensaje', '¿Puedo visitar la habitación el sábado?');
     page().querySelector<HTMLInputElement>('[name="consentimiento"]')!.click();
     await stabilize();
@@ -306,6 +350,7 @@ describe('Recorridos de ROOMI', () => {
     await vi.waitFor(async () => {
       await stabilize();
       expect(text()).toContain('Consulta enviada');
+      expect(page().querySelector('a[href^="https://wa.me/51987654321"]')).toBeTruthy();
     });
     await action('Volver al anuncio');
     await action('← Volver a los resultados');
@@ -461,17 +506,31 @@ describe('Recorridos de ROOMI', () => {
     await chooseProfile('Propietario');
     await vi.waitFor(async () => {
       await stabilize();
-      expect(text()).toContain('Pendiente');
+      expect(text()).toContain('En revisión');
     });
-    expect(text()).toContain('Aprobada');
-    expect(text()).toContain('Rechazada');
+    expect(text()).toContain('Publicado');
+    expect(text()).toContain('Rechazado');
+    expect(page().querySelector('a[href^="https://wa.me/51912345678"]')?.textContent).toContain('Responder por WhatsApp');
     await action('Publicar anuncio');
     await action('Revisar publicación');
     expect(text()).toContain('Escribe el título del anuncio.');
     await enter('titulo', 'Habitación de prueba');
     await enter('direccion', 'Pasaje de prueba 10');
-    await enter('latitud', '-12.06');
-    await enter('longitud', '-75.21');
+    const map = {
+      setView: vi.fn(), on: vi.fn(), remove: vi.fn(),
+      getCenter: () => ({ lat: -12.06, lng: -75.21 }),
+    };
+    const marker = { setOpacity: vi.fn(), setLatLng: vi.fn() };
+    const libraries = TestBed.inject(UiLibraries);
+    vi.spyOn(libraries, 'leaflet').mockResolvedValue({
+      map: () => map,
+      tileLayer: () => ({ addTo: () => ({ on: vi.fn() }) }),
+      divIcon: vi.fn(),
+      marker: () => ({ addTo: () => marker }),
+    } as unknown as Awaited<ReturnType<UiLibraries['leaflet']>>);
+    await action('Elegir ubicación en el mapa');
+    await action('Marcar el centro del mapa');
+    expect(text()).toContain('Ubicación seleccionada.');
     await enter('distancia', '1.2');
     await enter('precio', '430');
     await enter('garantia', '100');
@@ -480,20 +539,26 @@ describe('Recorridos de ROOMI', () => {
     await enter('condiciones', 'Coordinar una visita de prueba.');
     await action('Revisar publicación');
     expect(text()).toContain('Revisa tu publicación');
-    await action('Enviar a revisión');
-    expect(text()).toContain('Publicación enviada a revisión');
-    await action('Ver mis anuncios');
+    await action('Publicar anuncio');
+    expect(text()).toContain('Anuncio publicado');
+    expect(page().querySelector('a[href="/habitaciones/nuevo"]')?.textContent).toContain('Ver anuncio publicado');
+    await harness.navigateByUrl('/habitaciones/nuevo');
+    await stabilize();
+    expect(text()).toContain('Habitación de prueba');
+    await harness.navigateByUrl('/propietario');
     await action('Editar Habitación de prueba');
     await enter('precio', '410');
     await action('Revisar publicación');
-    await action('Enviar a revisión');
+    await action('Guardar cambios');
     await action('Ver mis anuncios');
     expect(text()).toContain('S/ 410 / mes');
 
+    const legacyPending = managed.find(room => room.id === 'chilca-en-revision')!;
+    managed = [...managed, { ...legacyPending, id: 'anuncio-pendiente-anterior', title: 'Anuncio pendiente anterior' }];
     await chooseProfile('Administrador');
-    await action('Revisar anuncio Habitación de prueba');
+    await action('Revisar anuncio Anuncio pendiente anterior');
     await action('Rechazar anuncio');
-    expect(text()).toContain('Escribe un motivo');
+    expect(text()).toContain('Escribe el motivo');
     await enter('motivo', 'Añade referencias para ubicar el alojamiento.');
     await action('Rechazar anuncio');
     await vi.waitFor(async () => {
@@ -502,17 +567,18 @@ describe('Recorridos de ROOMI', () => {
     });
     await action('Volver a la cola');
     await action('Revisar anuncio Habitación independiente en Chilca');
+    await enter('motivo', 'Cumple las reglas de la publicación.');
     await action('Aprobar anuncio');
     await vi.waitFor(async () => {
       await stabilize();
       expect(text()).toContain('Anuncio aprobado.');
     });
-    expect(managed.find(room => room.id === 'chilca-en-revision')?.status).toBe('approved');
+    expect(managed.find(room => room.id === 'chilca-en-revision')?.status).toBe('publicado');
 
     await chooseProfile('Propietario');
     expect(text()).toContain('Añade referencias para ubicar el alojamiento.');
     const room = [...page().querySelectorAll('article')].find(item => item.textContent?.includes('Habitación independiente en Chilca'));
-    expect(room?.textContent).toContain('Aprobada');
+    expect(room?.textContent).toContain('Publicado');
     await action('Retirar Habitación de prueba');
     expect(page().querySelector('dialog')?.open).toBe(true);
     expect(text()).toContain('¿Quieres retirar «Habitación de prueba»');
@@ -523,16 +589,13 @@ describe('Recorridos de ROOMI', () => {
     await vi.waitFor(async () => {
       await stabilize();
       expect(text()).toContain('Publicación retirada');
-      expect(text()).toContain('Retirada');
+      expect(text()).toContain('Retirado');
     });
     const retired = [...page().querySelectorAll('article')].find(item => item.textContent?.includes('Habitación de prueba'));
-    expect(retired?.textContent).toContain('Retirada');
-    expect(retired?.querySelector('button')?.textContent).toContain('Eliminar');
+    expect(retired?.textContent).toContain('Retirado');
+    expect([...retired!.querySelectorAll('button')].some(button => button.textContent.includes('Eliminar'))).toBe(true);
     await action('Reactivar Habitación de prueba');
-    await action('Revisar publicación');
-    await action('Enviar a revisión');
-    expect(managed.find(item => item.id === 'nuevo')?.status).toBe('pending');
-    await action('Ver mis anuncios');
+    expect(managed.find(item => item.id === 'nuevo')?.status).toBe('publicado');
     await action('Eliminar Habitación de prueba');
     await action('Eliminar anuncio');
     await vi.waitFor(async () => {

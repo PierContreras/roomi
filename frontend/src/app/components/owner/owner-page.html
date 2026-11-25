@@ -1,56 +1,94 @@
-<div class="container page stack">
-  <p class="small muted">Panel del propietario</p>
-  <header class="panel section actions owner-heading">
+<div class="container page stack owner-page">
+  <header class="owner-heading">
     <div class="stack compact">
       <h1>Mis anuncios</h1>
-      <p>Completa los datos, revisa la vista previa y envía tu anuncio a moderación.</p>
+      @if (managed.hasValue()) {
+        <p class="owner-summary">{{ publishedCount() }} publicados · {{ reviewCount() }} en revisión</p>
+      }
     </div>
     <a class="button" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Publicar anuncio</a>
   </header>
-  @if (notice()) { <p role="status">{{ notice() }}</p> }
-  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-  @if (managed.isLoading()) {
-    <p class="page-state" role="status">Cargando anuncios…</p>
-  } @else if (managed.error()) {
-    <div class="page-state stack compact">
-      <p role="alert">No pudimos cargar tus anuncios. Intenta de nuevo.</p>
-      <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
-    </div>
-  } @else {
-  @for (room of listings(); track room.id) {
-    <article class="panel section stack compact">
-      <div class="actions">
-        <h2>{{ room.title }}</h2>
-        <app-status-badge [status]="room.status" />
-      </div>
-      <p>{{ room.zone }} · S/ {{ room.price }} / mes</p>
-      @if (room.reviewNote) { <p class="muted"><strong>Observación:</strong> {{ room.reviewNote }}</p> }
-      <div class="actions">
-        <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">{{ room.status === 'withdrawn' ? 'Reactivar' : 'Editar' }}<span class="sr-only"> {{ room.title }}</span></a>
-        @if (room.status !== 'withdrawn') {
-          <button type="button" class="button quiet" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'withdraw', confirmation)">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+  @if (notice()) { <p class="feedback feedback-success" role="status">{{ notice() }}</p> }
+  @if (error()) { <p class="feedback feedback-error" role="alert">{{ error() }}</p> }
+  <div class="owner-workspace">
+    <section class="listing-column stack" aria-labelledby="publicaciones">
+      <h2 id="publicaciones">Publicaciones</h2>
+      @if (managed.isLoading()) {
+        <p class="page-state" role="status">Cargando anuncios…</p>
+      } @else if (managed.error()) {
+        <div class="page-state stack compact">
+          <p role="alert">No pudimos cargar tus anuncios. Intenta de nuevo.</p>
+          <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
+        </div>
+      } @else {
+        @for (room of listings(); track room.id) {
+          <article class="panel listing">
+            <div class="listing-media">
+              @if (room.photos[0]; as photo) {
+                <img [src]="photo.src" [alt]="photo.alt" loading="lazy" />
+              } @else {
+                <span><app-ui-icon name="photo" /> Sin foto</span>
+              }
+            </div>
+            <div class="listing-content stack compact">
+              <div class="listing-title">
+                <h3>{{ room.title }}</h3>
+                <app-status-badge [status]="room.status" />
+              </div>
+              <p class="listing-meta"><span><app-ui-icon name="pin" /> {{ room.zone }}</span><span><strong>S/ {{ room.price }}</strong> / mes</span></p>
+              @if (room.motivos?.length) {
+                <ul>@for (reason of room.motivos; track reason) { <li>{{ reasons[reason] }}</li> }</ul>
+              }
+              @if (room.reviewNote) { <p class="muted"><strong>Observación:</strong> {{ room.reviewNote }}</p> }
+              <div class="actions listing-actions">
+                <a class="button secondary" [routerLink]="['/propietario', room.id, 'editar']">{{ room.status === 'rechazado' ? 'Editar y reenviar' : 'Editar' }}<span class="sr-only"> {{ room.title }}</span></a>
+                @if (room.status === 'borrador' || room.status === 'retirado') {
+                  <button type="button" class="button" [disabled]="updating()"
+                    (click)="submit(room, room.status === 'borrador' ? 'enviar' : 'reactivar')">
+                    {{ room.status === 'borrador' ? 'Enviar' : 'Reactivar' }}<span class="sr-only"> {{ room.title }}</span>
+                  </button>
+                }
+                @if (room.status === 'publicado') {
+                  <a class="button quiet" [routerLink]="['/habitaciones', room.id]">Ver anuncio<span class="sr-only"> {{ room.title }}</span></a>
+                  <button type="button" class="button quiet" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'withdraw', confirmation)">Retirar<span class="sr-only"> {{ room.title }}</span></button>
+                }
+                <button type="button" class="button delete-action" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'delete', confirmation)">Eliminar<span class="sr-only"> {{ room.title }}</span></button>
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <div class="panel empty"><h3>Aún no tienes anuncios</h3><p>Publica tu primera habitación para que aparezca en el catálogo.</p></div>
         }
-        <button type="button" class="button danger" [disabled]="confirming() || updating()" (click)="confirmAction(room, 'delete', confirmation)">Eliminar<span class="sr-only"> {{ room.title }}</span></button>
-      </div>
-    </article>
-  } @empty {
-    <div class="panel empty"><h2>Aún no tienes anuncios</h2><p>Publica tu primera habitación para enviarla a revisión.</p></div>
-  }
-  }
-  <section class="panel section stack" aria-labelledby="consultas">
-    <h2 id="consultas">Consultas recibidas</h2>
-    @if (inquiries.isLoading()) { <p role="status">Cargando consultas…</p> }
-    @else if (inquiries.error()) {
-      <p role="alert">No pudimos cargar tus consultas.</p>
-      <div><button class="button quiet" type="button" (click)="inquiries.reload()">Reintentar</button></div>
-    } @else {
-      @for (item of inquiries.value() ?? []; track item.id) {
-        <article><h3>{{ item.title }}</h3><p>{{ item.message }}</p><p>{{ item.name }} · <a [href]="'mailto:' + item.email">{{ item.email }}</a></p></article>
-      } @empty { <p>Aún no tienes consultas.</p> }
-    }
-  </section>
+      }
+    </section>
+    <section class="panel section stack inbox" aria-labelledby="consultas">
+      <h2 id="consultas">Consultas recibidas</h2>
+      @if (inquiries.isLoading()) { <p role="status">Cargando consultas…</p> }
+      @else if (inquiries.error()) {
+        <p role="alert">No pudimos cargar tus consultas.</p>
+        <div><button class="button quiet" type="button" (click)="inquiries.reload()">Reintentar</button></div>
+      } @else {
+        @for (item of inquiries.value() ?? []; track item.id) {
+          <article class="stack compact message">
+            <h3>{{ item.name }}</h3>
+            <p class="small muted">{{ item.title }}</p>
+            <p>{{ item.message }}</p>
+            <div class="actions">
+              @if (item.whatsapp) {
+                <a class="button whatsapp-action" [href]="whatsappReplyUrl(item.whatsapp, item.title)" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp" aria-hidden="true"></i> Responder por WhatsApp</a>
+                <span class="small muted">+{{ item.whatsapp }}</span>
+              } @else {
+                <span class="small muted">La consulta anterior no incluye un número de WhatsApp.</span>
+              }
+              @if (item.email) { <a [href]="'mailto:' + item.email">{{ item.email }}</a> }
+            </div>
+          </article>
+        } @empty { <p>Aún no tienes consultas.</p> }
+      }
+    </section>
+  </div>
   <app-confirm-dialog #confirmation [heading]="confirmationText()?.heading ?? ''"
-    [approve]="confirmationText()?.approve ?? 'Confirmar'" [danger]="true"
+    [approve]="confirmationText()?.approve ?? 'Confirmar'" [danger]="selected()?.action === 'delete'"
     (accepted)="updateListing()" (closed)="selected.set(null)">
     <p>{{ confirmationText()?.prompt }}</p>
   </app-confirm-dialog>

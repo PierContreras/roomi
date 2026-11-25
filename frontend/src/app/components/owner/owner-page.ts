@@ -1,12 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { apiError } from '../../services/session.service';
-import { Room } from '../../interfaces/room';
+import { moderationReasonLabels, Room } from '../../interfaces/room';
 import { RoomService } from '../../services/room.service';
 import { ConfirmDialog } from '../shared/confirm-dialog';
 import { StatusBadge } from '../shared/status-badge';
 import { UiLibraries } from '../../services/ui-libraries';
 import { UiIcon } from '../shared/ui-icon';
+import { whatsappReplyUrl } from '../rooms/room-contact';
 
 const listingActions = {
   withdraw: {
@@ -30,6 +31,7 @@ type ListingAction = keyof typeof listingActions;
 @Component({
   imports: [RouterLink, StatusBadge, ConfirmDialog, UiIcon],
   templateUrl: './owner-page.html',
+  styleUrl: './owner-page.css',
 })
 export class OwnerPage {
   private readonly catalog = inject(RoomService);
@@ -38,6 +40,8 @@ export class OwnerPage {
   protected readonly managed = this.catalog.managed('propietario');
   protected readonly inquiries = this.catalog.inquiries();
   protected readonly listings = computed(() => this.managed.hasValue() ? this.managed.value() : []);
+  protected readonly publishedCount = computed(() => this.listings().filter(room => room.status === 'publicado').length);
+  protected readonly reviewCount = computed(() => this.listings().filter(room => room.status === 'en_revision').length);
   protected readonly updating = signal(false);
   protected readonly error = signal('');
   protected readonly selected = signal<{ room: Room; action: ListingAction } | null>(null);
@@ -56,7 +60,7 @@ export class OwnerPage {
     this.confirming.set(true);
     try {
       const text = listingActions[action];
-      const accepted = await this.libraries.confirm(text.heading, text.message(room.title), text.approve);
+      const accepted = await this.libraries.confirm(text.heading, text.message(room.title), text.approve, action === 'delete');
       if (this.destroyRef.destroyed) return;
       if (accepted === undefined) {
         fallback.open();
@@ -66,6 +70,25 @@ export class OwnerPage {
       this.selected.set(null);
     } finally {
       this.confirming.set(false);
+    }
+  }
+
+  protected readonly reasons = moderationReasonLabels;
+  protected readonly whatsappReplyUrl = whatsappReplyUrl;
+
+  protected async submit(room: Room, action: 'enviar' | 'reactivar') {
+    if (this.updating()) return;
+    this.updating.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      const result = await this.catalog.submitListing(room.id, action);
+      this.notice.set(result.status === 'publicado' ? 'Anuncio publicado.' : 'Anuncio en revisión.');
+      this.managed.reload();
+    } catch (error) {
+      this.error.set(apiError(error, 'No pudimos enviar el anuncio.'));
+    } finally {
+      this.updating.set(false);
     }
   }
 

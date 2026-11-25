@@ -1,14 +1,16 @@
 <div class="container page stack">
   <p class="small muted"><a routerLink="/administracion">Volver a la cola de revisión</a></p>
+  <div aria-live="polite">{{ notice() }}</div>
   @if (managed.isLoading()) {
     <p role="status">Cargando anuncio…</p>
   } @else if (managed.error()) {
     <p role="alert">No pudimos cargar el anuncio.</p>
     <div><button class="button quiet" type="button" (click)="managed.reload()">Reintentar</button></div>
   } @else if (room(); as current) {
-    <h1>{{ current.title }}</h1>
-    <div class="actions"><app-status-badge [status]="current.status" /><span class="muted">{{ current.owner }}</span></div>
-    @if (notice()) { <div class="panel section" role="status">{{ notice() }}</div> }
+    <header class="section-intro stack compact">
+      <h1>{{ current.title }}</h1>
+      <div class="actions"><app-status-badge [status]="current.status" /><span class="muted">{{ current.owner }}</span></div>
+    </header>
     <div class="split">
       <article class="panel section stack">
         <app-room-gallery [photos]="current.photos" />
@@ -22,19 +24,23 @@
       </article>
       <section class="panel section stack compact">
         <h2>Decisión</h2>
-        @if (current.status === 'pending') {
-          <form class="stack" (ngSubmit)="review('rejected')">
-            <label>Motivo del rechazo
-              <textarea name="motivo" rows="4" maxlength="500" [(ngModel)]="reason" [attr.aria-invalid]="error() ? true : null"
+        @if (current.status === 'en_revision') {
+          <form class="stack" (ngSubmit)="review('rechazado')">
+            <label>Motivo de la decisión
+              <textarea name="motivo" rows="4" maxlength="800" required [(ngModel)]="reason" [attr.aria-invalid]="error() ? true : null"
                 [attr.aria-describedby]="error() ? 'decision-error' : null"></textarea>
             </label>
             @if (error()) {
-              <p id="decision-error" class="error" role="alert">{{ error() }}</p>
+              <p id="decision-error" class="feedback feedback-error" role="alert">{{ error() }}</p>
               <div><button type="button" class="button quiet" (click)="managed.reload(); error.set('')">Volver a consultar el anuncio</button></div>
             }
             <div class="actions">
-              <button type="button" class="button" [disabled]="busy()" (click)="review('approved')">Aprobar anuncio</button>
+              <button type="button" class="button" [disabled]="busy()" (click)="review('publicado')">Aprobar anuncio</button>
               <button type="submit" class="button danger" [disabled]="busy()">Rechazar anuncio</button>
+              @if (current.ownerId; as ownerId) {
+                <button type="button" class="button secondary" [disabled]="busy()" (click)="suspend(ownerId)">Suspender propietario</button>
+                <button type="button" class="button secondary" [disabled]="busy()" (click)="suspend(ownerId, true)">Levantar suspensión</button>
+              }
             </div>
           </form>
         } @else {

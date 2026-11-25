@@ -4,11 +4,23 @@ FastAPI recibe las solicitudes de Angular, aplica validación y permisos y guard
 
 ## Autenticación
 
-Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas existentes con rol `student` u `owner` tienen los mismos permisos de usuario. El rol `admin` tiene acceso al panel de moderación.
+Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas con rol `student` u `owner` tienen los mismos permisos de usuario. El rol `admin` tiene acceso al panel de moderación.
 
 `POST /api/auth/registro` y `POST /api/auth/login` devuelven el perfil y un JWT firmado con HS256 mediante PyJWT. Configura `ROOMI_JWT_SECRET` con una clave aleatoria de al menos 32 bytes. El token vence después de una hora y se envía mediante `Authorization: Bearer <token>` en las solicitudes protegidas.
 
 Los registros nuevos y las cuentas de administración creadas por consola usan `argon2-cffi` con Argon2id. SQL Server guarda el hash en `dbo.usuarios.password_hash`, de tipo `NVARCHAR(250) NOT NULL`. Las cuentas anteriores con scrypt conservan su contraseña y su hash se actualiza a Argon2id tras un inicio de sesión correcto.
+
+## Publicación y moderación
+
+`POST /api/alojamientos` devuelve `201` con `id`, `status` y `motivos`. Envía `"borrador": true` para guardar un borrador. `PUT /api/alojamientos/{anuncio_id}` devuelve los mismos campos con `200`. Los endpoints `POST /api/alojamientos/{anuncio_id}/enviar` y `POST /api/alojamientos/{anuncio_id}/reactivar` también devuelven este resultado con `200`.
+
+El catálogo muestra los anuncios con estado `publicado`. Cuando una regla requiere revisión, el estado es `en_revision` y `motivos` contiene códigos como `sin_fotos` o `contacto_externo`. Configura el rango mensual con `ROOMI_PRECIO_MINIMO` y `ROOMI_PRECIO_MAXIMO`, cuyos valores iniciales son 50 y 2000 soles. `ROOMI_TERMINOS_PROHIBIDOS` admite una lista separada por comas y empieza vacía.
+
+La cola de administración permite aprobar o rechazar con motivo, suspender al titular y levantar una suspensión. Las decisiones quedan registradas en el historial del anuncio.
+
+## Consultas por WhatsApp
+
+Las consultas se envían con `POST /api/alojamientos/{anuncio_id}/consultas`. El número `whatsapp`, el nombre, el mensaje y el consentimiento son obligatorios. El correo es opcional. La bandeja privada conserva las consultas anteriores, incluso cuando solo contienen correo.
 
 ## Eliminar una publicación
 
@@ -22,7 +34,9 @@ Desde la raíz del repositorio, ejecuta lo siguiente con una cuenta autorizada p
 sqlcmd -S . -E -C -b -i .\backend\migrations\instalar_roomi.sql
 ```
 
-El script crea `BD_ROOMI` en instalaciones nuevas. Si la base existente se llama `ROOMI`, la renombra antes de aplicar las migraciones. Cierra las conexiones a esa base antes de ejecutar el cambio de nombre. Tras el cambio, usa `DB_NAME=BD_ROOMI` en `.env`. El script puede volver a ejecutarse y muestra las seis tablas esperadas.
+El script crea `BD_ROOMI` en instalaciones nuevas. Si la base existente se llama `ROOMI`, la renombra antes de aplicar las migraciones. Cierra las conexiones a esa base antes de ejecutar el cambio de nombre. Tras el cambio, usa `DB_NAME=BD_ROOMI` en `.env`. El script puede volver a ejecutarse y muestra las doce tablas esperadas.
+
+El instalador incluye [006_moderacion_mixta.sql](migrations/006_moderacion_mixta.sql), [007_normalizar_catalogo.sql](migrations/007_normalizar_catalogo.sql) y [008_whatsapp_consultas.sql](migrations/008_whatsapp_consultas.sql). Verifica el destino con `SELECT DB_NAME()` antes de ejecutarlas y confirma la base en `/api/salud` después del arranque. La [guía de sustentación](../docs/sustentacion.md) documenta el arranque de la instalación de evaluación.
 
 ## Ejecutar en Windows
 
@@ -46,7 +60,7 @@ Si ya hay un proceso de Uvicorn en el puerto 8000, detenlo con `Ctrl+C` y vuelve
 Si necesitas crear la primera cuenta de administración, ejecuta el siguiente comando. La contraseña se solicita en consola.
 
 ```powershell
-.\.venv\Scripts\python.exe create_table.py --admin-email administrador@roomi.test
+.\.venv\Scripts\python.exe scripts\crear_admin.py administrador@roomi.test
 ```
 
 ## Autorización y errores de la API

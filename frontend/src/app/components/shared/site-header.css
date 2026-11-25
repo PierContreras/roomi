@@ -7,12 +7,6 @@ nav { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap:
 nav a:not(.button) { display: flex; align-items: center; gap: 7px; padding: 11px 10px; border-radius: 8px; text-decoration: none; font-size: .875rem; font-weight: 640; }
 nav a:not(.button):hover, nav a.active { background: var(--soft); color: var(--brand); }
 .access-active { box-shadow: 0 0 0 3px #dbe5e9; }
-.account { position: relative; margin: 0; }
-.account summary { cursor: pointer; margin: 0; list-style: none; }
-.account summary::-webkit-details-marker { display: none; }
-.account-options { position: absolute; z-index: 30; inset: calc(100% + var(--space-1)) 0 auto auto; min-width: max-content; padding: var(--space-1); box-shadow: var(--shadow-panel); }
-.account:not([open]) .account-options { display: none; }
-.account-options .button { width: 100%; }
 .menu, .mobile-nav, .mobile-drawer { display: none; }
 @media (max-width: 940px) {
   :host { --mobile-nav-height: calc(57px + max(4px, env(safe-area-inset-bottom))); }
@@ -55,7 +49,8 @@ nav a:not(.button):hover, nav a.active { background: var(--soft); color: var(--b
   .drawer-nav .nav-links, .drawer-nav .account-links { display: grid; grid-template-columns: minmax(0, 1fr); }
   .drawer-nav .account-links { padding-top: var(--space-3); border-top: 1px solid var(--border); }
   .drawer-nav .account summary { width: 100%; justify-content: flex-start; }
-  .drawer-nav .account-options { position: static; margin-top: var(--space-1); }
+  .drawer-nav .account-options { position: static; width: 100%; margin-top: var(--space-1); box-shadow: none; }
+  .drawer-nav .account-chevron { margin-inline-start: auto; }
   .drawer-nav a { min-height: 44px; min-width: 0; overflow-wrap: anywhere; }
   .mobile-nav {
     position: fixed; z-index: 20; inset: auto 0 0;

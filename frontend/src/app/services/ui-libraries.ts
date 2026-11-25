@@ -1,24 +1,5 @@
 import { DOCUMENT, Injectable, inject } from '@angular/core';
 
-interface AlertOptions {
-  icon: 'success' | 'warning';
-  title: string;
-  text?: string;
-  toast?: boolean;
-  position?: 'top-end';
-  timer?: number;
-  showConfirmButton?: boolean;
-  showCancelButton?: boolean;
-  confirmButtonText?: string;
-  cancelButtonText?: string;
-  confirmButtonColor?: string;
-  focusCancel?: boolean;
-}
-
-interface SweetAlert {
-  fire(options: AlertOptions): Promise<{ isConfirmed: boolean }>;
-}
-
 interface PriceChart {
   destroy(): void;
 }
@@ -46,6 +27,8 @@ type ChartConstructor = new (canvas: HTMLCanvasElement, options: PriceChartOptio
 type Coordinates = [number, number];
 
 export interface LeafletMap {
+  on(event: 'click', callback: (event: { latlng: { lat: number; lng: number } }) => void): this;
+  getCenter(): { lat: number; lng: number };
   setView(center: Coordinates, zoom: number, options?: { animate: boolean }): this;
   fitBounds(points: Coordinates[], options: { padding: Coordinates; maxZoom: number; animate: boolean }): this;
   panInside(point: Coordinates, options: { padding: Coordinates; animate: boolean }): this;
@@ -66,6 +49,8 @@ interface LeafletIcon {
 
 export interface LeafletMarker {
   addTo(map: LeafletMap): this;
+  setLatLng(point: Coordinates): this;
+  setOpacity(opacity: number): this;
   setZIndexOffset(offset: number): this;
 }
 
@@ -77,20 +62,26 @@ interface Leaflet {
   DomEvent: { disableClickPropagation(element: HTMLElement): void };
 }
 
-type LibraryWindow = Window & { Swal?: SweetAlert; Chart?: ChartConstructor; L?: Leaflet };
+type LibraryWindow = Window & { Chart?: ChartConstructor; L?: Leaflet };
 
 @Injectable({ providedIn: 'root' })
 export class UiLibraries {
   private readonly document = inject(DOCUMENT);
   private readonly pending = new Map<string, Promise<void>>();
 
-  async confirm(title: string, text: string, confirmButtonText: string) {
+  async confirm(title: string, text: string, confirmButtonText: string, danger = false) {
     try {
       const swal = await this.alert();
       if (!swal) return undefined;
       const result = await swal.fire({
-        icon: 'warning', title, text, confirmButtonText, cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#902837', showCancelButton: true, focusCancel: true,
+        icon: 'warning', titleText: title, text, confirmButtonText, cancelButtonText: 'Cancelar',
+        showCancelButton: true, focusCancel: true, buttonsStyling: false,
+        backdrop: 'rgb(16 43 45 / .56)', iconColor: danger ? '#902837' : '#805512',
+        customClass: {
+          popup: 'roomi-alert',
+          confirmButton: danger ? 'button danger' : 'button',
+          cancelButton: 'button quiet',
+        },
       });
       return result.isConfirmed;
     } catch {
@@ -101,7 +92,11 @@ export class UiLibraries {
   async success(title: string) {
     try {
       const swal = await this.alert();
-      await swal?.fire({ title, icon: 'success', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+      await swal?.fire({
+        titleText: title, icon: 'success', iconColor: '#16573e', toast: true,
+        position: 'top-end', timer: 4200, timerProgressBar: true, showConfirmButton: false,
+        customClass: { popup: 'roomi-alert roomi-toast' },
+      });
     } catch {
       // The page also shows the result in text.
     }
@@ -132,10 +127,9 @@ export class UiLibraries {
   }
 
   private async alert() {
-    const window = this.document.defaultView as LibraryWindow | null;
-    if (!window) return undefined;
-    if (!window.Swal) await this.load('https://cdn.jsdelivr.net/npm/sweetalert2@11.26.5/dist/sweetalert2.all.min.js');
-    return window.Swal;
+    if (!this.document.defaultView) return undefined;
+    const { default: swal } = await import('sweetalert2');
+    return swal;
   }
 
   private load(url: string, integrity?: string) {

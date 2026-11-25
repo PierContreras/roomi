@@ -74,7 +74,7 @@
             }
           </div>
         }
-        @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+        @if (error()) { <p class="feedback feedback-error" role="alert">{{ error() }}</p> }
         <button type="submit" class="button" [disabled]="busy()">{{ busy() ? 'Procesando…' : registering() ? 'Crear cuenta' : 'Iniciar sesión' }}</button>
       </form>
       @if (registering()) {

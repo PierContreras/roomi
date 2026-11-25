@@ -17,14 +17,6 @@
     <div class="listing-heading">
       <h1>{{ current.title }}</h1>
     </div>
-    <div class="listing-contact">
-      <p class="listing-price"><strong>S/ {{ current.price }}</strong> <span>/ mes</span></p>
-      @if (current.contactAvailable) {
-        <a class="button listing-contact-action" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar propietario</a>
-      } @else {
-        <p class="small muted">El propietario aún no ha habilitado el contacto para este anuncio.</p>
-      }
-    </div>
     <div class="listing-meta">
       <ul class="listing-facts plain">
         <li>{{ current.type }}</li>
@@ -41,9 +33,18 @@
     <app-room-gallery [photos]="photos()" />
     <div class="split details">
       <aside class="panel section contact-aside">
-        <h2 class="listing-summary-title">Datos del alquiler</h2>
-        <p>Garantía: <strong>S/ {{ current.deposit }}</strong></p>
-        <p>Propietario: <strong>{{ current.owner }}</strong></p>
+        <div class="listing-contact">
+          <p class="listing-price"><strong>S/ {{ current.price }}</strong> <span>/ mes</span></p>
+          @if (current.contactAvailable) {
+            <a class="button listing-contact-action" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar propietario</a>
+          } @else {
+            <p class="small muted">El propietario aún no ha habilitado el contacto para este anuncio.</p>
+          }
+        </div>
+        <dl class="rental-facts">
+          <div><dt>Garantía</dt><dd>S/ {{ current.deposit }}</dd></div>
+          <div><dt>Propietario</dt><dd>{{ current.owner }}</dd></div>
+        </dl>
       </aside>
       <div class="stack listing-info">
         <nav class="actions detail-links" aria-label="Secciones del anuncio">
@@ -111,11 +112,11 @@
                     [attr.aria-invalid]="errorKind() === 'message' || null"
                     [attr.aria-describedby]="errorKind() === 'message' ? 'feedback-error' : null"></textarea>
                 </label>
-                @if (error()) { <p class="error" id="feedback-error" role="alert">{{ error() }}</p> }
+                @if (error()) { <p class="feedback feedback-error" id="feedback-error" role="alert">{{ error() }}</p> }
                 <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : type === 'resenas' ? 'Publicar reseña' : 'Enviar reporte' }}</button>
               </form>
             }
-            @if (notice()) { <p role="status">{{ notice() }}</p> }
+            @if (notice()) { <p class="feedback feedback-success" role="status">{{ notice() }}</p> }
           } @else if (!session.user()) {
             <p><a routerLink="/acceso">Inicia sesión</a> para escribir una reseña o reportar el anuncio.</p>
           }

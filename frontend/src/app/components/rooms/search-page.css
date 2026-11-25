@@ -1,5 +1,5 @@
-.results-heading { margin-block: 26px 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.results-heading h2 { margin: 0; }
+.results-heading { margin-block: 20px 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.results-heading h2 { margin: 0; font-size: clamp(1.25rem, 2.3vw, 1.7rem); }
 .applied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-block: 14px; }
 .applied ul { margin: 0; }
 .applied a { text-underline-offset: 3px; }
@@ -8,10 +8,13 @@
 .result-controls { gap: 10px; }
 .sort { display: flex; flex-wrap: wrap; align-items: center; }
 .sort select { width: auto; min-height: 44px; }
-.view-options { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.view-options { display: inline-flex; gap: 3px; padding: 3px; background: var(--soft); border-radius: 12px; }
+.view-options .button { border-color: transparent; background: transparent; padding-inline: 12px; }
 .view-options [aria-pressed="true"] { background: var(--brand); color: white; }
-.map-zones { margin-block: var(--space-2) var(--space-3); }
-.map-zones [aria-pressed="true"], .locate[aria-pressed="true"] { background: var(--brand); color: var(--white); }
+.search-zones { margin-block: var(--space-3); }
+.search-zones .button { background: var(--white); border-color: var(--border); border-radius: 999px; }
+.search-zones [aria-pressed="true"] { background: var(--soft); border-color: var(--control-border); }
+.locate[aria-pressed="true"] { background: var(--brand); color: var(--white); }
 .result-card { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--space-1); min-width: 0; border-radius: var(--radius); }
 .result-card.selected { outline: 2px solid var(--brand); outline-offset: 2px; }
 .results.map-open {
@@ -33,4 +36,10 @@
   .results.map-open .room-grid { display: none; }
 }
 @media (min-width: 561px) and (max-width: 940px) { .results .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .results .room-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) {
+  .results .room-grid { grid-template-columns: 1fr; }
+  .result-controls { width: 100%; }
+  .view-options { width: 100%; order: -1; }
+  .view-options .button { flex: 1 1 0; }
+}
+.catalog-intro { margin-bottom: var(--space-3); }

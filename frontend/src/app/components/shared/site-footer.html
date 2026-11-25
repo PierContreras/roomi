@@ -2,29 +2,29 @@
   <div class="container">
     <div class="footer-grid">
       <div class="intro">
-        <a class="brand" routerLink="/explorar">roomi</a>
-        <p>Directorio de alojamiento estudiantil en Huancayo. Trato directo entre estudiantes y propietarios.</p>
-      </div>
-      <nav aria-label="Explorar en ROOMI">
-        <h2>Explorar</h2>
-        <a routerLink="/buscar" [queryParams]="{ zona: 'El Tambo' }">Habitaciones en El Tambo</a>
-        <a routerLink="/buscar" [queryParams]="{ zona: 'Centro' }">Centro de Huancayo</a>
-        <a routerLink="/guardados">Anuncios guardados</a>
-      </nav>
-      <nav aria-label="Comunidad ROOMI">
-        <h2>Comunidad</h2>
-        <a routerLink="/ayuda" fragment="preguntas">Cómo funciona</a>
+        <a class="brand" routerLink="/explorar" aria-label="ROOMI, inicio">roomi</a>
+        <p>Habitaciones para estudiantes en Huancayo.</p>
         @if (session.user()?.role !== 'admin') {
-          <a routerLink="/propietario/nuevo">Publicar habitación</a>
+          <a class="publish" routerLink="/propietario/nuevo">Publicar habitación</a>
         }
-        <a routerLink="/ayuda">Ayuda y soporte</a>
+      </div>
+      <nav aria-label="Buscar habitaciones por zona">
+        <h2>Busca por zona</h2>
+        @for (zone of zones; track zone) {
+          <a routerLink="/buscar" [queryParams]="{ zona: zone }">{{ zone }}</a>
+        }
       </nav>
-      <nav aria-label="Transparencia">
-        <h2>Transparencia</h2>
-        <a routerLink="/ayuda" fragment="soporte">Contacto de soporte</a>
-        <a routerLink="/ayuda" fragment="seguridad">Visitas y prevención</a>
+      <nav aria-label="Enlaces útiles de ROOMI">
+        <h2>Enlaces útiles</h2>
+        <a routerLink="/buscar">Ver todas las habitaciones</a>
+        <a routerLink="/guardados">Mis guardados</a>
+        <a routerLink="/ayuda" fragment="preguntas">Preguntas frecuentes</a>
+        <a routerLink="/ayuda" fragment="seguridad">Consejos para las visitas</a>
       </nav>
     </div>
-    <p class="footer-note">Directorio demostrativo. Las fotos, los contactos y los precios son referenciales.</p>
+    <div class="footer-bottom">
+      <p><app-ui-icon name="pin" /> Huancayo, Perú</p>
+      <a routerLink="/ayuda">Centro de ayuda</a>
+    </div>
   </div>
 </footer>

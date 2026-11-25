@@ -3,7 +3,7 @@ import { Room } from '../interfaces/room';
 const defaults = {
   ownerId: 'demo-owner',
   owner: 'Propietario de demostración',
-  status: 'approved',
+  status: 'publicado',
   rules: 'Coordina la visita con el propietario. El pago de la renta y la garantía se acuerdan durante la visita.',
   photos: [],
 } as const;
@@ -35,6 +35,6 @@ const centro: Room = {
 export const demoRooms: readonly Room[] = [
   sanCarlos, elTambo, centro,
   { ...sanCarlos, id: 'luminosa-350', title: 'Habitación luminosa cerca del campus', price: 350, deposit: 175, minutes: 10, amenities: ['Amoblado', 'Lavandería'], address: 'Alameda del Campus 48, San Carlos' },
-  { ...centro, id: 'chilca-en-revision', title: 'Habitación independiente en Chilca', zone: 'Chilca', university: 'UTP', status: 'pending', address: 'Pasaje Los Apuntes 35, Chilca' },
-  { ...elTambo, id: 'tambo-observado', title: 'Minidepartamento con ingreso independiente', status: 'rejected', reviewNote: 'Completa las condiciones de alquiler antes de reenviar.' },
+  { ...centro, id: 'chilca-en-revision', title: 'Habitación independiente en Chilca', zone: 'Chilca', university: 'UTP', status: 'en_revision', address: 'Pasaje Los Apuntes 35, Chilca' },
+  { ...elTambo, id: 'tambo-observado', title: 'Minidepartamento con ingreso independiente', status: 'rechazado', reviewNote: 'Completa las condiciones de alquiler antes de reenviar.' },
 ];
