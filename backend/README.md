@@ -36,7 +36,7 @@ sqlcmd -S . -E -C -b -i .\backend\migrations\instalar_roomi.sql
 
 El script crea `BD_ROOMI` en instalaciones nuevas. Si la base existente se llama `ROOMI`, la renombra antes de aplicar las migraciones. Cierra las conexiones a esa base antes de ejecutar el cambio de nombre. Tras el cambio, usa `DB_NAME=BD_ROOMI` en `.env`. El script puede volver a ejecutarse y muestra las doce tablas esperadas.
 
-El instalador incluye [006_moderacion_mixta.sql](migrations/006_moderacion_mixta.sql), [007_normalizar_catalogo.sql](migrations/007_normalizar_catalogo.sql) y [008_whatsapp_consultas.sql](migrations/008_whatsapp_consultas.sql). Verifica el destino con `SELECT DB_NAME()` antes de ejecutarlas y confirma la base en `/api/salud` después del arranque. La [guía de sustentación](../docs/sustentacion.md) documenta el arranque de la instalación de evaluación.
+El instalador incluye [006_moderacion_mixta.sql](migrations/006_moderacion_mixta.sql), [007_normalizar_catalogo.sql](migrations/007_normalizar_catalogo.sql) y [008_whatsapp_consultas.sql](migrations/008_whatsapp_consultas.sql). Verifica el destino con `SELECT DB_NAME()` antes de ejecutarlas y confirma la base en `/api/salud` después del arranque.
 
 ## Ejecutar en Windows
 

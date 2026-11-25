@@ -33,8 +33,6 @@ Desde `/registro` se crea una cuenta para buscar, publicar y reseñar alojamient
 
 Bootstrap 5.3.9 y Bootstrap Icons se cargan por CDN desde `src/index.html`. Los filtros utilizan `form-select` y `form-control` con los colores y tamaños de ROOMI. Angular gestiona las interacciones del formulario.
 
-- El [prototipo de ROOMI](https://www.figma.com/design/z05ZuphiD9C9zP1KAr9ndG/Prototipo?node-id=0-1) aportó el catálogo de frames y la referencia detallada de inicio móvil (`26:85`). Para las pantallas sin contexto detallado se utilizaron la composición del inicio, la propuesta y los nombres y dimensiones de los frames. Queda pendiente cotejar la fidelidad visual de esas pantallas y descargar las fotos del prototipo. La galería admite las fotos de prueba cargadas por el propietario.
-- El catálogo de Figma disponible incluye el flujo de publicación del propietario. Para los paneles de propietario y moderación se usaron la propuesta y el estilo compartido de ROOMI.
 - El mapa usa Leaflet y OpenStreetMap para anuncios con coordenadas y una vista esquemática por zona para los demás.
-- SweetAlert2 y Chart.js se cargan desde CDN al solicitar una confirmación, un aviso o una comparación. Los mensajes, el diálogo de retiro y la tabla de precios también funcionan si el CDN no responde.
+- SweetAlert2 se carga desde la aplicación para avisos y confirmaciones. Chart.js se carga desde CDN al abrir una comparación. Los mensajes, el diálogo de retiro y la tabla de precios también funcionan si el CDN no responde.
 - `src/app/components/` contiene las páginas, sus plantillas y estilos. `src/app/interfaces/` contiene los modelos. `src/app/services/` contiene los servicios que consumen FastAPI con `HttpClient`.
