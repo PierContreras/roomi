@@ -4,6 +4,7 @@ import { provideRouter, Router, withComponentInputBinding } from '@angular/route
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
+import { environment } from '../environments/environment';
 import { App } from './app';
 import { routes } from './app.routes';
 import { Room, RoomDraft } from './interfaces/room';
@@ -15,7 +16,9 @@ import { UiLibraries } from './services/ui-libraries';
 let managed: Room[];
 const mockCatalog: HttpInterceptorFn = request => {
   const rooms = managed.filter(room => room.status === 'publicado');
-  const { params, method, url } = request;
+  const { params, method } = request;
+  expect(request.url.startsWith(environment.apiUrl + '/')).toBe(true);
+  const url = new URL(request.url, 'http://localhost:4200').pathname;
   expect(url.startsWith('/api/')).toBe(true);
   const ownerRoute = url.startsWith('/api/propietario/') ||
     (url.startsWith('/api/alojamientos') && ['PUT', 'PATCH', 'DELETE'].includes(method)) ||
@@ -179,7 +182,7 @@ it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al 
   const token = `cabecera.${payload}.firma`;
   const user = { id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student' };
   const http: HttpInterceptorFn = request => {
-    if (request.url === '/api/auth/login') return of(new HttpResponse({ body: { token, user } }));
+    if (request.url === `${environment.apiUrl}/auth/login`) return of(new HttpResponse({ body: { token, user } }));
     expect(request.headers.get('Authorization')).toBe('Bearer ' + token);
     return throwError(() => new HttpErrorResponse({ status: 503 }));
   };

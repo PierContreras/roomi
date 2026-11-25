@@ -2,11 +2,12 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { inject, Injectable, Signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, firstValueFrom, of, throwError } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { browserState } from './browser-state';
 import { SessionService } from './session.service';
 import { ListingResult, PublicRoom, Room, RoomDraft, RoomFilters } from '../interfaces/room';
 
-const api = '/api';
+const api = environment.apiUrl;
 const catalogUrl = `${api}/alojamientos`;
 
 interface Report { id: string; roomId: string; title: string; message: string }
