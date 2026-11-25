@@ -29,7 +29,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 En `backend/.env`, configura `DB_HOST` con la misma instancia de SQL Server y mantén `DB_NAME=BD_ROOMI`. Genera una clave para `ROOMI_JWT_SECRET` con `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdala solo en `.env`.
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app --host 127.0.0.1 --port 8000
+uv run uvicorn src.backend.main:app
 ```
 
 ### 3. Inicia la web
@@ -38,9 +38,11 @@ Abre otra terminal desde la raíz del repositorio:
 
 ```powershell
 cd .\frontend
-npm.cmd ci
-npm.cmd start
+npm install
+ng serve
 ```
+
+Si `ng` no está disponible como comando global, usa `npx ng serve`. En PowerShell también puedes usar `npm.cmd install` y `npx.cmd ng serve`.
 
 Abre [ROOMI](http://localhost:4200). Puedes comprobar la conexión a SQL Server en [el estado de la API](http://127.0.0.1:8000/api/salud).
 

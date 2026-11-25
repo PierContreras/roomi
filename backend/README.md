@@ -50,10 +50,16 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 Configura la instancia de SQL Server en `.env`. Para una instalación nueva, genera el valor de `ROOMI_JWT_SECRET` con `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdalo en `.env`. Si la instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para ese entorno.
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app --host 127.0.0.1 --port 8000 --reload
+uv run uvicorn src.backend.main:app
 ```
 
-El arranque mediante `python.exe -m uvicorn` es compatible con Smart App Control. La aplicación carga `backend/.env` automáticamente. Las variables ya definidas en el entorno tienen prioridad. Usa `.env.example` para compartir la configuración de ejemplo y guarda las credenciales únicamente en `.env` o en el entorno del servidor.
+Si Smart App Control bloquea el ejecutable de Uvicorn en Windows, usa este comando desde `backend` después de ejecutar `uv sync --locked`:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app
+```
+
+La aplicación carga `backend/.env` automáticamente. Las variables ya definidas en el entorno tienen prioridad. Usa `.env.example` para compartir la configuración de ejemplo y guarda las credenciales únicamente en `.env` o en el entorno del servidor.
 
 Si ya hay un proceso de Uvicorn en el puerto 8000, detenlo con `Ctrl+C` y vuelve a iniciar con el comando anterior. Después abre `/api/salud` para comprobar la conexión a `BD_ROOMI` y `/api/alojamientos` para comprobar el catálogo público.
 

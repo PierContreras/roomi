@@ -8,11 +8,11 @@ Desde la raíz de ROOMI, en PowerShell:
 
 ```powershell
 cd .\frontend
-npm.cmd ci
-npm.cmd start
+npm install
+ng serve
 ```
 
-Abre [http://localhost:4200](http://localhost:4200). Si `node_modules` ya está instalado, puedes omitir `npm.cmd ci`.
+Abre [http://localhost:4200](http://localhost:4200). Si `ng` no está instalado globalmente, ejecuta `npx ng serve` para usar la versión del proyecto. Si PowerShell bloquea los scripts de npm, usa `npm.cmd install` y `npx.cmd ng serve`.
 
 Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). Angular solicita `/api` al mismo origen. En desarrollo, el proxy de Angular CLI reenvía las peticiones a FastAPI según `proxy.conf.json`.
 
