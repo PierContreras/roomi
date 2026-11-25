@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DOCUMENT, DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { User } from '../interfaces/user';
 
 interface Session { token: string; user: User }
@@ -87,7 +88,7 @@ export class SessionService {
 
   private async start(path: string, body: object) {
     const session = await firstValueFrom(
-      this.http.post<Session>(`/api/auth/${path}`, body),
+      this.http.post<Session>(`${environment.apiUrl}/auth/${path}`, body),
     );
     this.setSession(session);
     return session.user;

@@ -14,7 +14,7 @@ ng serve
 
 Abre [http://localhost:4200](http://localhost:4200). Si `ng` no está instalado globalmente, ejecuta `npx ng serve` para usar la versión del proyecto. Si PowerShell bloquea los scripts de npm, usa `npm.cmd install` y `npx.cmd ng serve`.
 
-Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). Angular solicita `/api` al mismo origen. En desarrollo, el proxy de Angular CLI reenvía las peticiones a FastAPI según `proxy.conf.json`.
+Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). En desarrollo, Angular lee la URL `http://127.0.0.1:8000/api` de [environment.ts](src/environments/environment.ts) y el navegador llama directamente a FastAPI. CORS permite las solicitudes desde `http://localhost:4200` y `http://127.0.0.1:4200`.
 
 En producción, el servidor de Angular reenvía `/api` a FastAPI. Configura `ROOMI_API_URL` en ese servidor si FastAPI usa otro origen.
 
