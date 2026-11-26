@@ -10,6 +10,7 @@ import { emptyFilters, SearchFilters } from './search-filters';
 import { filterParamKeys, searchQuery } from './room-navigation';
 import { PriceRanges } from './price-ranges';
 import { UiIcon } from '../shared/ui-icon';
+import { RevealOnScroll } from '../shared/reveal-on-scroll';
 
 function selectValue<T extends string>(options: readonly T[], value: string | null): T | '' {
   return options.find(option => option === value) ?? '';
@@ -22,7 +23,7 @@ function nonNegative(value: string | null): number | null {
 }
 
 @Component({
-  imports: [SearchFilters, RoomCard, RoomMap, RouterLink, PriceRanges, UiIcon],
+  imports: [SearchFilters, RoomCard, RoomMap, RouterLink, PriceRanges, UiIcon, RevealOnScroll],
   templateUrl: './search-page.html',
   styleUrl: './search-page.css',
 })
@@ -53,7 +54,6 @@ export class SearchPage {
   protected readonly searchError = signal('');
   private readonly params = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
   protected readonly showMap = computed(() => this.params().get('vista') === 'mapa');
-  protected readonly resultZones = zones;
   protected readonly selectedRoom = signal('');
   private readonly resultList = viewChild<ElementRef<HTMLElement>>('resultList');
   private readonly mapPanel = viewChild('mapPanel', { read: ElementRef<HTMLElement> });

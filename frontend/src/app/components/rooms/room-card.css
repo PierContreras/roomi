@@ -1,24 +1,43 @@
 :host { display: block; }
 .room-card { position: relative; height: 100%; display: flex; flex-direction: column; }
-.room-card { border: 0; border-radius: 20px; box-shadow: 0 10px 30px rgb(20 61 56 / .08); transition: transform 180ms ease, box-shadow 180ms ease; }
-.room-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgb(20 61 56 / .13); }
-.room-card:focus-within { box-shadow: 0 0 0 3px rgb(53 94 146 / .18), 0 16px 36px rgb(20 61 56 / .13); }
+.room-card:focus-within { border-color: var(--control-border); }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .room-card { transition: transform var(--motion-panel), box-shadow var(--motion-panel), border-color var(--motion-panel); }
+  .room-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-panel); }
+  .cover img { transition: transform 300ms ease; }
+  .room-card:hover .cover img { transform: scale(1.025); }
+}
 .card-photos { position: relative; }
 .photo-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .photo-button { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink); }
 .photo-count { padding: 4px 10px; border-radius: 999px; background: var(--brand); color: var(--white); font-size: .75rem; }
-.cover { display: block; background: var(--soft); border-radius: 20px 20px 0 0; overflow: hidden; }
-img { display: block; width: 100%; height: clamp(180px, 19vw, 240px); object-fit: cover; transition: transform 300ms ease; }
-.room-card:hover img { transform: scale(1.025); }
+.cover { display: block; background: var(--soft); border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+img { display: block; width: 100%; height: clamp(180px, 19vw, 240px); object-fit: cover; }
 .card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .location { color: var(--muted); font-weight: 700; margin: 0; }
-.favorite { width: 44px; padding: 0; flex: none; border: 0; border-radius: 50%; background: white; box-shadow: 0 5px 16px rgb(20 61 56 / .12); }
-.favorite[aria-pressed="true"] { color: #962c50; background: #fff3f6; border-color: #e7b8c7; }
+.favorite { width: 44px; padding: 0; flex: none; border-radius: 50%; background: white; }
+.favorite[aria-pressed="true"] { color: var(--favorite); background: var(--rose-surface); border-color: var(--favorite); }
 .has-photo .favorite { position: absolute; top: 12px; right: 12px; }
 .description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-.amenities { margin-bottom: var(--space-3); }
+.amenities { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: var(--space-3); }
+.amenities li { display: inline-flex; align-items: center; gap: 5px; }
+.amenities app-ui-icon { color: var(--brand); }
 .price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .photo-caption { margin: 0; padding: 6px 14px; background: var(--soft); }
+@media (min-width: 761px) {
+  :host(.wide-card) .room-card.has-photo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    overflow: clip;
+  }
+  :host(.wide-card) .card-photos,
+  :host(.wide-card) .cover { display: grid; min-height: 280px; }
+  :host(.wide-card) .cover { border-radius: 0; }
+  :host(.wide-card) .cover img { height: 100%; max-height: 420px; }
+  :host(.wide-card) .has-photo .card-body { grid-area: 1 / 2 / 3; padding: clamp(22px, 3vw, 36px); }
+  :host(.wide-card) .has-photo .card-top { padding-inline-end: 44px; }
+}

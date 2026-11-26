@@ -10,8 +10,6 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'propietario', renderMode: RenderMode.Client },
   { path: 'propietario/nuevo', renderMode: RenderMode.Client },
   { path: 'propietario/:id/editar', renderMode: RenderMode.Client },
-  { path: 'administracion', renderMode: RenderMode.Client },
-  { path: 'administracion/:id', renderMode: RenderMode.Client },
   { path: '', renderMode: RenderMode.Server },
   { path: 'ayuda', renderMode: RenderMode.Server },
   { path: 'acceso', renderMode: RenderMode.Server },

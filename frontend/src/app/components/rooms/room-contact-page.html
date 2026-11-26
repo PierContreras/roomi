@@ -1,8 +1,7 @@
 <div class="container page room-contact-page">
-  <nav class="route-trail" aria-label="Ubicación">
-    <a [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
-    <span aria-hidden="true">/</span><span aria-current="page">Contacto</span>
-  </nav>
+  <div class="page-back">
+    <a class="button quiet" [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
+  </div>
   @if (room.isLoading()) {
     <p class="page-state" role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
@@ -10,8 +9,8 @@
     <button class="button quiet" type="button" (click)="room.reload()">Reintentar</button>
   } @else if (room.value(); as current) {
     <header class="section-intro">
-      <h1>Contacta al propietario</h1>
-      <p>Deja tu WhatsApp para consultar disponibilidad o coordinar una visita.</p>
+      <h1>Contacta por WhatsApp</h1>
+      <p>Consulta la disponibilidad o coordina una visita directamente con el propietario.</p>
     </header>
     @if (contact.isLoading()) {
       <p class="page-state" role="status">Cargando las opciones de contacto…</p>
@@ -22,63 +21,14 @@
       </div>
     } @else if (contact.value(); as options) {
       <div class="split">
-        @if (sent()) {
-          <section class="feedback feedback-success section stack compact" role="status">
-            <h2>Consulta enviada</h2>
-            <p>El propietario recibió tu número y puede responderte por WhatsApp.</p>
-            @if (options.whatsapp) {
-              <div><a class="button" [href]="whatsappUrl(options.whatsapp, current.title)" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp" aria-hidden="true"></i> Abrir WhatsApp</a></div>
-            }
-            <div><a [routerLink]="['/habitaciones', current.id]" [queryParams]="navigation.detailQuery()" class="button quiet">Volver al anuncio</a></div>
+        @if (options.whatsapp) {
+          <section class="panel section stack compact">
+            <h2>Escribe por WhatsApp</h2>
+            <p>Se abrirá un mensaje de ejemplo que puedes editar antes de enviarlo.</p>
+            <div><a class="button whatsapp-action" [href]="whatsappUrl(options.whatsapp, current.title)" target="_blank" rel="noopener noreferrer"><app-ui-icon name="whatsapp" /> Abrir WhatsApp<span class="sr-only"> (abre en otra pestaña)</span></a></div>
           </section>
-        } @else if (options.formulario) {
-          <form #form="ngForm" class="panel section stack" (ngSubmit)="send(form)">
-            <div class="stack compact">
-              <label for="contact-name">Nombre <span class="small muted">(obligatorio)</span></label>
-              @let invalidName = name.touched && !inquiry.name.trim();
-              <input id="contact-name" name="nombre" autocomplete="name" required maxlength="100" [(ngModel)]="inquiry.name" #name="ngModel"
-                [attr.aria-invalid]="invalidName || null"
-                [attr.aria-describedby]="invalidName ? 'nombre-error' : null" />
-              @if (invalidName) { <span class="error" id="nombre-error" role="alert">Ingresa tu nombre.</span> }
-            </div>
-            <div class="stack compact">
-              <label for="contact-whatsapp">Número de WhatsApp <span class="small muted">(obligatorio)</span></label>
-              @let invalidPhone = phone.touched && !validWhatsapp();
-              <input id="contact-whatsapp" name="whatsapp" type="tel" autocomplete="tel" required maxlength="24" [(ngModel)]="inquiry.whatsapp" #phone="ngModel"
-                [attr.aria-invalid]="invalidPhone || null"
-                [attr.aria-describedby]="invalidPhone ? 'whatsapp-ayuda whatsapp-error' : 'whatsapp-ayuda'" />
-              <p class="small muted" id="whatsapp-ayuda">Escribe un celular peruano de 9 dígitos o incluye el código de país.</p>
-              @if (invalidPhone) { <span class="error" id="whatsapp-error" role="alert">Ingresa un número de WhatsApp válido.</span> }
-            </div>
-            <div class="stack compact">
-              <label for="contact-email">Correo electrónico <span class="small muted">(opcional)</span></label>
-              <input id="contact-email" name="correo" type="email" autocomplete="email" email maxlength="180" [(ngModel)]="inquiry.email" #email="ngModel"
-                [attr.aria-invalid]="(email.touched && email.invalid) || null"
-                [attr.aria-describedby]="email.touched && email.invalid ? 'correo-error' : null" />
-              @if (email.touched && email.invalid) { <span class="error" id="correo-error" role="alert">Ingresa un correo válido.</span> }
-            </div>
-            <div class="stack compact">
-              <label for="contact-message">Mensaje <span class="small muted">(obligatorio)</span></label>
-              @let invalidMessage = message.touched && (message.invalid || inquiry.message.trim().length < 10);
-              <textarea id="contact-message" name="mensaje" rows="5" required minlength="10" maxlength="800" [(ngModel)]="inquiry.message" #message="ngModel"
-                [attr.aria-invalid]="invalidMessage || null"
-                [attr.aria-describedby]="invalidMessage ? 'mensaje-error' : null"></textarea>
-              @if (invalidMessage) { <span class="error" id="mensaje-error" role="alert">Escribe entre 10 y 800 caracteres.</span> }
-            </div>
-            <label class="check">
-              <input name="consentimiento" type="checkbox" required [(ngModel)]="inquiry.consent" #consent="ngModel"
-                [attr.aria-invalid]="((consent.touched || form.submitted) && consent.invalid) || null"
-                [attr.aria-describedby]="(consent.touched || form.submitted) && consent.invalid ? 'consent-error' : null" />
-              Acepto compartir mi nombre, WhatsApp, mensaje y el correo si lo indico. <span class="small muted">(obligatorio)</span>
-            </label>
-            @if ((consent.touched || form.submitted) && consent.invalid) {
-              <p id="consent-error" class="error" role="alert">Marca la casilla para enviar tu consulta al propietario.</p>
-            }
-            @if (error()) { <p class="feedback feedback-error" role="alert">{{ error() }}</p> }
-            <button class="button" type="submit" [disabled]="busy()"><app-ui-icon name="message" /> {{ busy() ? 'Enviando…' : 'Enviar consulta' }}</button>
-          </form>
         } @else {
-          <p class="panel section">El anuncio no tiene un contacto publicado.</p>
+          <p class="panel section">Este anuncio todavía no tiene un número de WhatsApp disponible.</p>
         }
         <aside class="panel section contact-context">
           <h2>Datos del anuncio</h2>

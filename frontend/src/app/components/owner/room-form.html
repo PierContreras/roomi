@@ -1,13 +1,16 @@
-<form #form="ngForm" class="panel section stack" (ngSubmit)="submit(form)">
-  <h2>Datos de la habitación</h2>
-  <p class="small muted">Los campos con * son obligatorios.</p>
-  <label>Título *
-    <input name="titulo" required maxlength="100" [(ngModel)]="draft.title" #title="ngModel"
-        [attr.aria-invalid]="(title.touched && !draft.title.trim()) || null"
-        [attr.aria-describedby]="title.touched && !draft.title.trim() ? 'titulo-error' : null" />
-    @if (title.touched && !draft.title.trim()) { <span class="error" id="titulo-error" role="alert">Escribe el título del anuncio.</span> }
-  </label>
-  <div class="form-grid">
+<form #form="ngForm" class="panel section stack publication-form" [class.backwards]="backwards()" (ngSubmit)="submit(form)">
+  <ol class="publication-steps" aria-label="Progreso del anuncio">
+    @for (label of steps; track label) {
+      <li [class.completed]="$index < step()" [attr.aria-current]="$index === step() ? 'step' : null">{{ label }}</li>
+    }
+    <li>Vista previa</li>
+  </ol>
+  @switch (step()) {
+    @case (0) {
+      <section class="stack publication-stage">
+        <h2 #stepHeading tabindex="-1">Ubica tu habitación</h2>
+        <p class="muted">Elige la zona y el campus más cercano. Usa una referencia pública, como una calle o un parque.</p>
+        <div class="location-fields">
     <label>Zona *
       <select name="zona" [(ngModel)]="draft.zone">
         @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
@@ -18,20 +21,24 @@
         @for (university of universities; track university) { <option [value]="university">{{ university }}</option> }
       </select>
     </label>
-    <label>Tipo de alojamiento *
-      <select name="tipo" [(ngModel)]="draft.type">
-        @for (type of types; track type) { <option [value]="type">{{ type }}</option> }
-      </select>
-    </label>
-  </div>
+        </div>
+  <label>Dirección referencial *
+    <input name="direccion" required maxlength="160" placeholder="Ej. Cerca del parque de San Carlos" [(ngModel)]="draft.address" #address="ngModel"
+        [attr.aria-invalid]="(address.touched && !draft.address.trim()) || null"
+        [attr.aria-describedby]="address.touched && !draft.address.trim() ? 'direccion-error' : null" />
+    @if (address.touched && !draft.address.trim()) { <span class="error" id="direccion-error" role="alert">Indica una dirección.</span> }
+  </label>
   <fieldset class="stack compact">
     <legend>Ubicación referencial *</legend>
-    <p class="small muted">Marca un punto cercano a la habitación. El punto elegido se mostrará en el catálogo.</p>
+    <p class="small muted">Este punto aparecerá en el mapa del anuncio.</p>
     @if (showLocationMap()) {
       <app-room-location-picker [zone]="draft.zone" [latitude]="draft.latitude" [longitude]="draft.longitude"
         (pointChange)="setLocation($event)" />
     } @else {
-      <div><button type="button" class="button quiet" (click)="showLocationMap.set(true)">Elegir ubicación en el mapa</button></div>
+      <div class="actions">
+        <button type="button" class="button quiet" (click)="showLocationMap.set(true)">Elegir ubicación en el mapa</button>
+        <button type="button" class="button secondary" (click)="useZoneReference()">Usar referencia de {{ draft.zone }}</button>
+      </div>
     }
     @if (locationValid()) { <p class="small muted">Ubicación seleccionada.</p> }
     @if (submitted() && !locationValid()) {
@@ -57,19 +64,28 @@
         [attr.aria-describedby]="distance.touched && distance.invalid ? 'distancia-error' : null" />
       @if (distance.touched && distance.invalid) { <span class="error" id="distancia-error" role="alert">Ingresa una distancia entre 0 y 100 km.</span> }
   </label>
-  <label>WhatsApp de contacto (opcional)
-    <input name="whatsapp" type="tel" autocomplete="tel" maxlength="24" [(ngModel)]="draft.whatsapp"
-      (blur)="normalizeWhatsapp()" #whatsapp="ngModel"
-      [attr.aria-invalid]="((whatsapp.touched || submitted()) && !whatsappValid()) || null"
-      [attr.aria-describedby]="(whatsapp.touched || submitted()) && !whatsappValid() ? 'whatsapp-help whatsapp-error' : 'whatsapp-help'" />
-    <span class="small muted" id="whatsapp-help">Escribe tu celular peruano de nueve dígitos o un número con código de país. Solo usuarios con sesión iniciada podrán verlo.</span>
-    @if ((whatsapp.touched || submitted()) && !whatsappValid()) { <span class="error" id="whatsapp-error" role="alert">Escribe un número de WhatsApp válido.</span> }
-  </label>
-  <label>Dirección referencial *
-    <input name="direccion" required maxlength="160" [(ngModel)]="draft.address" #address="ngModel"
-        [attr.aria-invalid]="(address.touched && !draft.address.trim()) || null"
-        [attr.aria-describedby]="address.touched && !draft.address.trim() ? 'direccion-error' : null" />
-    @if (address.touched && !draft.address.trim()) { <span class="error" id="direccion-error" role="alert">Indica una dirección.</span> }
+      </section>
+    }
+    @case (1) {
+      <section class="stack publication-stage">
+        <h2 #stepHeading tabindex="-1">Describe el alojamiento</h2>
+        <p class="muted">Indica qué ofreces y cuánto cuesta el alquiler mensual.</p>
+        <fieldset>
+          <legend>Tipo de alojamiento</legend>
+          <div class="choice-grid">
+            @for (type of types; track type) {
+              <label class="choice">
+                <input type="radio" name="tipo" [value]="type" [(ngModel)]="draft.type" />
+                <app-ui-icon [name]="type === 'Habitación' ? 'bed' : 'home'" /> {{ type }}
+              </label>
+            }
+          </div>
+        </fieldset>
+  <label>Título *
+    <input name="titulo" required maxlength="100" placeholder="Ej. Habitación amoblada cerca de la UNCP" [(ngModel)]="draft.title" #title="ngModel"
+        [attr.aria-invalid]="(title.touched && !draft.title.trim()) || null"
+        [attr.aria-describedby]="title.touched && !draft.title.trim() ? 'titulo-error' : null" />
+    @if (title.touched && !draft.title.trim()) { <span class="error" id="titulo-error" role="alert">Escribe el título del anuncio.</span> }
   </label>
   <div class="form-grid">
     <label>Precio mensual (S/) *
@@ -83,6 +99,7 @@
         [attr.aria-invalid]="(deposit.touched && deposit.invalid) || null"
         [attr.aria-describedby]="deposit.touched && deposit.invalid ? 'garantia-error' : null" />
       @if (deposit.touched && deposit.invalid) { <span class="error" id="garantia-error" role="alert">Ingresa un valor entre S/ 0 y S/ 10 000.</span> }
+      @else { <span class="small muted">Escribe 0 si no pides garantía.</span> }
     </label>
     <label>Minutos al campus *
       <input name="minutos" required type="number" min="0" max="180" [(ngModel)]="draft.minutes" #minutes="ngModel"
@@ -91,15 +108,6 @@
       @if (minutes.touched && minutes.invalid) { <span class="error" id="minutos-error" role="alert">Ingresa un valor entre 0 y 180.</span> }
     </label>
   </div>
-  <fieldset>
-    <legend>Servicios incluidos (opcional)</legend>
-    <div class="chips">
-      @for (amenity of amenities; track amenity) {
-        <label class="check"><input type="checkbox" [checked]="draft.amenities.includes(amenity)"
-          (change)="toggleAmenity(amenity, $any($event.target).checked)" /> {{ amenity }}</label>
-      }
-    </div>
-  </fieldset>
   <label>Descripción *
     <textarea name="descripcion" rows="4" required maxlength="1200" [(ngModel)]="draft.description" #description="ngModel"
         [attr.aria-invalid]="(description.touched && !draft.description.trim()) || null"
@@ -112,14 +120,39 @@
         [attr.aria-describedby]="rules.touched && !draft.rules.trim() ? 'condiciones-error' : null"></textarea>
     @if (rules.touched && !draft.rules.trim()) { <span class="error" id="condiciones-error" role="alert">Ingresa las condiciones de alquiler.</span> }
   </label>
-  <label>Fotos de la habitación (opcional)
-    <input #photos type="file" name="fotos" accept="image/jpeg,image/png,image/webp" multiple [disabled]="loadingPhotos()"
-      [attr.aria-invalid]="photoError() ? true : null"
-      [attr.aria-describedby]="photoError() ? 'fotos-ayuda fotos-error' : 'fotos-ayuda'"
-      (change)="addPhotos(photos)" />
-    <span class="muted" id="fotos-ayuda">Agrega al menos una foto para optar por la publicación automática. Puedes subir hasta 3 fotos JPG, PNG o WebP.</span>
+  <label>WhatsApp de contacto *
+    <input name="whatsapp" type="tel" autocomplete="tel" required maxlength="24" [(ngModel)]="draft.whatsapp"
+      (blur)="normalizeWhatsapp()" #whatsapp="ngModel"
+      [attr.aria-invalid]="((whatsapp.touched || submitted()) && !whatsappValid()) || null"
+      [attr.aria-describedby]="(whatsapp.touched || submitted()) && !whatsappValid() ? 'whatsapp-help whatsapp-error' : 'whatsapp-help'" />
+    <span class="small muted" id="whatsapp-help">Escribe tu celular peruano de nueve dígitos o un número con código de país. Solo usuarios con sesión iniciada podrán verlo.</span>
+    @if ((whatsapp.touched || submitted()) && !whatsappValid()) { <span class="error" id="whatsapp-error" role="alert">Escribe un número de WhatsApp válido.</span> }
   </label>
-  <div aria-live="polite">@if (photoError()) { <p class="error" id="fotos-error">{{ photoError() }}</p> }</div>
+      </section>
+    }
+    @case (2) {
+      <section class="stack publication-stage">
+        <h2 #stepHeading tabindex="-1">Servicios y fotos</h2>
+        <fieldset>
+          <legend>¿Qué servicios están incluidos? (opcional)</legend>
+          <div class="choice-grid">
+            @for (amenity of amenities; track amenity) {
+              <label class="choice"><input type="checkbox" [checked]="draft.amenities.includes(amenity)"
+                (change)="toggleAmenity(amenity, $any($event.target).checked)" />
+                <app-ui-icon [name]="amenityIcons[amenity]" /> {{ amenity }}</label>
+            }
+          </div>
+        </fieldset>
+  @let photoIssue = photoError() || (checkPhoto() && !draft.photos.length ? 'Agrega una foto para publicar el anuncio.' : '');
+  <label class="photo-upload">
+    <span><app-ui-icon name="photo" /> Fotos de la habitación</span>
+    <input #photos type="file" name="fotos" accept="image/jpeg,image/png,image/webp" multiple [disabled]="loadingPhotos()"
+      [attr.aria-invalid]="photoIssue ? true : null"
+      [attr.aria-describedby]="photoIssue ? 'fotos-ayuda fotos-error' : 'fotos-ayuda'"
+      (change)="addPhotos(photos)" />
+    <span class="small muted" id="fotos-ayuda">{{ draft.photos.length }} de 3 fotos · JPG, PNG o WebP. Agrega al menos una para publicar.</span>
+  </label>
+  @if (photoIssue) { <p class="error" id="fotos-error" role="alert">{{ photoIssue }}</p> }
   @if (loadingPhotos()) { <p role="status">Cargando fotografías…</p> }
   @if (draft.photos.length) {
     <div class="thumbnails">
@@ -129,6 +162,18 @@
       }
     </div>
   }
+      </section>
+    }
+  }
   @if (submitted() && form.invalid) { <p class="error" role="alert">Completa los campos marcados antes de continuar.</p> }
-  <div class="actions"><button type="submit" class="button" [disabled]="loadingPhotos()">Revisar publicación</button></div>
+  @if (saveError()) { <p class="feedback feedback-error" role="alert">{{ saveError() }}</p> }
+  <div class="publication-actions">
+    @if (step() > 0) {
+      <button type="button" class="button quiet" [disabled]="loadingPhotos()" (click)="changeStep(step() - 1)">Atrás</button>
+    }
+    @if (progressKey()) {
+      <button type="button" class="button quiet" [disabled]="loadingPhotos()" (click)="saveAndExit()">Guardar avance y salir</button>
+    }
+    <button type="submit" class="button" [disabled]="loadingPhotos()">{{ step() === 2 ? 'Revisar publicación' : 'Continuar' }}</button>
+  </div>
 </form>

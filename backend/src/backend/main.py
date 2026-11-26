@@ -151,9 +151,11 @@ class Salud(BaseModel):
 )
 def salud() -> Salud:
     with abrir_conexion() as conexion:
-        base, tablas, eliminacion, motivos = conexion.cursor().execute("""
+        base, tablas, eliminacion, motivos, ocupacion, respuesta = conexion.cursor().execute("""
             SELECT DB_NAME(), COUNT(*), COL_LENGTH(N'dbo.alojamientos', N'deleted_at'),
-                COL_LENGTH(N'dbo.alojamientos', N'motivos_revision')
+                COL_LENGTH(N'dbo.alojamientos', N'motivos_revision'),
+                COL_LENGTH(N'dbo.alojamientos', N'ocupado'),
+                COL_LENGTH(N'dbo.consultas', N'respondida_fecha')
             FROM sys.tables
             WHERE schema_id = SCHEMA_ID(N'dbo') AND name IN (
                 N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes',
@@ -161,6 +163,6 @@ def salud() -> Salud:
                 N'alojamiento_servicios', N'alojamiento_fotos', N'alojamiento_titular_historico'
             )
         """).fetchone()
-    if tablas != 12 or eliminacion is None or motivos is None:
+    if tablas != 12 or None in (eliminacion, motivos, ocupacion, respuesta):
         raise HTTPException(503, "Actualiza el esquema de ROOMI con las migraciones.")
     return Salud(estado="ok", origen="sqlserver", base=base)

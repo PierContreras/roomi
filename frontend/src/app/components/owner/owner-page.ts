@@ -1,13 +1,13 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { apiError } from '../../services/session.service';
-import { moderationReasonLabels, Room } from '../../interfaces/room';
-import { RoomService } from '../../services/room.service';
+import { Room } from '../../interfaces/room';
+import { publicationError, RoomService } from '../../services/room.service';
 import { ConfirmDialog } from '../shared/confirm-dialog';
 import { StatusBadge } from '../shared/status-badge';
 import { UiLibraries } from '../../services/ui-libraries';
 import { UiIcon } from '../shared/ui-icon';
-import { whatsappReplyUrl } from '../rooms/room-contact';
+import { RevealOnScroll } from '../shared/reveal-on-scroll';
 
 const listingActions = {
   withdraw: {
@@ -29,7 +29,7 @@ const listingActions = {
 type ListingAction = keyof typeof listingActions;
 
 @Component({
-  imports: [RouterLink, StatusBadge, ConfirmDialog, UiIcon],
+  imports: [RouterLink, StatusBadge, ConfirmDialog, UiIcon, RevealOnScroll],
   templateUrl: './owner-page.html',
   styleUrl: './owner-page.css',
 })
@@ -37,11 +37,10 @@ export class OwnerPage {
   private readonly catalog = inject(RoomService);
   private readonly libraries = inject(UiLibraries);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly managed = this.catalog.managed('propietario');
-  protected readonly inquiries = this.catalog.inquiries();
+  protected readonly managed = this.catalog.managed();
   protected readonly listings = computed(() => this.managed.hasValue() ? this.managed.value() : []);
-  protected readonly publishedCount = computed(() => this.listings().filter(room => room.status === 'publicado').length);
-  protected readonly reviewCount = computed(() => this.listings().filter(room => room.status === 'en_revision').length);
+  protected readonly publishedCount = computed(() => this.listings().filter(room => room.status === 'publicado' && !room.ocupado).length);
+  protected readonly draftCount = computed(() => this.listings().filter(room => room.status === 'borrador').length);
   protected readonly updating = signal(false);
   protected readonly error = signal('');
   protected readonly selected = signal<{ room: Room; action: ListingAction } | null>(null);
@@ -73,8 +72,33 @@ export class OwnerPage {
     }
   }
 
-  protected readonly reasons = moderationReasonLabels;
-  protected readonly whatsappReplyUrl = whatsappReplyUrl;
+  protected async setAvailability(room: Room) {
+    const ocupado = !room.ocupado;
+    await this.updateStatus(
+      () => this.catalog.setAvailability(room.id, ocupado),
+      () => this.managed.reload(),
+      ocupado ? 'Habitación marcada como ocupada.' : 'Habitación disponible en el catálogo.',
+      'No pudimos actualizar la disponibilidad.',
+    );
+  }
+
+  private async updateStatus(
+    save: () => Promise<void>, reload: () => unknown, success: string, failure: string,
+  ) {
+    if (this.updating()) return;
+    this.updating.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      await save();
+      reload();
+      this.notice.set(success);
+    } catch (error) {
+      this.error.set(apiError(error, failure));
+    } finally {
+      this.updating.set(false);
+    }
+  }
 
   protected async submit(room: Room, action: 'enviar' | 'reactivar') {
     if (this.updating()) return;
@@ -82,11 +106,11 @@ export class OwnerPage {
     this.error.set('');
     this.notice.set('');
     try {
-      const result = await this.catalog.submitListing(room.id, action);
-      this.notice.set(result.status === 'publicado' ? 'Anuncio publicado.' : 'Anuncio en revisión.');
+      await this.catalog.submitListing(room.id, action);
+      this.notice.set('Anuncio publicado.');
       this.managed.reload();
     } catch (error) {
-      this.error.set(apiError(error, 'No pudimos enviar el anuncio.'));
+      this.error.set(publicationError(error, 'No pudimos publicar el anuncio.'));
     } finally {
       this.updating.set(false);
     }

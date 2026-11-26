@@ -25,6 +25,8 @@ GO
 GO
 :r .\backend\migrations\008_whatsapp_consultas.sql
 GO
+:r .\backend\migrations\009_seguimiento_alquiler.sql
+GO
 COMMIT TRANSACTION;
 GO
 

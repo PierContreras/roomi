@@ -1,26 +1,26 @@
 # Backend de ROOMI
 
-FastAPI recibe las solicitudes de Angular, aplica validación y permisos y guarda los datos en SQL Server mediante `pyodbc` y Microsoft ODBC Driver 18. `uv sync --locked` instala las dependencias de Python.
+FastAPI recibe las solicitudes de Angular, aplica validación y permisos y guarda los datos en SQL Server mediante `pyodbc` y Microsoft ODBC Driver 18. Usa `uv` para instalar las dependencias de Python.
 
 ## Autenticación
 
-Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas con rol `student` u `owner` tienen los mismos permisos de usuario. El rol `admin` tiene acceso al panel de moderación.
+Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas con rol `student` u `owner` tienen los mismos permisos de usuario.
 
 `POST /api/auth/registro` y `POST /api/auth/login` devuelven el perfil y un JWT firmado con HS256 mediante PyJWT. Configura `ROOMI_JWT_SECRET` con una clave aleatoria de al menos 32 bytes. El token vence después de una hora y se envía mediante `Authorization: Bearer <token>` en las solicitudes protegidas.
 
-Los registros nuevos y las cuentas de administración creadas por consola usan `argon2-cffi` con Argon2id. SQL Server guarda el hash en `dbo.usuarios.password_hash`, de tipo `NVARCHAR(250) NOT NULL`. Las cuentas anteriores con scrypt conservan su contraseña y su hash se actualiza a Argon2id tras un inicio de sesión correcto.
+Las cuentas nuevas usan `argon2-cffi` con Argon2id. SQL Server guarda el hash en `dbo.usuarios.password_hash`, de tipo `NVARCHAR(250) NOT NULL`. Las cuentas anteriores con scrypt conservan su contraseña y su hash se actualiza a Argon2id tras un inicio de sesión correcto.
 
-## Publicación y moderación
+## Publicación y reportes
 
-`POST /api/alojamientos` devuelve `201` con `id`, `status` y `motivos`. Envía `"borrador": true` para guardar un borrador. `PUT /api/alojamientos/{anuncio_id}` devuelve los mismos campos con `200`. Los endpoints `POST /api/alojamientos/{anuncio_id}/enviar` y `POST /api/alojamientos/{anuncio_id}/reactivar` también devuelven este resultado con `200`.
+Cualquier cuenta registrada puede publicar y gestionar sus anuncios. La publicación comprueba que el anuncio incluya una foto, un precio permitido y un título y descripción sin datos de contacto externos ni términos restringidos. Si falla, la API indica qué corregir. Los borradores pueden guardarse para completarlos después.
 
-El catálogo muestra los anuncios con estado `publicado`. Cuando una regla requiere revisión, el estado es `en_revision` y `motivos` contiene códigos como `sin_fotos` o `contacto_externo`. Configura el rango mensual con `ROOMI_PRECIO_MINIMO` y `ROOMI_PRECIO_MAXIMO`, cuyos valores iniciales son 50 y 2000 soles. `ROOMI_TERMINOS_PROHIBIDOS` admite una lista separada por comas y empieza vacía.
+Configura el rango mensual con `ROOMI_PRECIO_MINIMO` y `ROOMI_PRECIO_MAXIMO`, cuyos valores iniciales son 50 y 2000 soles. `ROOMI_TERMINOS_PROHIBIDOS` admite una lista separada por comas y empieza vacía.
 
-La cola de administración permite aprobar o rechazar con motivo, suspender al titular y levantar una suspensión. Las decisiones quedan registradas en el historial del anuncio.
+Cada cuenta puede reportar un anuncio una vez. El reporte se guarda en SQL Server y el anuncio sigue disponible en el catálogo. En Mis anuncios, los anuncios antiguos pendientes o rechazados aparecen como borradores que sus propietarios pueden corregir y publicar.
 
-## Consultas por WhatsApp
+## Contacto por WhatsApp
 
-Las consultas se envían con `POST /api/alojamientos/{anuncio_id}/consultas`. El número `whatsapp`, el nombre, el mensaje y el consentimiento son obligatorios. El correo es opcional. La bandeja privada conserva las consultas anteriores, incluso cuando solo contienen correo.
+ROOMI abre WhatsApp desde la ficha con un mensaje editable. Para una cuenta con sesión iniciada, `GET /api/alojamientos/{anuncio_id}/contacto` devuelve el número del propietario. El número es obligatorio al publicar o reactivar un anuncio. La API de consultas permanece disponible para compatibilidad y conserva los registros anteriores.
 
 ## Eliminar una publicación
 
@@ -36,38 +36,27 @@ sqlcmd -S . -E -C -b -i .\backend\migrations\instalar_roomi.sql
 
 El script crea `BD_ROOMI` en instalaciones nuevas. Si la base existente se llama `ROOMI`, la renombra antes de aplicar las migraciones. Cierra las conexiones a esa base antes de ejecutar el cambio de nombre. Tras el cambio, usa `DB_NAME=BD_ROOMI` en `.env`. El script puede volver a ejecutarse y muestra las doce tablas esperadas.
 
-El instalador incluye [006_moderacion_mixta.sql](migrations/006_moderacion_mixta.sql), [007_normalizar_catalogo.sql](migrations/007_normalizar_catalogo.sql) y [008_whatsapp_consultas.sql](migrations/008_whatsapp_consultas.sql). Verifica el destino con `SELECT DB_NAME()` antes de ejecutarlas y confirma la base en `/api/salud` después del arranque.
+El instalador incluye [006_moderacion_mixta.sql](migrations/006_moderacion_mixta.sql), [007_normalizar_catalogo.sql](migrations/007_normalizar_catalogo.sql), [008_whatsapp_consultas.sql](migrations/008_whatsapp_consultas.sql) y [009_seguimiento_alquiler.sql](migrations/009_seguimiento_alquiler.sql). Verifica el destino con `SELECT DB_NAME()` antes de ejecutarlas y confirma la base en `/api/salud` después del arranque.
 
 ## Ejecutar en Windows
 
 Desde `backend`, instala las dependencias y prepara el archivo local de configuración.
 
 ```powershell
-uv sync --locked
+$env:UV_PROJECT_ENVIRONMENT = '.venv-roomi'
+uv sync --locked --python (Get-Command python.exe).Source
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Configura la instancia de SQL Server en `.env`. Para una instalación nueva, genera el valor de `ROOMI_JWT_SECRET` con `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdalo en `.env`. Si la instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para ese entorno.
+Configura la instancia de SQL Server en `.env`. Para una instalación nueva, genera el valor de `ROOMI_JWT_SECRET` con `python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdalo en `.env`. Si la instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para ese entorno.
 
 ```powershell
-uv run uvicorn src.backend.main:app
-```
-
-Si Smart App Control bloquea el ejecutable de Uvicorn en Windows, usa este comando desde `backend` después de ejecutar `uv sync --locked`:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn src.backend.main:app
+.\.venv-roomi\Scripts\python.exe -m uvicorn src.backend.main:app
 ```
 
 La aplicación carga `backend/.env` automáticamente. Las variables ya definidas en el entorno tienen prioridad. Usa `.env.example` para compartir la configuración de ejemplo y guarda las credenciales únicamente en `.env` o en el entorno del servidor.
 
 Si ya hay un proceso de Uvicorn en el puerto 8000, detenlo con `Ctrl+C` y vuelve a iniciar con el comando anterior. Después abre `/api/salud` para comprobar la conexión a `BD_ROOMI` y `/api/alojamientos` para comprobar el catálogo público.
-
-Si necesitas crear la primera cuenta de administración, ejecuta el siguiente comando. La contraseña se solicita en consola.
-
-```powershell
-.\.venv\Scripts\python.exe scripts\crear_admin.py administrador@roomi.test
-```
 
 ## Autorización y errores de la API
 
@@ -76,17 +65,17 @@ Si necesitas crear la primera cuenta de administración, ejecuta el siguiente co
 | 401 | La operación exige una sesión válida y la sesión está ausente, es inválida o venció. En el acceso, las credenciales no coinciden. |
 | 403 | La sesión es válida, pero el rol no permite la operación. Por ejemplo, un arrendatario no puede moderar anuncios. |
 | 404 | El recurso no existe o la operación no está disponible para esa cuenta por titularidad. Editar, retirar o eliminar un anuncio ajeno se trata como si no existiera. La reseña del anuncio propio también se oculta con este estado. |
-| 409 | La solicitud entra en conflicto con el estado actual, como un correo duplicado, una reseña repetida o una decisión de moderación desactualizada. |
+| 409 | La solicitud entra en conflicto con el estado actual, como un correo duplicado, una reseña repetida o un cambio de estado incompatible. |
 | 422 | La solicitud tiene datos inválidos. La respuesta incluye mensajes en español por campo. |
 
 OpenAPI documenta los estados aplicables a cada operación con el modelo compartido `ErrorApi`. Las respuestas protegidas con 401 incluyen `WWW-Authenticate: Bearer`.
 
 ## Estructura
 
-- `src/backend/apis/` expone el catálogo, acceso, paneles, moderación, contacto, reseñas y reportes.
+- `src/backend/apis/` expone el catálogo, acceso, gestión de anuncios, contacto, reseñas y reportes.
 - `src/backend/schemas/` define los contratos HTTP.
 - `src/backend/services/` aplica filtros y proporciona el hash y la firma de sesiones.
 - `src/backend/repositories/` consulta y actualiza SQL Server.
-- `migrations/` y `create_table.py` preparan la base y su esquema.
+- `migrations/` prepara el esquema. `create_table.py --datos-demo` carga ejemplos en una base local ya preparada.
 
 [Swagger local](http://127.0.0.1:8000/docs) · [Estado de la API](http://127.0.0.1:8000/api/salud)

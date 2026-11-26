@@ -4,16 +4,22 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, firstValueFrom, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { browserState } from './browser-state';
-import { SessionService } from './session.service';
+import { apiError, SessionService } from './session.service';
 import { ListingResult, PublicRoom, Room, RoomDraft, RoomFilters } from '../interfaces/room';
 
 const api = environment.apiUrl;
 const catalogUrl = `${api}/alojamientos`;
 
-interface Report { id: string; roomId: string; title: string; message: string }
-interface Inquiry extends Report { name: string; whatsapp: string | null; email: string | null }
 interface Review { id: string; name: string; rating: number; message: string }
 interface Created { id: string }
+
+export function publicationError(error: unknown, fallback: string) {
+  if (error instanceof HttpErrorResponse && error.status === 422 &&
+      typeof error.error?.detail === 'string') {
+    return error.error.detail;
+  }
+  return apiError(error, fallback);
+}
 
 @Injectable({ providedIn: 'root' })
 export class RoomService {
@@ -55,16 +61,14 @@ export class RoomService {
     this.savedState.set(this.isSaved(id) ? ids.filter(saved => saved !== id) : [...ids, id]);
   }
 
-  managed(role: 'propietario' | 'administracion') {
-    return rxResource({ stream: () => this.http.get<Room[]>(`${api}/${role}/alojamientos`, this.auth()) });
+  managed() {
+    return rxResource({ stream: () => this.http.get<Room[]>(`${api}/propietario/alojamientos`, this.auth()) });
   }
 
-  inquiries() {
-    return rxResource({ stream: () => this.http.get<Inquiry[]>(`${api}/propietario/consultas`, this.auth()) });
-  }
-
-  reports() {
-    return rxResource({ stream: () => this.http.get<Report[]>(`${api}/administracion/reportes`, this.auth()) });
+  setAvailability(id: string, ocupado: boolean) {
+    return firstValueFrom(this.http.patch<void>(
+      `${api}/propietario/alojamientos/${encodeURIComponent(id)}/disponibilidad`, { ocupado }, this.auth(),
+    ));
   }
 
   reviews(id: Signal<string>) {
@@ -88,14 +92,6 @@ export class RoomService {
       null, this.auth()));
   }
 
-  suspend(ownerId: string, note: string, lift = false) {
-    const action = lift ? 'levantar-suspension' : 'suspender';
-    return firstValueFrom(this.http.post<void>(
-      `${api}/administracion/propietarios/${encodeURIComponent(ownerId)}/${action}`,
-      { note }, this.auth(),
-    ));
-  }
-
   withdraw(id: string) {
     return firstValueFrom(this.http.patch<void>(`${catalogUrl}/${encodeURIComponent(id)}/estado`,
       { status: 'retirado' }, this.auth()));
@@ -105,17 +101,8 @@ export class RoomService {
     return firstValueFrom(this.http.delete<void>(`${catalogUrl}/${encodeURIComponent(id)}`, this.auth()));
   }
 
-  review(id: string, status: 'publicado' | 'rechazado', note: string, revision: number) {
-    return firstValueFrom(this.http.patch<void>(`${api}/administracion/alojamientos/${encodeURIComponent(id)}`,
-      { status, note, revision }, this.auth()));
-  }
-
-  sendContact(id: string, inquiry: { name: string; whatsapp: string; email: string | null; message: string; consent: boolean }) {
-    return firstValueFrom(this.http.post<Created>(`${catalogUrl}/${encodeURIComponent(id)}/consultas`, inquiry, this.auth()));
-  }
-
-  contact(id: Signal<string>) {
-    return rxResource({ params: id, stream: ({ params }) => this.http.get<{ whatsapp: string | null; formulario: boolean }>(
+  contact(id: Signal<string | undefined>) {
+    return rxResource({ params: id, stream: ({ params }) => this.http.get<{ whatsapp: string | null }>(
       `${catalogUrl}/${encodeURIComponent(params)}/contacto`, this.auth(),
     ) });
   }

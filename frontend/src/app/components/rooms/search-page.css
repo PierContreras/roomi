@@ -8,13 +8,10 @@
 .result-controls { gap: 10px; }
 .sort { display: flex; flex-wrap: wrap; align-items: center; }
 .sort select { width: auto; min-height: 44px; }
-.view-options { display: inline-flex; gap: 3px; padding: 3px; background: var(--soft); border-radius: 12px; }
+.view-options { display: inline-flex; gap: 3px; padding: 3px; background: var(--blue-surface); border-radius: 12px; }
 .view-options .button { border-color: transparent; background: transparent; padding-inline: 12px; }
-.view-options [aria-pressed="true"] { background: var(--brand); color: white; }
-.search-zones { margin-block: var(--space-3); }
-.search-zones .button { background: var(--white); border-color: var(--border); border-radius: 999px; }
-.search-zones [aria-pressed="true"] { background: var(--soft); border-color: var(--control-border); }
-.locate[aria-pressed="true"] { background: var(--brand); color: var(--white); }
+.view-options .button[aria-pressed="true"] { background: var(--white); border-color: var(--control-border); color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.locate[aria-pressed="true"] { background: var(--blue-surface); color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
 .result-card { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--space-1); min-width: 0; border-radius: var(--radius); }
 .result-card.selected { outline: 2px solid var(--brand); outline-offset: 2px; }
 .results.map-open {
@@ -30,6 +27,12 @@
   align-content: start;
   padding: 5px;
   overflow: auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .results app-room-map { animation: reveal-map 200ms ease-out; }
+  @keyframes reveal-map {
+    from { opacity: 0; transform: translateY(6px); }
+  }
 }
 @media (max-width: 940px) {
   .results.map-open { grid-template-columns: 1fr; }

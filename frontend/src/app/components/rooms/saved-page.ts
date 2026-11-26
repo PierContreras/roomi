@@ -1,12 +1,13 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RoomCard } from './room-card';
 import { RoomService } from '../../services/room.service';
 import { UiIcon } from '../shared/ui-icon';
+import { RevealOnScroll } from '../shared/reveal-on-scroll';
 
 @Component({
-  imports: [RouterLink, RoomCard, UiIcon],
+  imports: [RouterLink, RoomCard, UiIcon, RevealOnScroll],
   templateUrl: './saved-page.html',
   styleUrl: './saved-page.css',
 })
@@ -14,6 +15,8 @@ export class SavedPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly params = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
+  private readonly comparisonPanel = viewChild<ElementRef<HTMLElement>>('comparisonPanel');
+  private scrollToComparison = false;
   protected readonly catalog = inject(RoomService);
   protected readonly published = this.catalog.published();
   protected readonly saved = computed(() => this.published.hasValue()
@@ -34,7 +37,18 @@ export class SavedPage {
     comparar: this.showComparison() && this.comparison().length === 2 ? this.pair() : null,
   }));
 
+  constructor() {
+    effect(() => {
+      const panel = this.comparisonPanel()?.nativeElement;
+      if (!panel || !this.scrollToComparison) return;
+      this.scrollToComparison = false;
+      const motion = panel.ownerDocument.defaultView?.matchMedia?.('(prefers-reduced-motion: no-preference)').matches;
+      panel.scrollIntoView?.({ block: 'start', behavior: motion ? 'smooth' : 'instant' });
+    });
+  }
+
   protected toggleComparison() {
+    this.scrollToComparison = !this.showComparison();
     this.setComparison(this.showComparison() ? null : this.pair());
   }
 
@@ -45,7 +59,7 @@ export class SavedPage {
 
   private setComparison(pair: readonly [string, string] | null) {
     void this.router.navigate([], {
-      relativeTo: this.route, queryParams: { comparar: pair }, queryParamsHandling: 'merge', replaceUrl: true,
+      relativeTo: this.route, queryParams: { comparar: pair }, queryParamsHandling: 'merge', replaceUrl: true, scroll: 'manual',
     });
   }
 }

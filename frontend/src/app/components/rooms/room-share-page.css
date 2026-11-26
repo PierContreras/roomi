@@ -1,4 +1,3 @@
 .share { max-width: 600px; margin-inline: auto; }
 .share h1 { font-size: clamp(1.75rem, 4vw, 2.65rem); }
-.section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-.message { background: var(--soft); border-radius: 8px; padding: 10px 12px; }
+.message { background: var(--blue-surface); border-radius: 8px; padding: 10px 12px; }

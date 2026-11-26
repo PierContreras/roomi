@@ -1,7 +1,7 @@
 <article class="panel room-card" [class.has-photo]="cover()">
   @if (cover(); as photo) {
     <div class="card-photos">
-      <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" tabindex="-1" aria-hidden="true">
+      <a class="cover" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" target="_blank" rel="opener" tabindex="-1" aria-hidden="true">
         <img [src]="photo.src" [alt]="photo.alt"
           [attr.loading]="prioritizeCover() ? null : 'lazy'"
           [attr.fetchpriority]="prioritizeCover() && activePhoto() === 0 ? 'high' : null" />
@@ -31,11 +31,15 @@
     <p class="muted small"><app-ui-icon name="clock" /> {{ room().minutes }} min al campus {{ room().university }}</p>
     <p class="description">{{ room().description }}</p>
     @if (room().amenities.length) {
-      <p class="amenities muted small">{{ room().amenities.join(', ') }}</p>
+      <ul class="amenities plain muted small" aria-label="Servicios incluidos">
+        @for (amenity of room().amenities; track amenity) {
+          <li><app-ui-icon [name]="amenityIcons[amenity] ?? 'list'" /> {{ amenity }}</li>
+        }
+      </ul>
     }
     <p class="price"><strong>S/ {{ room().price }}</strong><span class="muted small"> al mes</span></p>
     <div class="card-actions">
-      <a class="button secondary" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()">Ver anuncio<span class="sr-only"> de {{ room().title }}</span></a>
+      <a class="button secondary" [routerLink]="['/habitaciones', room().id]" [queryParams]="detailQuery()" target="_blank" rel="opener">Ver anuncio <app-ui-icon name="external" /><span class="sr-only"> de {{ room().title }} (abre en otra pestaña)</span></a>
     </div>
   </div>
 </article>

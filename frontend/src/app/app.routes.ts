@@ -13,9 +13,7 @@ export const routes: Routes = [
   { path: 'acceso', loadComponent: () => import('./components/access/access-page').then(m => m.AccessPage), title: 'Iniciar sesión | ROOMI' },
   { path: 'registro', loadComponent: () => import('./components/access/access-page').then(m => m.AccessPage), data: { mode: 'register' }, title: 'Registro | ROOMI' },
   { path: 'propietario', canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/owner-page').then(m => m.OwnerPage), title: 'Mis anuncios | ROOMI' },
-  { path: 'propietario/nuevo', canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Publicar habitación | ROOMI' },
-  { path: 'propietario/:id/editar', canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Editar habitación | ROOMI' },
-  { path: 'administracion', canActivate: [requireRole('admin')], loadComponent: () => import('./components/admin/admin-queue-page').then(m => m.AdminQueuePage), title: 'Revisión de anuncios | ROOMI' },
-  { path: 'administracion/:id', canActivate: [requireRole('admin')], loadComponent: () => import('./components/admin/admin-review-page').then(m => m.AdminReviewPage), title: 'Revisar anuncio | ROOMI' },
+  { path: 'propietario/nuevo', data: { editorMode: true }, canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Publicar habitación | ROOMI' },
+  { path: 'propietario/:id/editar', data: { editorMode: true }, canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Editar habitación | ROOMI' },
   { path: '**', loadComponent: () => import('./components/shared/not-found-page').then(m => m.NotFoundPage), title: 'Página no encontrada | ROOMI' },
 ];

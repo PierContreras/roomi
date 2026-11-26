@@ -33,9 +33,4 @@ export class SearchFilters {
       ? [...this.draft.amenities, amenity]
       : this.draft.amenities.filter(item => item !== amenity);
   }
-
-  protected reset() {
-    this.draft = { ...emptyFilters };
-    this.applied.emit(this.draft);
-  }
 }
