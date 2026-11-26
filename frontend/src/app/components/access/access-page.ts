@@ -2,11 +2,11 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { User } from '../../interfaces/user';
 import { SessionService } from '../../services/session.service';
+import { UiIcon } from '../shared/ui-icon';
 
 @Component({
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, UiIcon],
   templateUrl: './access-page.html',
   styleUrl: './access-page.css',
 })
@@ -43,10 +43,9 @@ export class AccessPage {
     const { name, email, password } = this.details;
     this.busy.set(true);
     try {
-      const profile = this.registering()
-        ? await this.session.register(name, email, password)
-        : await this.session.signIn(email, password);
-      this.enter(profile);
+      if (this.registering()) await this.session.register(name, email, password);
+      else await this.session.signIn(email, password);
+      this.enter();
     } catch (error) {
       this.error.set(this.accessError(error));
     } finally {
@@ -73,11 +72,7 @@ export class AccessPage {
     return `El servicio de acceso no está disponible en este momento. Vuelve a intentar ${action} más tarde.`;
   }
 
-  private enter(user: User) {
-    if (user.role === 'admin') {
-      void this.router.navigateByUrl('/administracion');
-    } else {
-      void this.router.navigateByUrl(this.contactReturn() || (this.destino() === 'publicar' ? '/propietario/nuevo' : '/explorar'));
-    }
+  private enter() {
+    void this.router.navigateByUrl(this.contactReturn() || (this.destino() === 'publicar' ? '/propietario/nuevo' : '/explorar'));
   }
 }

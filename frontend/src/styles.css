@@ -5,6 +5,13 @@
   --muted: #44635e;
   --surface: #f9fbfa;
   --soft: #dceee8;
+  --mint-surface: #eaf4ee;
+  --blue-surface: #eaf1f8;
+  --sand-surface: #fff3de;
+  --rose-surface: #faedf1;
+  --success: #16573e;
+  --warning: #714705;
+  --favorite: #8c2d4e;
   --border: #d5e3de;
   --control-border: #667f79;
   --focus: #355e92;
@@ -17,6 +24,8 @@
   --radius: 16px;
   --radius-control: 8px;
   --shadow-panel: 0 8px 22px rgb(19 46 53 / .08);
+  --motion-control: 160ms ease-out;
+  --motion-panel: 220ms ease-out;
   --body: 'Instrument Sans', system-ui, sans-serif;
   --heading: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
   font-family: var(--body);
@@ -30,6 +39,8 @@ button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .6; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* Route changes focus the page title so assistive technology can announce it. */
+#contenido h1[tabindex="-1"]:focus { outline: none; }
 h1, h2, h3 { font-family: var(--heading); font-weight: 700; line-height: 1.16; margin: 0 0 .5em; }
 h1 { font-size: clamp(2rem, 4.4vw, 3.75rem); }
 h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); }
@@ -39,7 +50,7 @@ p { margin: 0 0 .75rem; }
 @media (max-width: 760px) { .container { width: calc(100% - 32px); } }
 .page { padding-block: 28px 56px; }
 .section-intro {
-  background: #eaf3ee;
+  background: var(--mint-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: clamp(18px, 3vw, 32px);
@@ -60,20 +71,22 @@ p { margin: 0 0 .75rem; }
 .empty { padding: clamp(22px, 5vw, 52px); text-align: center; margin-block: 18px; }
 .page-state { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--white); }
 .button { display: inline-flex; min-width: 24px; min-height: 44px; padding: var(--space-2) 17px; align-items: center; justify-content: center; gap: var(--space-1); border: 1px solid transparent; border-radius: var(--radius-control); background: var(--brand); color: var(--white); font-size: .875rem; font-weight: 650; text-align: center; text-decoration: none; }
-.button:hover:not(:disabled) { filter: brightness(.91); }
+.button { transition: background-color var(--motion-control), border-color var(--motion-control), filter var(--motion-control); }
+.button.whatsapp-action { background: #25d366; color: #102b2d; border-color: #087c46; }
+@media (hover: hover) {
+  .button:hover:not(:disabled) { filter: brightness(.94); }
+}
+.button:active:not(:disabled) { filter: brightness(.88); }
 .button.secondary { color: var(--ink); background: var(--soft); }
 .button.quiet { color: var(--ink); background: var(--surface); border-color: var(--control-border); }
 .button.danger { background: var(--error); }
 .actions, .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.page-heading { justify-content: space-between; margin-bottom: 20px; }
-.page-heading h1 { margin: 0; }
 .owner-heading { justify-content: space-between; gap: var(--space-3); background: var(--soft); box-shadow: var(--shadow-panel); }
-.route-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 16px; font-size: .875rem; color: var(--muted); }
-.route-trail a { display: inline-flex; align-items: center; min-height: 24px; color: var(--brand); text-underline-offset: 3px; }
-.publication-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
-.publication-steps li { counter-increment: step; padding: 7px 11px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: .875rem; background: white; }
-.publication-steps li::before { content: counter(step) ". "; }
-.publication-steps li[aria-current] { color: var(--brand); background: var(--soft); border-color: var(--brand); font-weight: 700; }
+.page-back { margin-bottom: var(--space-2); }
+.publication-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 var(--space-2); padding: 0; list-style: none; }
+.publication-steps li { padding-block-start: 7px; border-top: 4px solid var(--border); border-radius: 3px 3px 0 0; color: var(--muted); font-size: clamp(.75rem, 2vw, .875rem); }
+.publication-steps li[aria-current] { color: var(--brand); border-color: var(--brand); font-weight: 750; }
+.publication-steps li.completed { border-color: var(--control-border); }
 .chip { background: var(--soft); color: var(--brand); font-size: .8125rem; padding: 5px 10px; border-radius: 20px; }
 .plain { padding: 0; list-style: none; }
 label { display: grid; align-content: start; gap: 6px; font-size: .875rem; font-weight: 600; }
@@ -97,8 +110,8 @@ legend { margin-bottom: 8px; font-weight: 600; }
   border-radius: var(--radius-control);
   overflow-wrap: anywhere;
 }
-.feedback-success { background: #eaf7ef; color: #16573e; }
-.feedback-error { background: #fff2f3; color: var(--error); }
+.feedback-success { background: var(--mint-surface); color: var(--success); }
+.feedback-error { background: var(--rose-surface); color: var(--error); }
 
 .swal2-popup.roomi-alert, dialog.roomi-alert {
   color: var(--ink);
@@ -151,7 +164,6 @@ legend { margin-bottom: 8px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .roomi-alert, .roomi-alert * { animation-duration: .01ms !important; }
 }
-.photo-placeholder { display: grid; place-items: center; padding: 12px; color: var(--muted); background: linear-gradient(145deg, #edf1f3, #d9e2e8); text-align: center; font-size: .875rem; }
 .room-map-prices {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -183,6 +195,7 @@ legend { margin-bottom: 8px; font-weight: 600; }
   html:has(#navegacion-movil[open]) { overflow: hidden; overscroll-behavior: none; }
   html { scrollbar-gutter: stable; scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body:has(.editor-mode) { padding-bottom: env(safe-area-inset-bottom); }
 }
 @media (max-width: 760px) {
   .page { padding-block: 22px 38px; }

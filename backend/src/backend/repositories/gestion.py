@@ -1,17 +1,16 @@
-import json
 from uuid import uuid4
 
 from backend.db_connection import abrir_conexion
 from backend.repositories.sql_alojamientos import CAMPOS_CATALOGO, convertir_anuncio
-from backend.schemas.gestion import AnuncioGestionado, Borrador, Consulta, Decision, Resena, ResultadoAnuncio
+from backend.schemas.gestion import AnuncioGestionado, Borrador, Consulta, Resena, ResultadoAnuncio
 from backend.services.exceptions import (
-    ConflictoDeInteres, ModeracionNoEncontrada, ResenaPropiaNoPermitida, TransicionInvalida,
+    ModeracionNoEncontrada, ResenaPropiaNoPermitida, TransicionInvalida,
 )
-from backend.services.moderacion_reglas import evaluar
+from backend.services.moderacion_reglas import validar_publicacion
 
 CAMPOS = f"""
-    {CAMPOS_CATALOGO}, a.[status], a.owner_id AS ownerId,
-    a.review_note AS reviewNote, a.motivos_revision, a.revision
+    {CAMPOS_CATALOGO}, a.owner_id AS ownerId, a.ocupado,
+    CASE WHEN a.[status] IN ('en_revision', 'rechazado') THEN 'borrador' ELSE a.[status] END AS [status]
 """
 
 def consultar(sql: str, *params):
@@ -50,16 +49,14 @@ def actualizar_hash(user_id: str, anterior: str, nuevo: str) -> None:
 
 
 def convertir_gestion(row):
-    row["motivos"] = json.loads(row.pop("motivos_revision"))
     return convertir_anuncio(row, AnuncioGestionado)
 
 
-def anuncios(owner_id: str | None = None):
-    sql = f"SELECT {CAMPOS} FROM dbo.alojamientos a"
-    if owner_id:
-        filas = consultar(sql + " WHERE owner_id = ? AND deleted_at IS NULL ORDER BY id", owner_id)
-    else:
-        filas = consultar(sql + " WHERE [status] = 'en_revision' AND deleted_at IS NULL ORDER BY id")
+def anuncios(owner_id: str):
+    filas = consultar(
+        f"SELECT {CAMPOS} FROM dbo.alojamientos a WHERE owner_id=? AND deleted_at IS NULL ORDER BY id",
+        owner_id,
+    )
     return [convertir_gestion(row) for row in filas]
 
 
@@ -89,18 +86,6 @@ def seleccionar_anuncio(cursor, anuncio_id, owner_id=None):
     return convertir_gestion(dict(zip((col[0] for col in cursor.description), row, strict=True)))
 
 
-def motivos_para(cursor, data, owner_id):
-    suspendido, reportes_abiertos = cursor.execute("""
-        SELECT
-            CASE WHEN EXISTS (SELECT 1 FROM dbo.suspensiones_propietario
-                WHERE propietario_id=? AND levantada_fecha IS NULL) THEN 1 ELSE 0 END,
-            CASE WHEN EXISTS (SELECT 1 FROM dbo.reportes r JOIN dbo.alojamientos a
-                ON a.id=r.alojamiento_id WHERE a.owner_id=? AND r.resuelto_fecha IS NULL)
-                THEN 1 ELSE 0 END
-    """, owner_id, owner_id).fetchone()
-    return evaluar(data, suspendido=bool(suspendido), reportes_abiertos=bool(reportes_abiertos))
-
-
 def auditar(cursor, anuncio_id, responsable, accion, motivo):
     cursor.execute("""
         INSERT dbo.decisiones_moderacion (id, anuncio_id, accion, motivo, responsable_id)
@@ -108,20 +93,11 @@ def auditar(cursor, anuncio_id, responsable, accion, motivo):
     """, str(uuid4()), anuncio_id, accion, motivo, responsable)
 
 
-def registrar_evaluacion(cursor, anuncio_id, responsable, estado, motivos):
-    if estado == "publicado":
-        auditar(cursor, anuncio_id, responsable, "aprobar", "publicacion_automatica")
-    elif estado == "en_revision":
-        auditar(cursor, anuncio_id, responsable, "enviar_revision", json.dumps(motivos))
-
-
-def cambiar_estado(cursor, anuncio_id, responsable, estado, motivos):
+def cambiar_estado(cursor, anuncio_id, estado):
     cursor.execute("""
-        UPDATE dbo.alojamientos SET [status]=?, motivos_revision=?, review_note=NULL,
-            revision=revision+1 WHERE id=?
-    """, estado, json.dumps(motivos), anuncio_id)
-    registrar_evaluacion(cursor, anuncio_id, responsable, estado, motivos)
-    return ResultadoAnuncio(id=anuncio_id, status=estado, motivos=motivos)
+        UPDATE dbo.alojamientos SET [status]=?, motivos_revision=N'[]', review_note=NULL,
+            revision=revision+1, ocupado=CASE WHEN ?='publicado' THEN 0 ELSE ocupado END WHERE id=?
+    """, estado, estado, anuncio_id)
 
 
 def guardar(data: Borrador, owner, anuncio_id: str | None = None, *, borrador=False):
@@ -138,29 +114,27 @@ def guardar(data: Borrador, owner, anuncio_id: str | None = None, *, borrador=Fa
         if actual and borrador and actual.status != "borrador":
             raise TransicionInvalida
         if borrador or (actual and actual.status == "borrador"):
-            estado, motivos = "borrador", []
+            estado = "borrador"
         elif actual and actual.status == "retirado":
-            estado, motivos = "retirado", []
+            estado = "retirado"
         else:
-            motivos = motivos_para(cursor, data, owner.id)
-            if actual and actual.status in ("rechazado", "en_revision"):
-                motivos.append("cambios_para_revision")
-            estado = "en_revision" if motivos else "publicado"
+            validar_publicacion(data)
+            estado = "publicado"
         if anuncio_id:
             cursor.execute("""
                 UPDATE dbo.alojamientos SET title=?, zone=?, university=?, [type]=?, price=?,
                     deposit=?, minutes=?, description=?, rules=?, address=?,
                     latitude=?, longitude=?, distance_km=?, whatsapp=?, [status]=?,
-                    motivos_revision=?, review_note=NULL, revision=revision+1 WHERE id=?
-            """, *values, estado, json.dumps(motivos), anuncio_id)
+                    motivos_revision=N'[]', review_note=NULL, revision=revision+1 WHERE id=?
+            """, *values, estado, anuncio_id)
         else:
             anuncio_id = str(uuid4())
             cursor.execute("""
                 INSERT dbo.alojamientos (title, zone, university, [type], price, deposit, minutes,
                     description, rules, address, latitude, longitude,
-                    distance_km, whatsapp, id, owner_id, [status], motivos_revision)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, *values, anuncio_id, owner.id, estado, json.dumps(motivos))
+                    distance_km, whatsapp, id, owner_id, [status])
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, *values, anuncio_id, owner.id, estado)
         cursor.execute("DELETE FROM dbo.alojamiento_servicios WHERE alojamiento_id=?", anuncio_id)
         cursor.execute("DELETE FROM dbo.alojamiento_fotos WHERE alojamiento_id=?", anuncio_id)
         if data.amenities:
@@ -171,9 +145,10 @@ def guardar(data: Borrador, owner, anuncio_id: str | None = None, *, borrador=Fa
             cursor.executemany("""
                 INSERT dbo.alojamiento_fotos (alojamiento_id, posicion, src, alt) VALUES (?, ?, ?, ?)
             """, [(anuncio_id, posicion, foto.src, foto.alt) for posicion, foto in enumerate(data.photos)])
-        registrar_evaluacion(cursor, anuncio_id, owner.id, estado, motivos)
+        if estado == "publicado":
+            auditar(cursor, anuncio_id, owner.id, "aprobar", "publicacion_automatica")
         conn.commit()
-    return ResultadoAnuncio(id=anuncio_id, status=estado, motivos=motivos)
+    return ResultadoAnuncio(id=anuncio_id, status=estado)
 
 
 def enviar(anuncio_id, owner_id, origen):
@@ -183,10 +158,11 @@ def enviar(anuncio_id, owner_id, origen):
         anuncio = seleccionar_anuncio(cursor, anuncio_id, owner_id)
         if anuncio.status != origen:
             raise TransicionInvalida
-        motivos = motivos_para(cursor, anuncio, owner_id)
-        resultado = cambiar_estado(cursor, anuncio_id, owner_id, "en_revision" if motivos else "publicado", motivos)
+        validar_publicacion(anuncio)
+        cambiar_estado(cursor, anuncio_id, "publicado")
+        auditar(cursor, anuncio_id, owner_id, "aprobar", "publicacion_automatica")
         conn.commit()
-    return resultado
+    return ResultadoAnuncio(id=anuncio_id, status="publicado")
 
 
 def retirar(anuncio_id: str, owner_id: str):
@@ -195,8 +171,18 @@ def retirar(anuncio_id: str, owner_id: str):
         anuncio = seleccionar_anuncio(cursor, anuncio_id, owner_id)
         if anuncio.status != "publicado":
             raise TransicionInvalida
-        cambiar_estado(cursor, anuncio_id, owner_id, "retirado", [])
+        cambiar_estado(cursor, anuncio_id, "retirado")
         auditar(cursor, anuncio_id, owner_id, "retirar", "retiro_por_titular")
+        conn.commit()
+
+
+def cambiar_disponibilidad(anuncio_id: str, owner_id: str, ocupado: bool):
+    with abrir_conexion() as conn:
+        cursor = conn.cursor()
+        anuncio = seleccionar_anuncio(cursor, anuncio_id, owner_id)
+        if anuncio.status != "publicado":
+            raise TransicionInvalida
+        cursor.execute("UPDATE dbo.alojamientos SET ocupado=? WHERE id=?", ocupado, anuncio_id)
         conn.commit()
 
 
@@ -209,90 +195,13 @@ def eliminar(anuncio_id: str, owner_id: str):
         conn.commit()
 
 
-def moderar(anuncio_id: str, admin_id: str, data: Decision):
-    with abrir_conexion() as conn:
-        cursor = conn.cursor()
-        dueños = cursor.execute("SELECT owner_id FROM dbo.alojamientos WHERE id=?", anuncio_id).fetchone()
-        if dueños and dueños[0]:
-            bloquear_propietario(cursor, dueños[0])
-        anuncio = seleccionar_anuncio(cursor, anuncio_id)
-        if (anuncio.ownerId or "").lower() == admin_id.lower():
-            raise ConflictoDeInteres
-        if anuncio.status != "en_revision" or anuncio.revision != data.revision:
-            raise TransicionInvalida
-        if data.status == "publicado" and anuncio.ownerId and cursor.execute("""
-            SELECT 1 FROM dbo.suspensiones_propietario WHERE propietario_id=? AND levantada_fecha IS NULL
-        """, anuncio.ownerId).fetchone():
-            raise TransicionInvalida
-        cursor.execute("""
-            UPDATE dbo.alojamientos SET [status]=?, review_note=?, motivos_revision=N'[]', revision=revision+1
-            WHERE id=?
-        """, data.status, data.note if data.status == "rechazado" else None, anuncio_id)
-        cursor.execute("UPDATE dbo.reportes SET resuelto_fecha=SYSUTCDATETIME() WHERE alojamiento_id=? AND resuelto_fecha IS NULL", anuncio_id)
-        auditar(cursor, anuncio_id, admin_id, "aprobar" if data.status == "publicado" else "rechazar", data.note)
-        conn.commit()
-
-
-def suspension(owner_id, admin_id, note, levantar=False):
-    with abrir_conexion() as conn:
-        cursor = conn.cursor()
-        bloquear_propietario(cursor, owner_id)
-        if owner_id.lower() == admin_id.lower():
-            raise ConflictoDeInteres
-        activa = cursor.execute("""
-            SELECT id FROM dbo.suspensiones_propietario WHERE propietario_id=? AND levantada_fecha IS NULL
-        """, owner_id).fetchone()
-        if levantar != bool(activa):
-            raise TransicionInvalida
-        if levantar:
-            cursor.execute("""
-                UPDATE dbo.suspensiones_propietario SET levantada_fecha=SYSUTCDATETIME(),
-                    levantada_por=?, levantada_motivo=? WHERE id=?
-            """, admin_id, note, activa[0])
-        else:
-            cursor.execute("""
-                INSERT dbo.suspensiones_propietario (propietario_id, responsable_id, motivo)
-                VALUES (?, ?, ?)
-            """, owner_id, admin_id, note)
-        afectados = cursor.execute("""
-            SELECT id, [status] FROM dbo.alojamientos WITH (UPDLOCK) WHERE owner_id=? AND deleted_at IS NULL
-        """, owner_id).fetchall()
-        for anuncio_id, estado in afectados:
-            if not levantar and estado == "publicado":
-                cambiar_estado(cursor, anuncio_id, admin_id, "en_revision", ["propietario_suspendido"])
-            auditar(cursor, anuncio_id, admin_id, "levantar_suspension" if levantar else "suspender", note)
-        conn.commit()
-
-
-def historial(anuncio_id):
-    if not consultar("SELECT id FROM dbo.alojamientos WHERE id=?", anuncio_id):
-        raise ModeracionNoEncontrada
-    return consultar("""
-        SELECT id, anuncio_id, accion, motivo, responsable_id, fecha FROM dbo.decisiones_moderacion
-        WHERE anuncio_id=? ORDER BY fecha, id
-    """, anuncio_id)
-
-
-def crear_admin(email, password_hash):
-    with abrir_conexion() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE dbo.usuarios WITH (UPDLOCK, HOLDLOCK) SET role='admin', password_hash=? WHERE email=?
-        """, password_hash, email)
-        if not cursor.rowcount:
-            cursor.execute("""
-                INSERT dbo.usuarios (id, name, email, role, password_hash) VALUES (?, ?, ?, 'admin', ?)
-            """, str(uuid4()), email[:100], email, password_hash)
-        conn.commit()
-
-
 def enviar_consulta(anuncio_id: str, data: Consulta):
     item_id = str(uuid4())
     with abrir_conexion() as conn:
         cursor = conn.cursor().execute("""
             INSERT dbo.consultas (id, alojamiento_id, name, whatsapp, email, message)
             SELECT ?, id, ?, ?, ?, ? FROM dbo.alojamientos WITH (UPDLOCK)
-            WHERE id=? AND [status]='publicado' AND deleted_at IS NULL AND owner_id IS NOT NULL
+            WHERE id=? AND [status]='publicado' AND deleted_at IS NULL AND ocupado=0 AND owner_id IS NOT NULL
         """, item_id, data.name, data.whatsapp, data.email, data.message, anuncio_id)
         if not cursor.rowcount:
             return None
@@ -302,10 +211,25 @@ def enviar_consulta(anuncio_id: str, data: Consulta):
 
 def consultar_bandeja(owner_id: str):
     return consultar("""
-        SELECT c.id, a.id AS roomId, a.title, c.name, c.whatsapp, c.email, c.message
+        SELECT c.id, a.id AS roomId, a.title, c.name, c.whatsapp, c.email, c.message,
+            CONVERT(varchar(33), c.created_at, 126) + 'Z' AS creadaEn,
+            CONVERT(varchar(33), c.respondida_fecha, 126) + 'Z' AS respondidaEn
         FROM dbo.consultas AS c JOIN dbo.alojamientos AS a ON a.id = c.alojamiento_id
         WHERE a.owner_id = ? ORDER BY c.created_at DESC, c.id
     """, owner_id)
+
+
+def actualizar_consulta(consulta_id: str, owner_id: str, respondida: bool):
+    with abrir_conexion() as conn:
+        cursor = conn.cursor().execute("""
+            UPDATE c SET respondida_fecha=CASE WHEN ?=1
+                THEN COALESCE(c.respondida_fecha, SYSUTCDATETIME()) ELSE NULL END
+            FROM dbo.consultas c JOIN dbo.alojamientos a ON a.id=c.alojamiento_id
+            WHERE c.id=? AND a.owner_id=?
+        """, respondida, consulta_id, owner_id)
+        if not cursor.rowcount:
+            raise ModeracionNoEncontrada
+        conn.commit()
 
 
 def resenas(anuncio_id: str):
@@ -313,7 +237,7 @@ def resenas(anuncio_id: str):
         SELECT r.id, u.name, r.rating, r.message FROM dbo.resenas AS r
         JOIN dbo.usuarios AS u ON r.student_id = u.id
         JOIN dbo.alojamientos AS a ON r.alojamiento_id = a.id
-        WHERE a.id = ? AND a.[status] = 'publicado' AND a.deleted_at IS NULL ORDER BY r.created_at DESC, r.id
+        WHERE a.id = ? AND a.[status] = 'publicado' AND a.deleted_at IS NULL AND a.ocupado=0 ORDER BY r.created_at DESC, r.id
     """, anuncio_id)
 
 
@@ -327,12 +251,8 @@ def agregar_interaccion(anuncio_id: str, student_id: str, data):
         params += (data.rating,)
     with abrir_conexion() as conn:
         cursor = conn.cursor()
-        if tabla == "reportes":
-            titular = cursor.execute("SELECT owner_id FROM dbo.alojamientos WHERE id=?", anuncio_id).fetchone()
-            if titular and titular[0]:
-                bloquear_propietario(cursor, titular[0])
         anuncio = cursor.execute("""
-            SELECT owner_id FROM dbo.alojamientos WITH (UPDLOCK) WHERE id=? AND [status]='publicado' AND deleted_at IS NULL
+            SELECT owner_id FROM dbo.alojamientos WITH (UPDLOCK) WHERE id=? AND [status]='publicado' AND deleted_at IS NULL AND ocupado=0
         """, anuncio_id).fetchone()
         if anuncio is None:
             return None
@@ -348,15 +268,5 @@ def agregar_interaccion(anuncio_id: str, student_id: str, data):
         """, params[0], anuncio_id, *params[1:], anuncio_id, student_id)
         if not cursor.rowcount:
             return ""
-        if tabla == "reportes":
-            cambiar_estado(cursor, anuncio_id, student_id, "en_revision", ["reporte_recibido"])
         conn.commit()
     return item_id
-
-
-def reportes():
-    return consultar("""
-        SELECT r.id, a.id AS roomId, a.title, r.message
-        FROM dbo.reportes AS r JOIN dbo.alojamientos AS a ON a.id = r.alojamiento_id
-        ORDER BY r.created_at DESC, r.id
-    """)

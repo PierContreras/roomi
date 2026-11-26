@@ -1,6 +1,18 @@
 <section aria-label="Galería de la habitación">
   @if (photos()[index()]; as photo) {
-    <img [src]="photo.src" [alt]="photo.alt" />
+    <div class="photo-layout" [class.with-thumbnails]="thumbnails() && photos().length > 1">
+      <img class="featured" [src]="photo.src" [alt]="photo.alt" />
+      @if (thumbnails() && photos().length > 1) {
+        <div class="thumbnails" role="group" aria-label="Elegir fotografía">
+          @for (item of photos(); track $index) {
+            <button class="thumbnail" type="button" [attr.aria-pressed]="index() === $index"
+              [attr.aria-label]="'Ver foto ' + ($index + 1) + ': ' + item.alt" (click)="select($index)">
+              <img [src]="item.src" alt="" loading="lazy" />
+            </button>
+          }
+        </div>
+      }
+    </div>
     @if (photo.illustrative) { <p class="small muted">Imagen ilustrativa del anuncio de demostración.</p> }
     @if (photos().length > 1) {
       <div class="controls" role="group" aria-label="Cambiar fotografía">

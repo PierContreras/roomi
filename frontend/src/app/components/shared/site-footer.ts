@@ -1,7 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { zones } from '../../interfaces/room';
-import { SessionService } from '../../services/session.service';
 import { UiIcon } from './ui-icon';
 
 @Component({
@@ -11,6 +10,5 @@ import { UiIcon } from './ui-icon';
   styleUrl: './site-footer.css',
 })
 export class SiteFooter {
-  protected readonly session = inject(SessionService);
   protected readonly zones = zones;
 }

@@ -1,41 +1,50 @@
 <div class="container page help">
-  <section class="section-intro help-intro stack compact">
-    <h1>¿En qué podemos ayudarte?</h1>
-    <p class="muted">Guía práctica para buscar, visitar y publicar habitaciones en el directorio de ROOMI.</p>
-    <form class="help-search" (ngSubmit)="query.set(searchText)">
+  <section class="help-intro stack compact" aria-labelledby="help-title">
+    <h1 id="help-title">¿En qué podemos ayudarte?</h1>
+    <p class="intro-copy">Guía práctica para buscar, visitar y publicar habitaciones en el directorio de ROOMI.</p>
+    <form class="help-search" role="search" aria-label="Buscar en Ayuda"
+      (ngSubmit)="searchQuestions()">
       <label>Buscar ayuda
-        <input name="busqueda" type="search" [(ngModel)]="searchText" placeholder="Preguntas frecuentes, normas, visitas…" />
+        <input #searchInput name="busqueda" type="search" [(ngModel)]="searchText" placeholder="Preguntas frecuentes, normas, visitas…" />
       </label>
-      <button class="button" type="submit">Buscar</button>
+      <button class="button" type="submit"><app-ui-icon name="search" /> Buscar</button>
     </form>
+    <nav class="help-shortcuts" aria-label="Secciones de Ayuda">
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="preguntas"><app-ui-icon name="list" /> Preguntas frecuentes</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="soporte"><app-ui-icon name="message" /> Contacto de soporte</a>
+    </nav>
   </section>
 
-  <section class="stack">
-    <h2>Categorías de asistencia</h2>
+  <section appRevealOnScroll class="stack" aria-labelledby="help-topics">
+    <h2 id="help-topics">Categorías de asistencia</h2>
     <div class="topic-grid">
       @for (topic of topics; track topic.title) {
         <article class="panel section topic stack compact">
+          <app-ui-icon class="topic-icon" [name]="topic.icon" />
           <h3>{{ topic.title }}</h3>
           <p class="muted">{{ topic.description }}</p>
-          <a class="button secondary" [routerLink]="topic.route ?? '/ayuda'" [fragment]="topic.fragment"
-            (click)="!topic.route && clearSearch()">{{ topic.label }}</a>
+          @if (topic.fragment; as fragment) {
+            <a class="topic-link" [routerLink]="[]" queryParamsHandling="preserve" [fragment]="fragment" (click)="clearSearch()">{{ topic.label }} <app-ui-icon name="chevronRight" /></a>
+          } @else {
+            <a class="topic-link" [routerLink]="topic.route">{{ topic.label }} <app-ui-icon name="chevronRight" /></a>
+          }
         </article>
       }
     </div>
   </section>
 
-  <div class="split help-details">
-    <section class="stack compact" id="preguntas">
-      <h2>Preguntas frecuentes del directorio</h2>
-      @if (query().trim()) {
+  <div class="help-details">
+    <section appRevealOnScroll class="stack compact" aria-labelledby="preguntas">
+      <h2 id="preguntas" tabindex="-1">Preguntas frecuentes del directorio</h2>
+      <p class="search-status small muted" role="status">{{ query() ? filtered().length + ' resultados para «' + query() + '»' : '' }}</p>
+      @if (query()) {
         <div class="actions">
-          <p class="small muted" role="status">{{ filtered().length }} resultados para «{{ query() }}»</p>
-          <button class="button quiet" type="button" (click)="clearSearch()">Limpiar búsqueda</button>
+          <button class="button quiet" type="button" (click)="clearSearch(); searchInput.focus()">Limpiar búsqueda</button>
         </div>
       }
       @for (question of filtered(); track question.id) {
-        <details [id]="question.id" class="panel question">
-          <summary>{{ question.title }}</summary>
+        <details [id]="question.id" class="panel question" [open]="fragment() === question.id">
+          <summary>{{ question.title }} <app-ui-icon name="chevronDown" /></summary>
           <p>{{ question.answer }}</p>
         </details>
       } @empty {
@@ -43,18 +52,17 @@
       }
     </section>
 
-    <section class="panel section stack compact" id="soporte">
+    <section appRevealOnScroll class="panel stack support" aria-labelledby="soporte">
+      <h2 id="soporte" tabindex="-1">Contacto de soporte</h2>
       @if (confirmation()) {
         <div class="stack compact" role="status">
-          <h2>Consulta registrada en la demo</h2>
-          <p>Esta es la confirmación del formulario. Tu consulta no se ha enviado.</p>
-          <button type="button" class="button secondary" (click)="confirmation.set(false)">Redactar otra consulta</button>
+          <h3 #supportHeading tabindex="-1">Vista previa completada</h3>
+          <p>El mensaje se queda en esta pantalla.</p>
+          <button type="button" class="button secondary" (click)="resetConfirmation()">Redactar otra consulta</button>
         </div>
       } @else {
-        <p class="section-label">Mesa de consultas</p>
-        <h2>Contacto de soporte</h2>
-        <p class="muted small">Formulario de demostración. Usa datos ficticios.</p>
-        <form #form="ngForm" class="stack compact" (ngSubmit)="submit(form)">
+        <p #supportHeading tabindex="-1" class="support-notice small">Puedes practicar con datos ficticios. El mensaje se queda en esta pantalla.</p>
+        <form #form="ngForm" class="stack support-form" (ngSubmit)="submit(form)">
           <label>Nombre o seudónimo
             <input name="nombre" required maxlength="100" [(ngModel)]="inquiry.name" #name="ngModel" />
             @if (name.touched && !inquiry.name.trim()) { <span class="error">Ingresa un nombre o seudónimo.</span> }
@@ -80,7 +88,7 @@
             }
           </label>
           @if (submitted()) { <p class="error small" role="alert">Revisa tu consulta y completa los campos marcados.</p> }
-          <button class="button" type="submit">Registrar consulta de prueba</button>
+          <button class="button" type="submit">Revisar consulta</button>
         </form>
       }
     </section>

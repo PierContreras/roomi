@@ -1,25 +1,38 @@
-.access { padding-block: clamp(24px, 5vw, 62px); }
-.access-card { max-width: 520px; margin-inline: auto; overflow: hidden; box-shadow: 0 12px 28px rgb(19 46 53 / 9%); }
-.access-bar { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 8px clamp(18px, 4vw, 32px); background: var(--soft); border-bottom: 1px solid var(--border); }
-.brand { font-size: 1.45rem; font-weight: 750; color: var(--brand); text-decoration: none; letter-spacing: -.04em; }
-.close { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); font-size: 1.5rem; text-decoration: none; border-radius: 8px; }
-.close:hover { background: var(--surface); }
-.access-body { padding: clamp(18px, 4vw, 32px); gap: 14px; }
-.access-heading h1 { font-size: clamp(1.65rem, 4vw, 2rem); }
+.access {
+  display: grid;
+  place-items: center;
+  min-block-size: calc(100svh - 80px);
+  padding: clamp(16px, 4vh, 44px) clamp(12px, 4vw, 32px);
+  background:
+    radial-gradient(ellipse at 14% 20%, var(--soft), transparent 54%),
+    radial-gradient(ellipse at 90% 85%, var(--sand-surface), transparent 56%),
+    var(--surface);
+}
+.access-card {
+  width: min(100%, 460px);
+  border-radius: 22px;
+  box-shadow: 0 14px 42px rgb(19 46 53 / 9%);
+}
+.access-switch { padding-top: 14px; border-top: 1px solid var(--border); text-align: center; }
+.access-switch p { margin: 0; }
+.access-switch a { color: var(--brand); font-weight: 700; text-underline-offset: 3px; }
+.access-body { padding: clamp(20px, 5vw, 34px); gap: 16px; }
+.access-heading { margin-block-end: 4px; }
+.access-heading h1 { font-size: clamp(1.6rem, 4vw, 2rem); letter-spacing: -.035em; }
 .access-heading p { font-size: .875rem; color: var(--muted); }
 .access-body form { gap: 12px; }
-.access-body .form-select { padding-inline-end: 36px; }
+.access-body .form-control { background-color: var(--surface); }
+.access-body form > .button { margin-block-start: 4px; }
 .password-field { display: grid; gap: 6px; }
 .password-control { position: relative; }
 .password-control .form-control { min-height: 46px; padding-inline-end: 52px; background-image: none; }
-.password-control .form-control.is-invalid { border-color: #9b2631; }
+.password-control .form-control.is-invalid { border-color: var(--error); }
 .password-control input::-ms-reveal { display: none; }
 .password-toggle { position: absolute; inset-block-start: 50%; inset-inline-end: 2px; transform: translateY(-50%); display: grid; place-items: center; min-inline-size: 44px; min-block-size: 44px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 1.125rem; line-height: 1; }
 .password-toggle:hover { background: var(--soft); }
-.password-toggle:focus-visible { outline: 2px solid #426da1; outline-offset: -2px; box-shadow: none; }
+.password-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; box-shadow: none; }
 .password-field .error { margin: 0; }
-.guest { display: block; padding: 9px; text-align: center; color: var(--muted); font-size: .875rem; text-underline-offset: .2em; }
+.guest { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; text-align: center; color: var(--muted); font-size: .875rem; text-underline-offset: .2em; }
 @media (max-width: 560px) {
-  .access-bar { display: none; }
-  .access-card { box-shadow: none; }
+  .access-card { border-radius: 18px; }
 }

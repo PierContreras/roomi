@@ -9,7 +9,8 @@
     <div class="actions">
       <a class="button secondary" routerLink="/buscar"><app-ui-icon name="search" /> Seguir buscando</a>
       @if (saved().length >= 2) {
-        <button type="button" class="button" [attr.aria-expanded]="showComparison()" (click)="toggleComparison()">
+        <button type="button" class="button" [attr.aria-expanded]="showComparison()"
+          [attr.aria-controls]="showComparison() ? 'saved-comparison' : null" (click)="toggleComparison()">
           <app-ui-icon name="compare" /> {{ showComparison() ? 'Ocultar comparación' : 'Comparar habitaciones' }}
         </button>
       }
@@ -22,7 +23,7 @@
     <button class="button quiet" type="button" (click)="published.reload()">Reintentar</button>
   } @else if (saved().length) {
     @if (showComparison() && comparison().length === 2) {
-      <section class="panel section stack comparison" aria-labelledby="comparison-title">
+      <section #comparisonPanel appRevealOnScroll id="saved-comparison" class="panel section stack comparison" aria-labelledby="comparison-title">
         <h2 id="comparison-title">Comparar habitaciones guardadas</h2>
         <div class="compare-selects">
           @for (id of pair(); track $index; let index = $index) {
@@ -50,15 +51,15 @@
             <tr><th scope="row">Tiempo al campus</th>@for (room of comparison(); track room.id) { <td>{{ room.minutes }} min a {{ room.university }}</td> }</tr>
             <tr><th scope="row">Servicios</th>@for (room of comparison(); track room.id) { <td>{{ room.amenities.join(', ') || 'Por confirmar' }}</td> }</tr>
             <tr><th scope="row">Ficha</th>@for (room of comparison(); track room.id) {
-              <td><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()">Ver anuncio<span class="sr-only"> de {{ room.title }}</span></a></td>
+              <td><a [routerLink]="['/habitaciones', room.id]" [queryParams]="detailQuery()" target="_blank" rel="opener">Ver anuncio<span class="sr-only"> de {{ room.title }} (abre en otra pestaña)</span></a></td>
             }</tr>
           </tbody>
         </table>
       </section>
     }
-    <div class="room-grid">
+    <div class="room-grid saved-grid" [class.single]="saved().length === 1" [class.pair]="saved().length === 2">
       @for (room of saved(); track room.id) {
-        <app-room-card [room]="room" [detailQuery]="detailQuery()" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
+        <app-room-card appRevealOnScroll [class.wide-card]="saved().length === 1" [room]="room" [detailQuery]="detailQuery()" [saved]="true" (saveToggled)="catalog.toggleSaved($event)" />
       }
     </div>
   } @else {

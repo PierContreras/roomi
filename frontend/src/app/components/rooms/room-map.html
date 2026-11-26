@@ -51,9 +51,9 @@
                   @if (ready()) {
                     <button type="button" class="button quiet" (click)="centerPreview()">Centrar en el mapa</button>
                   }
-                  <a class="button" [routerLink]="['/habitaciones', entry.room.id]" [queryParams]="detailQuery()">Ver detalle</a>
+                  <a class="button" [routerLink]="['/habitaciones', entry.room.id]" [queryParams]="detailQuery()" target="_blank" rel="opener">Ver detalle<span class="sr-only"> (abre en otra pestaña)</span></a>
                   <a class="button quiet" [href]="mapsUrl(entry)" target="_blank" rel="noopener noreferrer">
-                    {{ entry.approximate ? 'Ver la zona en Google Maps' : 'Abrir en Google Maps' }}
+                    {{ entry.approximate ? 'Ver la zona en Google Maps' : 'Abrir en Google Maps' }} (abre en otra pestaña)
                   </a>
                 </div>
               </div>
@@ -66,7 +66,7 @@
       <ul class="map-caption plain">
         @for (entry of entries(); track entry.room.id) {
           <li><a [href]="mapsUrl(entry)" target="_blank" rel="noopener noreferrer">
-            {{ entry.approximate ? 'Consultar la zona en Google Maps' : 'Consultar la ubicación en Google Maps' }}
+            {{ entry.approximate ? 'Consultar la zona en Google Maps' : 'Consultar la ubicación en Google Maps' }} (abre en otra pestaña)
           </a></li>
         }
       </ul>

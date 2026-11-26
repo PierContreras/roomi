@@ -18,7 +18,7 @@ CAMPOS_CATALOGO = """
 CONSULTA_PUBLICADOS = f"""
     SELECT {CAMPOS_CATALOGO}, CAST(CASE WHEN a.owner_id IS NULL THEN 0 ELSE 1 END AS BIT) AS contactAvailable
     FROM dbo.alojamientos a
-    WHERE a.[status] = ? AND a.deleted_at IS NULL
+    WHERE a.[status] = ? AND a.deleted_at IS NULL AND a.ocupado = 0
 """
 
 def convertir_anuncio(datos, modelo=Alojamiento):

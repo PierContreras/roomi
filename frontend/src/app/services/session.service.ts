@@ -38,10 +38,7 @@ export class SessionService {
   private readonly current = signal<Session | null>(null);
   private expiryTimer?: number;
   readonly user = computed(() => this.current()?.user ?? null);
-  readonly publicAccount = computed(() => {
-    const user = this.user();
-    return !!user && user.role !== 'admin';
-  });
+  readonly publicAccount = computed(() => !!this.user());
 
   constructor() {
     // Las guardas necesitan el estado antes de la navegación inicial.
@@ -51,7 +48,7 @@ export class SessionService {
         const session: Session = JSON.parse(stored);
         if (typeof session?.token === 'string' && expiresAt(session.token) > Date.now() &&
             typeof session.user?.id === 'string' && typeof session.user.name === 'string' &&
-            typeof session.user.email === 'string' && ['student', 'owner', 'admin'].includes(session.user.role)) {
+            typeof session.user.email === 'string' && ['student', 'owner'].includes(session.user.role)) {
           this.setSession(session);
         } else {
           this.signOut();

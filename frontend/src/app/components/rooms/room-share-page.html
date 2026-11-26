@@ -1,8 +1,7 @@
 <div class="container page">
-  <nav class="route-trail" aria-label="Ubicación">
-    <a [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
-    <span aria-hidden="true">/</span><span aria-current="page">Compartir</span>
-  </nav>
+  <div class="page-back">
+    <a class="button quiet" [routerLink]="['/habitaciones', id()]" [queryParams]="navigation.detailQuery()">← Volver al anuncio</a>
+  </div>
   @if (room.isLoading()) {
     <p role="status">Cargando anuncio…</p>
   } @else if (room.error()) {

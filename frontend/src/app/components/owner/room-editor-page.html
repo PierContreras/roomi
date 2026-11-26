@@ -1,23 +1,18 @@
-<div class="container page stack">
-  <p class="small muted"><a routerLink="/propietario">Volver a mis anuncios</a></p>
-  @if (!id() || existing() || saved()) {
-    <ol class="publication-steps" aria-label="Pasos para publicar">
-      <li [attr.aria-current]="!preview() ? 'step' : null">Datos del alojamiento</li>
-      <li [attr.aria-current]="preview() && !saved() ? 'step' : null">Vista previa</li>
-      <li [attr.aria-current]="saved() ? 'step' : null">Resultado</li>
-    </ol>
-  }
+<div class="container page stack editor">
+  <div class="editor-toolbar">
+    <a class="editor-brand" routerLink="/explorar" aria-label="ROOMI, inicio">roomi</a>
+    <a class="button quiet" routerLink="/propietario">← Volver a mis anuncios</a>
+  </div>
   @if (saved(); as current) {
-    <section class="feedback feedback-success section stack compact" role="status">
-      <h1>{{ current.status === 'publicado' ? 'Anuncio publicado' : current.status === 'en_revision' ? 'Anuncio en revisión' : 'Cambios guardados' }}</h1>
+    <section class="feedback feedback-success section stack compact publication-result" role="status">
+      <h1 #resultHeading tabindex="-1">{{ current.status === 'publicado' && !existing()?.ocupado ? 'Anuncio publicado' : 'Cambios guardados' }}</h1>
       <p>{{ current.title }}</p>
-      <div><app-status-badge [status]="current.status" /></div>
-      @if (current.status === 'publicado') { <p>Tu anuncio ya está disponible en el catálogo.</p> }
-      @if (current.motivos.length) {
-        <ul>@for (reason of current.motivos; track reason) { <li>{{ reasons[reason] }}</li> }</ul>
+      @if (current.status !== 'publicado' || existing()?.ocupado) {
+        <div><app-status-badge [status]="current.status" /></div>
       }
+      @if (current.status === 'publicado' && !existing()?.ocupado) { <p>Tu anuncio ya está disponible en el catálogo.</p> }
       <div class="actions">
-        @if (current.status === 'publicado') {
+        @if (current.status === 'publicado' && !existing()?.ocupado) {
           <a class="button" [routerLink]="['/habitaciones', current.id]">Ver anuncio publicado</a>
         }
         <a class="button secondary" routerLink="/propietario">Ver mis anuncios</a>
@@ -33,32 +28,46 @@
   } @else if (id() && !existing()) {
     <div class="panel empty"><h1>Anuncio no disponible</h1><p>{{ unavailableListing }}</p><a class="button" routerLink="/propietario">Volver a mis anuncios</a></div>
   } @else {
-    <header class="section-intro">
+    <header class="editor-intro">
       <h1>{{ id() ? 'Editar habitación' : 'Publicar habitación' }}</h1>
-      @if (!preview()) { <p>Completa los datos y revisa el anuncio antes de enviarlo.</p> }
     </header>
     @if ((preview() ? draft() : undefined); as item) {
-      <section class="panel section stack">
-        <h2>Revisa tu publicación</h2>
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.zone }} · {{ item.university }} · {{ item.minutes }} min al campus</p>
-        <p>S/ {{ item.price }} / mes · Garantía: S/ {{ item.deposit }}</p>
-        <p>{{ item.description }}</p>
-        <p>{{ item.rules }}</p>
-        <p>{{ item.address }}</p>
-        @if (item.amenities.length) { <p>{{ item.amenities.join(' · ') }}</p> }
+      <section class="panel section stack publication-preview">
+        <ol class="publication-steps" aria-label="Progreso del anuncio">
+          <li class="completed">Ubicación</li>
+          <li class="completed">Alojamiento</li>
+          <li class="completed">Servicios y fotos</li>
+          <li aria-current="step">Vista previa</li>
+        </ol>
+        <h2 #previewHeading tabindex="-1" class="preview-heading">Revisa tu publicación</h2>
         @if (item.photos.length) { <app-room-gallery [photos]="item.photos" /> }
+        @else { <p class="small muted">Puedes revisar el anuncio ahora. Para publicarlo, agrega una foto.</p> }
+        <div class="preview-listing stack compact">
+          <h3>{{ item.title }}</h3>
+          <p class="preview-price"><strong>S/ {{ item.price }}</strong> al mes · Garantía S/ {{ item.deposit }}</p>
+          <p>{{ item.description }}</p>
+        </div>
+        <dl class="preview-facts">
+          <div><dt>Ubicación</dt><dd>{{ item.address }} · {{ item.zone }} · {{ item.minutes }} min al campus {{ item.university }}</dd></div>
+          <div><dt>Condiciones</dt><dd>{{ item.rules }}</dd></div>
+          @if (item.amenities.length) { <div><dt>Servicios</dt><dd>{{ item.amenities.join(' · ') }}</dd></div> }
+        </dl>
         @if (error()) { <p id="publication-error" class="feedback feedback-error" role="alert">{{ error() }}</p> }
-        <div class="actions">
-          <button type="button" class="button" [disabled]="busy()" [attr.aria-describedby]="error() ? 'publication-error' : null" (click)="publish(item)">{{ busy() ? 'Guardando…' : (id() ? 'Guardar cambios' : 'Publicar anuncio') }}</button>
+        <div class="actions" aria-label="Editar secciones del anuncio" role="group">
+          <button type="button" class="button quiet" [disabled]="busy()" (click)="editStep(0)">Editar ubicación</button>
+          <button type="button" class="button quiet" [disabled]="busy()" (click)="editStep(1)">Editar alojamiento</button>
+          <button type="button" class="button quiet" [disabled]="busy()" (click)="editStep(2)">Editar servicios y fotos</button>
+        </div>
+        <div class="actions preview-actions">
           @if (!id()) {
             <button type="button" class="button secondary" [disabled]="busy()" (click)="publish(item, true)">Guardar borrador</button>
           }
-          <button type="button" class="button secondary" (click)="preview.set(false)">Volver al formulario</button>
+          <button type="button" class="button" [disabled]="busy()" [attr.aria-describedby]="error() ? 'publication-error' : null" (click)="publish(item)">{{ busy() ? 'Guardando…' : (id() ? 'Guardar cambios' : 'Publicar anuncio') }}</button>
         </div>
       </section>
     } @else {
-      <app-room-form [initial]="draft() ?? existing()" (saved)="review($event)" />
+      <app-room-form [initial]="draft() ?? existing()" [initialStep]="formStep()" [progressKey]="progressKey()"
+        [checkPhoto]="checkPhoto()" (saved)="review($event)" />
     }
   }
 </div>

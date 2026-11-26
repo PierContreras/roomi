@@ -14,5 +14,5 @@ class TransicionInvalida(Exception):
     pass
 
 
-class ConflictoDeInteres(Exception):
+class PublicacionInvalida(ValueError):
     pass

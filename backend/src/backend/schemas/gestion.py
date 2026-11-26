@@ -10,8 +10,8 @@ from backend.schemas.alojamiento import Alojamiento, Foto, Servicio, Tipo, Unive
 
 Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Correo = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=180, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
-Rol = Literal["student", "owner", "admin"]
-Estado = Literal["borrador", "en_revision", "publicado", "rechazado", "retirado"]
+Rol = Literal["student", "owner"]
+Estado = Literal["borrador", "publicado", "retirado"]
 
 
 class Entrada(BaseModel):
@@ -148,35 +148,21 @@ class AnuncioGestionado(Alojamiento):
             'longitude': -75.21,
             'distanceKm': 1.2,
             'contactAvailable': True,
-            'status': 'en_revision',
+            'status': 'borrador',
             'ownerId': '11111111-1111-4111-8111-111111111111',
-            'reviewNote': None,
-            'revision': 1,
             'whatsapp': None,
     }]})
     ownerId: str | None
     status: Estado
-    reviewNote: str | None
-    revision: int
-    motivos: list[str] = Field(default_factory=list)
+    ocupado: bool = False
 
 
-class Motivo(Entrada):
-    note: Texto = Field(max_length=800)
+class Disponibilidad(Entrada):
+    ocupado: bool
 
 
-class Decision(Motivo):
-    revision: int = Field(ge=1)
-    status: Literal["publicado", "rechazado"]
-
-
-class HistorialDecision(BaseModel):
-    id: str
-    anuncio_id: str
-    accion: str
-    motivo: str
-    responsable_id: str | None
-    fecha: datetime
+class EstadoConsulta(Entrada):
+    respondida: bool
 
 
 class Retiro(Entrada):
@@ -215,6 +201,8 @@ class ConsultaRecibida(BaseModel):
     whatsapp: str | None
     email: str | None
     message: str
+    creadaEn: datetime
+    respondidaEn: datetime | None
 
 
 class Reporte(Entrada):
@@ -238,18 +226,6 @@ class ResenaPublica(Resena):
     name: str
 
 
-class ReporteRecibido(Reporte):
-    model_config = ConfigDict(json_schema_extra={"examples": [{
-            'id': 'ejemplo',
-            'roomId': 'anuncio-ejemplo',
-            'title': 'Habitación cerca del campus',
-            'message': 'La dirección del anuncio parece incorrecta.',
-    }]})
-    id: str
-    roomId: str
-    title: str
-
-
 class Creado(BaseModel):
     model_config = ConfigDict(json_schema_extra={"examples": [{'id': 'recurso-ejemplo'}]})
     id: str
@@ -257,4 +233,3 @@ class Creado(BaseModel):
 
 class ResultadoAnuncio(Creado):
     status: Estado
-    motivos: list[str]

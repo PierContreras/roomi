@@ -20,6 +20,8 @@ export class SiteHeader {
   private readonly brand = viewChild.required<ElementRef<HTMLAnchorElement>>('brand');
   protected readonly menuOpen = signal(false);
   protected readonly path = signal(this.router.url.split(/[?#]/)[0]);
+  protected readonly exactPage = { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' } as const;
+  private menuTrigger?: HTMLButtonElement;
 
   constructor() {
     this.router.events.pipe(filter(event => event instanceof NavigationEnd), takeUntilDestroyed())
@@ -40,20 +42,26 @@ export class SiteHeader {
     }
   }
 
-  protected openMenu() {
+  protected openMenu(trigger = this.menuButton().nativeElement, showAccount = false) {
     if (this.menuOpen()) return;
     const drawer = this.drawer().nativeElement;
-    this.menuButton().nativeElement.focus({ preventScroll: true });
+    this.menuTrigger = trigger;
+    trigger.focus({ preventScroll: true });
     drawer.showModal();
     this.menuOpen.set(true);
     drawer.querySelector('button')?.focus();
+    const account = drawer.querySelector('details');
+    if (account && showAccount) {
+      account.open = true;
+      account.querySelector('summary')?.focus();
+    }
   }
 
   protected closeMenu() {
     if (!this.menuOpen()) return;
     this.drawer().nativeElement.close();
     this.menuOpen.set(false);
-    this.menuButton().nativeElement.focus({ preventScroll: true });
+    this.menuTrigger?.focus({ preventScroll: true });
   }
 
   protected cancelMenu(event: Event) {
@@ -102,6 +110,7 @@ export class SiteHeader {
   protected signOut() {
     this.session.signOut();
     this.closeMenu();
+    this.brand().nativeElement.focus({ preventScroll: true });
     void this.router.navigateByUrl('/explorar');
   }
 }

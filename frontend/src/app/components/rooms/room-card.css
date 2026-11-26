@@ -1,6 +1,10 @@
 :host { display: block; }
 .room-card { position: relative; height: 100%; display: flex; flex-direction: column; }
 .room-card:focus-within { border-color: var(--control-border); }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .room-card { transition: transform var(--motion-panel), box-shadow var(--motion-panel), border-color var(--motion-panel); }
+  .room-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-panel); }
+}
 .card-photos { position: relative; }
 .photo-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .photo-button { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink); }
@@ -11,11 +15,26 @@ img { display: block; width: 100%; height: clamp(160px, 19vw, 224px); object-fit
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .location { color: var(--muted); font-weight: 700; margin: 0; }
 .favorite { width: 44px; padding: 0; flex: none; border-radius: 50%; background: white; }
-.favorite[aria-pressed="true"] { color: #962c50; background: #fff3f6; border-color: #e7b8c7; }
+.favorite[aria-pressed="true"] { color: var(--favorite); background: var(--rose-surface); border-color: var(--favorite); }
 .has-photo .favorite { position: absolute; top: 12px; right: 12px; }
 .description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-.amenities { margin-bottom: var(--space-3); }
+.amenities { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: var(--space-3); }
+.amenities li { display: inline-flex; align-items: center; gap: 5px; }
+.amenities app-ui-icon { color: var(--brand); }
 .price { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .price strong { color: var(--brand); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .photo-caption { margin: 0; padding: 6px 14px; background: var(--soft); }
+@media (min-width: 761px) {
+  :host(.wide-card) .room-card.has-photo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    overflow: clip;
+  }
+  :host(.wide-card) .card-photos,
+  :host(.wide-card) .cover { display: grid; min-height: 280px; }
+  :host(.wide-card) .cover img { height: 100%; max-height: 420px; border-radius: 0; }
+  :host(.wide-card) .has-photo .card-body { grid-area: 1 / 2 / 3; padding: clamp(22px, 3vw, 36px); }
+  :host(.wide-card) .has-photo .card-top { padding-inline-end: 44px; }
+}

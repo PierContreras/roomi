@@ -1,8 +1,7 @@
 <div class="container page">
-  <nav class="route-trail" aria-label="Ubicación">
-    <a [routerLink]="navigation.back().path" [queryParams]="navigation.query()">← {{ navigation.back().label }}</a>
-    <span aria-hidden="true">/</span><span aria-current="page">Ficha de la habitación</span>
-  </nav>
+  <div class="page-back">
+    <a class="button quiet" [routerLink]="navigation.back().path" [queryParams]="navigation.query()">← {{ navigation.back().label }}</a>
+  </div>
   @if (room.isLoading()) {
     <p class="page-state" role="status">Cargando anuncio…</p>
   } @else if (room.error()) {
@@ -30,103 +29,141 @@
           (click)="catalog.toggleSaved(current.id)"><app-ui-icon name="heart" [filled]="catalog.isSaved(current.id)" /> {{ catalog.isSaved(current.id) ? 'Guardado' : 'Guardar anuncio' }}</button>
       </div>
     </div>
-    <app-room-gallery [photos]="photos()" />
-    <div class="split details">
-      <aside class="panel section contact-aside">
+    <app-room-gallery id="fotos" class="listing-gallery" [photos]="photos()" [thumbnails]="true" />
+    <nav class="actions detail-links" aria-label="Secciones del anuncio">
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="fotos">Fotos</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="servicios">Servicios</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="condiciones">Condiciones</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="resenas">Reseñas</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="ubicacion">Ubicación</a>
+      <a [routerLink]="[]" queryParamsHandling="preserve" fragment="propietario">Propietario</a>
+    </nav>
+    <div class="listing-layout">
+      <aside class="panel section contact-aside" aria-label="Precio y contacto">
         <div class="listing-contact">
           <p class="listing-price"><strong>S/ {{ current.price }}</strong> <span>/ mes</span></p>
-          @if (current.contactAvailable) {
+          <dl class="rental-facts">
+            <div><dt>Garantía</dt><dd>S/ {{ current.deposit }}</dd></div>
+          </dl>
+          @if (contact.hasValue() && contact.value().whatsapp; as phone) {
+            <a class="button listing-contact-action" [href]="whatsappUrl(phone, current.title)" target="_blank" rel="noopener noreferrer"><app-ui-icon name="message" /> Contactar propietario<span class="sr-only"> por WhatsApp (abre en otra pestaña)</span></a>
+          } @else if (current.contactAvailable && !contact.hasValue()) {
             <a class="button listing-contact-action" [routerLink]="['contacto']" [queryParams]="navigation.detailQuery()"><app-ui-icon name="message" /> Contactar propietario</a>
           } @else {
-            <p class="small muted">El propietario aún no ha habilitado el contacto para este anuncio.</p>
+            <p class="small muted">Este anuncio todavía no tiene un número de WhatsApp disponible.</p>
           }
         </div>
-        <dl class="rental-facts">
-          <div><dt>Garantía</dt><dd>S/ {{ current.deposit }}</dd></div>
-          <div><dt>Propietario</dt><dd>{{ current.owner }}</dd></div>
-        </dl>
       </aside>
       <div class="stack listing-info">
-        <nav class="actions detail-links" aria-label="Secciones del anuncio">
-          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="servicios">Servicios</a>
-          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="condiciones">Condiciones</a>
-          <a [routerLink]="[]" queryParamsHandling="preserve" fragment="ubicacion">Ubicación</a>
-        </nav>
-        <section class="detail-section">
+        <section appRevealOnScroll class="detail-section">
           <h2>Sobre la habitación</h2>
           <p>{{ current.description }}</p>
         </section>
-        <section class="detail-section" id="servicios">
+        <section appRevealOnScroll class="detail-section" id="servicios">
           <h2>Servicios incluidos</h2>
-          <ul class="chips plain">
-            @for (amenity of current.amenities; track amenity) { <li class="chip">{{ amenity }}</li> }
+          <ul class="amenity-list plain">
+            @for (amenity of current.amenities; track amenity) { <li><app-ui-icon [name]="amenityIcons[amenity] ?? 'list'" /> {{ amenity }}</li> }
             @empty { <li>Servicios por confirmar</li> }
           </ul>
         </section>
-        <section class="detail-section" id="condiciones">
+        <section appRevealOnScroll class="detail-section" id="condiciones">
           <h2>Condiciones de alquiler</h2>
           <p>{{ current.rules }}</p>
         </section>
-        <section class="stack compact detail-section" id="resenas">
-          <h2>Reseñas</h2>
-          @if (reviews.isLoading()) { <p role="status">Cargando reseñas…</p> }
-          @else if (reviews.error()) {
-            <p role="alert">No pudimos cargar las reseñas.</p>
-            <div><button class="button quiet" type="button" (click)="reviews.reload()">Reintentar</button></div>
-          } @else {
-            @for (review of reviews.value() ?? []; track review.id) {
-              <article>
-                <p><strong>{{ review.name }}</strong></p>
-                <span class="review-stars" role="img" [attr.aria-label]="review.rating + ' de 5 estrellas'">
-                  @for (value of stars; track value) { <span aria-hidden="true">{{ value <= review.rating ? '★' : '☆' }}</span> }
-                </span>
-                <p>{{ review.message }}</p>
-              </article>
-            } @empty { <p>Este alojamiento aún no tiene reseñas.</p> }
-          }
-          @if (session.publicAccount()) {
-            <div class="actions">
-              <button class="button secondary" type="button" [disabled]="busy()" (click)="choose('resenas')">Escribir reseña</button>
-              <button class="button quiet" type="button" [disabled]="busy()" (click)="choose('reportes')">Reportar anuncio</button>
-            </div>
-            @if (feedback(); as type) {
-              <form #feedbackForm="ngForm" class="stack compact" (ngSubmit)="send(feedbackForm)">
-                @if (type === 'resenas') {
-                  <fieldset>
-                    <legend>Puntuación</legend>
-                    <div class="rating-options">
-                      @for (value of stars; track value) {
-                        <label>
-                          <input type="radio" class="sr-only" name="puntuacion" [value]="value" [(ngModel)]="rating"
-                            [attr.aria-label]="value === 1 ? '1 estrella' : value + ' estrellas'"
-                            [attr.aria-describedby]="errorKind() === 'rating' ? 'feedback-error' : null" />
-                          <span aria-hidden="true">{{ value <= (rating ?? 0) ? '★' : '☆' }}</span>
-                        </label>
-                      }
-                    </div>
-                  </fieldset>
+      <section appRevealOnScroll class="stack compact detail-section" id="resenas">
+        <h2>Valoraciones y comentarios</h2>
+          @if (reviewSummary(); as summary) {
+            <div class="review-summary">
+              <div>
+                <p class="small muted">Valoración general</p>
+                <p class="review-average"><strong>{{ summary.average }}</strong> <span>/ 5</span></p>
+                <p class="small muted">{{ summary.count }} {{ summary.count === 1 ? 'reseña' : 'reseñas' }}</p>
+              </div>
+              <ul class="review-distribution plain" aria-label="Distribución de puntuaciones">
+                @for (row of summary.distribution; track row.stars) {
+                  <li>
+                    <span>{{ row.stars }} <span aria-hidden="true">★</span><span class="sr-only">{{ row.stars === 1 ? ' estrella' : ' estrellas' }}</span></span>
+                    <span class="review-track" aria-hidden="true"><span [style.width.%]="row.percent"></span></span>
+                    <span>{{ row.count }}</span>
+                  </li>
                 }
-                @if (type === 'resenas') { <p class="small muted">La reseña se publica con el nombre de tu cuenta.</p> }
-                <label>{{ type === 'resenas' ? 'Reseña' : 'Motivo del reporte' }}
-                  <textarea name="comentario" required minlength="10" maxlength="800" [(ngModel)]="message"
-                    [attr.aria-invalid]="errorKind() === 'message' || null"
-                    [attr.aria-describedby]="errorKind() === 'message' ? 'feedback-error' : null"></textarea>
-                </label>
-                @if (error()) { <p class="feedback feedback-error" id="feedback-error" role="alert">{{ error() }}</p> }
-                <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : type === 'resenas' ? 'Publicar reseña' : 'Enviar reporte' }}</button>
-              </form>
-            }
-            @if (notice()) { <p class="feedback feedback-success" role="status">{{ notice() }}</p> }
-          } @else if (!session.user()) {
-            <p><a routerLink="/acceso">Inicia sesión</a> para escribir una reseña o reportar el anuncio.</p>
+              </ul>
+            </div>
           }
-        </section>
-        <section class="stack compact detail-section" id="ubicacion">
-          <h2>Ubicación aproximada</h2>
-          <p>{{ current.address }}</p>
-          <app-room-map [rooms]="[current]" [showListingLinks]="false" />
-        </section>
+        <details class="review-disclosure">
+          <summary>Ver comentarios</summary>
+        @if (reviews.isLoading()) { <p role="status">Cargando reseñas…</p> }
+        @else if (reviews.error()) {
+          <p role="alert">No pudimos cargar las reseñas.</p>
+          <div><button class="button quiet" type="button" (click)="reviews.reload()">Reintentar</button></div>
+        } @else {
+          <div class="review-list">
+          @for (review of reviews.value() ?? []; track review.id) {
+            <article class="panel review-card">
+              <p class="review-author"><span class="listing-initial" aria-hidden="true">{{ review.name.trim().charAt(0).toUpperCase() }}</span><strong>{{ review.name }}</strong></p>
+              <span class="review-stars" role="img" [attr.aria-label]="review.rating + ' de 5 estrellas'">
+                @for (value of stars; track value) { <span aria-hidden="true">{{ value <= review.rating ? '★' : '☆' }}</span> }
+              </span>
+              <p>{{ review.message }}</p>
+            </article>
+          } @empty { <p>Este alojamiento aún no tiene reseñas.</p> }
+          </div>
+        }
+        </details>
+        @if (session.publicAccount()) {
+          <div class="actions">
+            <button class="button secondary" type="button" [disabled]="busy()" (click)="choose('resenas')">Escribir reseña</button>
+            <button class="button quiet" type="button" [disabled]="busy()" (click)="choose('reportes')">Reportar anuncio</button>
+          </div>
+          @if (feedback(); as type) {
+            <form #feedbackForm="ngForm" class="stack compact" (ngSubmit)="send(feedbackForm)">
+              @if (type === 'resenas') {
+                <fieldset>
+                  <legend>Puntuación</legend>
+                  <div class="rating-options">
+                    @for (value of stars; track value) {
+                      <label>
+                        <input type="radio" class="sr-only" name="puntuacion" [value]="value" [(ngModel)]="rating"
+                          [attr.aria-label]="value === 1 ? '1 estrella' : value + ' estrellas'"
+                          [attr.aria-describedby]="errorKind() === 'rating' ? 'feedback-error' : null" />
+                        <span aria-hidden="true">{{ value <= (rating ?? 0) ? '★' : '☆' }}</span>
+                      </label>
+                    }
+                  </div>
+                </fieldset>
+              }
+              @if (type === 'resenas') { <p class="small muted">La reseña se publica con el nombre de tu cuenta.</p> }
+              <label>{{ type === 'resenas' ? 'Reseña' : 'Motivo del reporte' }}
+                <textarea name="comentario" required minlength="10" maxlength="800" [(ngModel)]="message"
+                  [attr.aria-invalid]="errorKind() === 'message' || null"
+                  [attr.aria-describedby]="errorKind() === 'message' ? 'feedback-error' : null"></textarea>
+              </label>
+              @if (error()) { <p class="feedback feedback-error" id="feedback-error" role="alert">{{ error() }}</p> }
+              <button class="button" type="submit" [disabled]="busy()">{{ busy() ? 'Enviando…' : type === 'resenas' ? 'Publicar reseña' : 'Enviar reporte' }}</button>
+            </form>
+          }
+          @if (notice()) { <p class="feedback feedback-success" role="status">{{ notice() }}</p> }
+        } @else if (!session.user()) {
+          <p><a routerLink="/acceso">Inicia sesión</a> para escribir una reseña o reportar el anuncio.</p>
+        }
+      </section>
       </div>
+    </div>
+    <div class="listing-end stack">
+      <section appRevealOnScroll class="stack compact detail-section" id="ubicacion">
+        <h2>Ubicación aproximada</h2>
+        <p>{{ current.address }}</p>
+        <app-room-map [rooms]="[current]" [showListingLinks]="false" />
+      </section>
+      <section appRevealOnScroll class="detail-section" id="propietario">
+        <h2>Quién publica esta habitación</h2>
+        <div class="panel owner-profile">
+          <span class="listing-initial owner-initial" aria-hidden="true">{{ current.owner.trim().charAt(0).toUpperCase() }}</span>
+          <div>
+            <h3>{{ current.owner }}</h3>
+          </div>
+        </div>
+      </section>
     </div>
   } @else {
     <section class="panel empty">

@@ -13,11 +13,11 @@ import { Component, ElementRef, input, output, viewChild } from '@angular/core';
       place-items: center;
       border: 2px solid currentColor;
       border-radius: 50%;
-      background: #fff5df;
+      background: var(--sand-surface);
       color: #805512;
       font: 700 2rem / 1 var(--heading);
     }
-    .confirm-icon.danger { background: #fff0f2; color: var(--error); }
+    .confirm-icon.danger { background: var(--rose-surface); color: var(--error); }
   `],
 })
 export class ConfirmDialog {

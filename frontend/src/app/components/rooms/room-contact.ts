@@ -4,11 +4,6 @@ export function normalizeWhatsapp(number: string): string {
 }
 
 export function whatsappUrl(number: string, title: string): string {
-  const message = `Hola, vi tu anuncio «${title}» en ROOMI. ¿La habitación sigue disponible?`;
-  return `https://wa.me/${normalizeWhatsapp(number)}?text=${encodeURIComponent(message)}`;
-}
-
-export function whatsappReplyUrl(number: string, title: string): string {
-  const message = `Hola, te escribo por tu consulta sobre «${title}» en ROOMI.`;
+  const message = `Hola, vi tu anuncio «${title}» en ROOMI. ¿La habitación sigue disponible? ¿Podríamos coordinar una visita?`;
   return `https://wa.me/${normalizeWhatsapp(number)}?text=${encodeURIComponent(message)}`;
 }

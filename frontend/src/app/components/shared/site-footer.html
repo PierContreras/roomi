@@ -4,9 +4,7 @@
       <div class="intro">
         <a class="brand" routerLink="/explorar" aria-label="ROOMI, inicio">roomi</a>
         <p>Habitaciones para estudiantes en Huancayo.</p>
-        @if (session.user()?.role !== 'admin') {
-          <a class="publish" routerLink="/propietario/nuevo">Publicar habitación</a>
-        }
+        <a class="publish" routerLink="/propietario/nuevo">Publicar habitación</a>
       </div>
       <nav aria-label="Buscar habitaciones por zona">
         <h2>Busca por zona</h2>

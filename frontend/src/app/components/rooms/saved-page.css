@@ -1,4 +1,4 @@
-.comparison { margin-bottom: 20px; }
+.comparison { margin-bottom: var(--space-4); scroll-margin-block-start: var(--space-3); }
 .compare-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .comparison table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .875rem; }
 .comparison :is(th, td) { padding: 10px 7px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
@@ -6,3 +6,10 @@
 .comparison tr > :first-child { width: 27%; }
 @media (max-width: 560px) { .compare-selects { grid-template-columns: 1fr; } }
 .saved-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: var(--space-4); }
+.saved-grid.single { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 761px) {
+  .saved-grid.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 761px) and (max-width: 880px) {
+  .saved-grid:not(.single, .pair) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

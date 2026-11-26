@@ -2,3 +2,5 @@
 main { flex: 1; }
 .skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 10; background: white; padding: .75rem; }
 .skip-link:not(:focus) { clip-path: inset(50%); }
+
+.skip-link { z-index: 40; }

@@ -1,12 +1,12 @@
 .map-shell { overflow: hidden; }
 .search-map { display: grid; grid-template-rows: auto minmax(0, 1fr); height: var(--results-height, 560px); }
 .map-area { position: relative; min-height: 0; isolation: isolate; }
-.leaflet-map { height: clamp(250px, 42vw, 340px); background: var(--soft); isolation: isolate; }
+.leaflet-map { height: clamp(250px, 42vw, 340px); background: var(--blue-surface); isolation: isolate; }
 .search-map .leaflet-map { height: 100%; }
 .map-caption { padding: var(--space-2) var(--space-3); display: grid; gap: var(--space-2); }
 .map-caption p, .map-caption ul { margin: 0; }
 .map-caption a { display: inline-flex; align-items: center; min-height: 44px; text-underline-offset: 3px; }
-.fallback [aria-pressed="true"] { background: var(--brand); color: var(--white); }
+.fallback [aria-pressed="true"] { background: var(--blue-surface); color: var(--brand); border-color: var(--control-border); text-decoration: underline; }
 
 .map-controls { position: absolute; z-index: 1; inset: var(--space-2) var(--space-2) auto auto; display: flex; align-items: center; gap: var(--space-1); }
 .map-controls .button { background: var(--white); min-width: 44px; padding-inline: var(--space-2); font-size: 1rem; }

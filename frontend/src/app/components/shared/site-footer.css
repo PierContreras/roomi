@@ -1,4 +1,4 @@
-footer { background: var(--brand); color: #dbe9e6; padding-block: clamp(34px, 5vw, 58px) 20px; font-size: .9rem; }
+footer { background: var(--brand); color: var(--soft); padding-block: clamp(34px, 5vw, 58px) 20px; font-size: .9rem; }
 .footer-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) repeat(2, minmax(0, 1fr)); gap: 28px clamp(22px, 6vw, 76px); }
 .intro p { max-width: 26ch; margin: 8px 0 4px; }
 .brand { color: var(--white); font-family: var(--heading); font-size: 2.25rem; font-weight: 750; text-decoration: none; letter-spacing: -.06em; line-height: 1; }
@@ -7,8 +7,8 @@ nav { display: grid; align-content: start; gap: 3px; }
 nav h2 { margin: 0 0 7px; font-size: 1.05rem; color: var(--white); }
 nav a, .footer-bottom a { width: fit-content; display: inline-flex; align-items: center; min-height: 32px; text-underline-offset: .23em; }
 nav a { text-decoration: none; }
-nav a:hover { color: var(--white); text-decoration: underline; }
-a:focus-visible { outline-color: #b7d9f0; }
+nav a:is(:hover, :focus-visible) { color: var(--white); text-decoration: underline; }
+a:focus-visible { outline-color: var(--soft); }
 .footer-bottom {
   display: flex;
   align-items: center;
@@ -17,7 +17,7 @@ a:focus-visible { outline-color: #b7d9f0; }
   gap: 8px 20px;
   margin-top: 26px;
   padding-top: 12px;
-  border-top: 1px solid #466068;
+  border-top: 1px solid var(--control-border);
   font-size: .8125rem;
 }
 .footer-bottom p { display: flex; align-items: center; gap: 6px; margin: 0; }

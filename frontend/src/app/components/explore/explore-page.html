@@ -3,24 +3,14 @@
     <div class="intro">
       <h1 id="explore-title">Encuentra habitación cerca de tu universidad en Huancayo</h1>
       <p>Compara alquileres por zona y coordina una visita por WhatsApp.</p>
-      @if (canAccessPublishing()) {
-        <a class="publish-link" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Soy propietario, publicar anuncio</a>
-      }
+      <a class="publish-link" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Soy propietario, publicar anuncio</a>
     </div>
     <figure class="hero-media">
       <img src="/portada-roomi.webp" alt="Escena ilustrativa de estudiantes caminando por un barrio de Huancayo" fetchpriority="high" />
     </figure>
     <app-search-filters class="home-search" (applied)="search($event)" />
   </section>
-  <nav class="zones" aria-labelledby="zones-title">
-    <h2 id="zones-title">Buscar por zona</h2>
-    <ul class="plain">
-      @for (zone of zones; track zone) {
-        <li><a class="button quiet" routerLink="/buscar" [queryParams]="{ zona: zone }"><app-ui-icon name="pin" /> {{ zone }}</a></li>
-      }
-    </ul>
-  </nav>
-  <section class="stack" aria-labelledby="rooms-title">
+  <section appRevealOnScroll class="stack" aria-labelledby="rooms-title">
     <div class="shelf-heading">
       <h2 id="rooms-title">Habitaciones destacadas</h2>
       <a class="button secondary" routerLink="/buscar">Ver todas las habitaciones</a>
@@ -42,7 +32,7 @@
       <p class="page-state" role="status">Aún no hay habitaciones publicadas. Vuelve más tarde para consultar el catálogo.</p>
     }
   </section>
-  <section class="stack" aria-labelledby="steps-title">
+  <section appRevealOnScroll class="stack" aria-labelledby="steps-title">
     <h2 id="steps-title">Cómo funciona</h2>
     <ol class="steps plain" role="list">
       <li class="stack compact">
@@ -62,13 +52,11 @@
       </li>
     </ol>
   </section>
-  @if (canAccessPublishing()) {
-    <section class="owner-callout panel section" aria-labelledby="owners-title">
-      <div class="stack compact">
-        <h2 id="owners-title">¿Tienes una habitación para alquilar?</h2>
-        <p>Publica los datos, el precio y las fotos para que los estudiantes puedan encontrarla.</p>
-      </div>
-      <a class="button" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Publicar mi anuncio</a>
-    </section>
-  }
+  <section appRevealOnScroll class="owner-callout panel section" aria-labelledby="owners-title">
+    <div class="stack compact">
+      <h2 id="owners-title">¿Tienes una habitación para alquilar?</h2>
+      <p>Publica los datos, el precio y las fotos para que los estudiantes puedan encontrarla.</p>
+    </div>
+    <a class="button" routerLink="/propietario/nuevo"><app-ui-icon name="plus" /> Publicar mi anuncio</a>
+  </section>
 </div>

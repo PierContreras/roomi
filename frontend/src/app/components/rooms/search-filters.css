@@ -1,6 +1,12 @@
 .filters { padding: 20px; }
 .essential { display: grid; grid-template-columns: 1fr 1fr auto auto; align-items: end; gap: 12px; }
 .advanced { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; }
+@media (prefers-reduced-motion: no-preference) {
+  .advanced:not([hidden]) { animation: reveal-filters 200ms ease-out; }
+  @keyframes reveal-filters {
+    from { opacity: 0; transform: translateY(-6px); }
+  }
+}
 .filter-label { display: inline-flex; align-items: center; gap: 6px; }
 .filter-label app-ui-icon { color: var(--muted); }
 :host(.catalog-search) .filters { padding: 14px; }

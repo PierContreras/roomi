@@ -1,6 +1,12 @@
 .venv/
+.venv-roomi/
 __pycache__/
 *.py[cod]
 .env
 .env.*
 !.env.example
+*.bak
+*.bacpac
+*.mdf
+*.ldf
+*.dump

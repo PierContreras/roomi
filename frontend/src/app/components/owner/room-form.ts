@@ -1,8 +1,10 @@
-import { Component, input, output, signal } from '@angular/core';
+import { afterNextRender, Component, DOCUMENT, ElementRef, inject, Injector, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
+import { Router } from '@angular/router';
+import { amenityIcons, UiIcon } from '../shared/ui-icon';
 import { amenities, Amenity, RoomDraft, RoomPhoto, roomTypes, universities, zones } from '../../interfaces/room';
 import { normalizeWhatsapp } from '../rooms/room-contact';
-import { isHuancayoPoint, MapPoint } from '../rooms/room-location';
+import { isHuancayoPoint, MapPoint, zonePoints } from '../rooms/room-location';
 import { RoomLocationPicker } from './room-location-picker';
 
 const maxPhotoBytes = 400_000;
@@ -44,25 +46,62 @@ const emptyRoom: RoomFields = {
 
 @Component({
   selector: 'app-room-form',
-  imports: [FormsModule, RoomLocationPicker],
+  imports: [FormsModule, RoomLocationPicker, UiIcon],
   templateUrl: './room-form.html',
-  styles: ['.thumbnails { display: flex; flex-wrap: wrap; gap: 10px; } .thumbnails img { display: block; width: 100px; height: 70px; object-fit: cover; border-radius: 8px; } .thumbnails button { margin-top: 5px; }'],
+  styleUrl: './room-form.css',
 })
 export class RoomForm {
   readonly initial = input<RoomDraft>();
+  readonly checkPhoto = input(false);
+  readonly initialStep = input(0);
+  readonly progressKey = input<string>();
   readonly saved = output<RoomDraft>();
+  private readonly photoInput = viewChild<ElementRef<HTMLInputElement>>('photos');
+  private readonly stepHeading = viewChild<ElementRef<HTMLElement>>('stepHeading');
+  private readonly injector = inject(Injector);
+  private readonly document = inject(DOCUMENT);
+  private readonly router = inject(Router);
+  protected readonly steps = ['Ubicación', 'Alojamiento', 'Servicios y fotos'];
+  protected readonly step = signal(0);
+  protected readonly backwards = signal(false);
+  protected readonly saveError = signal('');
   protected readonly zones = zones;
   protected readonly universities = universities;
   protected readonly types = roomTypes;
   protected readonly amenities = amenities;
+  protected readonly amenityIcons = amenityIcons;
   protected readonly loadingPhotos = signal(false);
   protected readonly photoError = signal('');
   protected readonly submitted = signal(false);
   protected readonly showLocationMap = signal(false);
   protected draft: RoomFields = { ...emptyRoom };
 
+  constructor() {
+    afterNextRender(() => {
+      const key = this.progressKey();
+      if (this.checkPhoto()) {
+        this.step.set(2);
+        afterNextRender(() => this.photoInput()?.nativeElement.focus(), { injector: this.injector });
+      } else if (!this.initial() && key) {
+        try {
+          const saved = this.document.defaultView?.sessionStorage.getItem(key);
+          if (saved) {
+            const progress = JSON.parse(saved) as { draft: RoomFields; step: number };
+            this.draft = { ...emptyRoom, ...progress.draft };
+            this.changeStep(Number.isInteger(progress.step) && progress.step >= 0 && progress.step < this.steps.length ? progress.step : 0);
+          }
+        } catch {
+          this.saveError.set('No pudimos recuperar el avance guardado en esta pestaña.');
+        }
+      } else if (this.initial()) {
+        this.focusStep();
+      }
+    });
+  }
+
   ngOnChanges() {
     this.draft = { ...(this.initial() ?? emptyRoom) };
+    this.step.set(this.initialStep());
   }
 
   protected toggleAmenity(amenity: Amenity, selected: boolean) {
@@ -111,7 +150,7 @@ export class RoomForm {
   }
 
   protected whatsappValid() {
-    return !this.draft.whatsapp || /^[1-9][0-9]{7,14}$/.test(this.draft.whatsapp);
+    return /^[1-9][0-9]{7,14}$/.test(normalizeWhatsapp(this.draft.whatsapp ?? ''));
   }
 
   protected locationValid() {
@@ -123,13 +162,56 @@ export class RoomForm {
     this.draft.longitude = longitude;
   }
 
+  protected useZoneReference() {
+    this.setLocation(zonePoints[this.draft.zone]);
+    if (!this.draft.address.trim()) this.draft.address = `${this.draft.zone}, Huancayo`;
+  }
+
+  protected changeStep(next: number) {
+    this.backwards.set(next < this.step());
+    this.submitted.set(false);
+    this.step.set(next);
+    afterNextRender(() => this.focusStep(), { injector: this.injector });
+  }
+
+  private focusStep() {
+    const heading = this.stepHeading()?.nativeElement;
+    heading?.focus({ preventScroll: true });
+    heading?.closest('form')?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+  }
+
+  protected saveAndExit() {
+    const key = this.progressKey();
+    if (!key || this.loadingPhotos()) return;
+    try {
+      const storage = this.document.defaultView?.sessionStorage;
+      if (!storage) throw new Error();
+      storage.setItem(key, JSON.stringify({ draft: this.draft, step: this.step() }));
+    } catch {
+      this.saveError.set('No pudimos guardar el avance. Puedes seguir completando el anuncio aquí.');
+      return;
+    }
+    void this.router.navigateByUrl('/propietario');
+  }
+
   protected submit(form: NgForm) {
     this.submitted.set(true);
-    this.normalizeWhatsapp();
+    const step = this.step();
+    if (step === 1) this.normalizeWhatsapp();
     const { price, deposit, minutes, title, description, rules, address, latitude, longitude } = this.draft;
-    if (form.invalid || !this.whatsappValid() || this.loadingPhotos() || price === null || deposit === null || minutes === null ||
-        latitude == null || longitude == null || !this.locationValid() || !title.trim() || !description.trim() || !rules.trim() || !address.trim()) {
+    const locationComplete = latitude != null && longitude != null && this.locationValid() && !!address.trim();
+    const detailsComplete = price !== null && deposit !== null && minutes !== null &&
+      !!title.trim() && !!description.trim() && !!rules.trim() && this.whatsappValid();
+    if (form.invalid || this.loadingPhotos() || (step === 0 && !locationComplete) || (step === 1 && !detailsComplete)) {
       form.control.markAllAsTouched();
+      return;
+    }
+    if (step < 2) {
+      this.changeStep(step + 1);
+      return;
+    }
+    if (!locationComplete || !detailsComplete) {
+      this.changeStep(locationComplete ? 1 : 0);
       return;
     }
     this.saved.emit({
