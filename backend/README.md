@@ -51,7 +51,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 Configura la instancia de SQL Server en `.env`. Para una instalación nueva, genera el valor de `ROOMI_JWT_SECRET` con `python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdalo en `.env`. Si la instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para ese entorno.
 
 ```powershell
-.\.venv-roomi\Scripts\python.exe -m uvicorn src.backend.main:app
+.\.venv-roomi\Scripts\python.exe -m uvicorn backend.main:app
 ```
 
 La aplicación carga `backend/.env` automáticamente. Las variables ya definidas en el entorno tienen prioridad. Usa `.env.example` para compartir la configuración de ejemplo y guarda las credenciales únicamente en `.env` o en el entorno del servidor.

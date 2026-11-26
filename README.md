@@ -2,9 +2,9 @@
 
 Directorio de alojamiento estudiantil en Huancayo. Usa Angular, FastAPI y SQL Server.
 
-## Arranque local en Windows
+## Clonar y ejecutar en Windows
 
-Necesitas Git, Node.js 24 con npm, uv con Python 3.14, SQL Server, `sqlcmd` y Microsoft ODBC Driver 18.
+Necesitas Git, Node.js 24 con npm, Python 3.14, uv, SQL Server, `sqlcmd` y Microsoft ODBC Driver 18. Cada persona crea su propia base local con las migraciones y configura su propio `backend/.env` a partir de la plantilla incluida.
 
 ### 1. Clona el repositorio y prepara SQL Server
 
@@ -27,10 +27,10 @@ uv sync --locked --python (Get-Command python.exe).Source
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-El comando usa el Python 3.14 instalado y disponible en PowerShell como `python.exe`. En `backend/.env`, configura `DB_HOST` con la misma instancia de SQL Server y mantén `DB_NAME=BD_ROOMI`. Genera una clave para `ROOMI_JWT_SECRET` con `python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdala solo en `.env`.
+El comando usa el Python 3.14 instalado y disponible en PowerShell como `python.exe`. En `backend/.env`, configura `DB_HOST` con la misma instancia de SQL Server y mantén `DB_NAME=BD_ROOMI`. Si tu instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para esa instalación. Genera una clave para `ROOMI_JWT_SECRET` con `python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdala solo en `.env`.
 
 ```powershell
-.\.venv-roomi\Scripts\python.exe -m uvicorn src.backend.main:app
+.\.venv-roomi\Scripts\python.exe -m uvicorn backend.main:app
 ```
 
 ### 3. Inicia la web
@@ -55,11 +55,11 @@ Para cargar cuatro anuncios ficticios con fotos ilustrativas en tu base local, e
 .\.venv-roomi\Scripts\python.exe create_table.py --datos-demo
 ```
 
-Puedes ejecutar el comando otra vez sin duplicar los ejemplos. Los ejemplos sirven para probar el catálogo. Para demostrar una consulta, crea un anuncio con una cuenta de prueba y usa otra cuenta para contactar desde una ventana privada.
+Puedes ejecutar el comando otra vez sin duplicar los ejemplos. Para probar la publicación y el contacto, crea un anuncio con una cuenta de prueba y abre la ficha con otra cuenta desde una ventana privada.
 
 1. Busca por zona, compara el precio y la garantía y abre un anuncio.
 2. Publica una habitación con una foto y edita su precio desde **Mis anuncios**.
-3. Desde la segunda cuenta, envía una consulta. Verifica que aparezca en **Consultas recibidas** en la primera cuenta.
+3. Desde la segunda cuenta, pulsa **Contactar propietario** y comprueba que el enlace a WhatsApp incluya un mensaje editable con el nombre del anuncio.
 4. Marca la habitación como ocupada y comprueba que salga del catálogo. Vuelve a marcarla como disponible para mostrarla de nuevo.
 
 [Configuración del backend](backend/README.md) · [Configuración del frontend](frontend/README.md)
