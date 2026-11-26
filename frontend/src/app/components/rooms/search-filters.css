@@ -1,4 +1,4 @@
-.filters { padding: 20px; }
+.filters { padding: 20px; border: 0; box-shadow: 0 12px 34px rgb(20 61 56 / .09); }
 .essential { display: grid; grid-template-columns: 1fr 1fr auto auto; align-items: end; gap: 12px; }
 .advanced { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; }
 @media (prefers-reduced-motion: no-preference) {

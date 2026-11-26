@@ -4,13 +4,15 @@
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .room-card { transition: transform var(--motion-panel), box-shadow var(--motion-panel), border-color var(--motion-panel); }
   .room-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-panel); }
+  .cover img { transition: transform 300ms ease; }
+  .room-card:hover .cover img { transform: scale(1.025); }
 }
 .card-photos { position: relative; }
 .photo-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .photo-button { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink); }
 .photo-count { padding: 4px 10px; border-radius: 999px; background: var(--brand); color: var(--white); font-size: .75rem; }
-.cover { display: block; background: var(--soft); border-radius: var(--radius) var(--radius) 0 0; }
-img { display: block; width: 100%; height: clamp(160px, 19vw, 224px); object-fit: cover; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
+.cover { display: block; background: var(--soft); border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+img { display: block; width: 100%; height: clamp(180px, 19vw, 240px); object-fit: cover; }
 .card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .location { color: var(--muted); font-weight: 700; margin: 0; }
@@ -34,7 +36,8 @@ img { display: block; width: 100%; height: clamp(160px, 19vw, 224px); object-fit
   }
   :host(.wide-card) .card-photos,
   :host(.wide-card) .cover { display: grid; min-height: 280px; }
-  :host(.wide-card) .cover img { height: 100%; max-height: 420px; border-radius: 0; }
+  :host(.wide-card) .cover { border-radius: 0; }
+  :host(.wide-card) .cover img { height: 100%; max-height: 420px; }
   :host(.wide-card) .has-photo .card-body { grid-area: 1 / 2 / 3; padding: clamp(22px, 3vw, 36px); }
   :host(.wide-card) .has-photo .card-top { padding-inline-end: 44px; }
 }
