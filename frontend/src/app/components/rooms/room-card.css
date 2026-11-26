@@ -1,16 +1,19 @@
 :host { display: block; }
 .room-card { position: relative; height: 100%; display: flex; flex-direction: column; }
-.room-card:focus-within { border-color: var(--control-border); }
+.room-card { border: 0; border-radius: 20px; box-shadow: 0 10px 30px rgb(20 61 56 / .08); transition: transform 180ms ease, box-shadow 180ms ease; }
+.room-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgb(20 61 56 / .13); }
+.room-card:focus-within { box-shadow: 0 0 0 3px rgb(53 94 146 / .18), 0 16px 36px rgb(20 61 56 / .13); }
 .card-photos { position: relative; }
 .photo-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .photo-button { pointer-events: auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--white); color: var(--ink); }
 .photo-count { padding: 4px 10px; border-radius: 999px; background: var(--brand); color: var(--white); font-size: .75rem; }
-.cover { display: block; background: var(--soft); border-radius: var(--radius) var(--radius) 0 0; }
-img { display: block; width: 100%; height: clamp(160px, 19vw, 224px); object-fit: cover; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
+.cover { display: block; background: var(--soft); border-radius: 20px 20px 0 0; overflow: hidden; }
+img { display: block; width: 100%; height: clamp(180px, 19vw, 240px); object-fit: cover; transition: transform 300ms ease; }
+.room-card:hover img { transform: scale(1.025); }
 .card-body { padding: clamp(14px, 2vw, 22px); flex: 1; display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .location { color: var(--muted); font-weight: 700; margin: 0; }
-.favorite { width: 44px; padding: 0; flex: none; border-radius: 50%; background: white; }
+.favorite { width: 44px; padding: 0; flex: none; border: 0; border-radius: 50%; background: white; box-shadow: 0 5px 16px rgb(20 61 56 / .12); }
 .favorite[aria-pressed="true"] { color: #962c50; background: #fff3f6; border-color: #e7b8c7; }
 .has-photo .favorite { position: absolute; top: 12px; right: 12px; }
 .description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
