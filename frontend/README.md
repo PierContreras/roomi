@@ -9,10 +9,10 @@ Desde la raíz de ROOMI, en PowerShell:
 ```powershell
 cd .\frontend
 npm.cmd ci
-npm.cmd start
+npx.cmd ng serve
 ```
 
-Abre [ROOMI](http://localhost:4200). Usa `npm.cmd ci` al preparar una copia nueva o al actualizar las dependencias. Para los siguientes arranques basta con `npm.cmd start`.
+Usa `npm.cmd ci` al preparar una copia nueva o al actualizar las dependencias. Para los siguientes arranques basta con `npx.cmd ng serve`. [Abrir ROOMI](http://localhost:4200)
 
 Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). En desarrollo, Angular lee la URL `http://127.0.0.1:8000/api` de [environment.ts](src/environments/environment.ts) y el navegador llama directamente a FastAPI. CORS permite las solicitudes desde `http://localhost:4200` y `http://127.0.0.1:4200`.
 

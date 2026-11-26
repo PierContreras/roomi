@@ -1,6 +1,8 @@
 # ROOMI
 
-Directorio de alojamiento estudiantil en Huancayo. Usa Angular, FastAPI y SQL Server.
+ROOMI es un directorio de alquileres para estudiantes en Huancayo. Permite encontrar habitaciones cerca de la universidad, comparar precios y servicios, guardar opciones y coordinar visitas por WhatsApp. Los propietarios pueden publicar habitaciones y actualizar su disponibilidad desde **Mis anuncios**.
+
+La interfaz usa Angular, la API usa FastAPI y los datos se guardan en SQL Server.
 
 ## Clonar y ejecutar en Windows
 
@@ -30,7 +32,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 El comando usa el Python 3.14 instalado y disponible en PowerShell como `python.exe`. En `backend/.env`, configura `DB_HOST` con la misma instancia de SQL Server y mantén `DB_NAME=BD_ROOMI`. Si tu instancia local usa un certificado autofirmado, configura `DB_TRUST_SERVER_CERTIFICATE=yes` para esa instalación. Genera una clave para `ROOMI_JWT_SECRET` con `python.exe -c "import secrets; print(secrets.token_hex(32))"` y guárdala solo en `.env`.
 
 ```powershell
-.\.venv-roomi\Scripts\python.exe -m uvicorn backend.main:app
+uv run --locked uvicorn backend.main:app --reload
 ```
 
 ### 3. Inicia la web
@@ -40,10 +42,10 @@ Abre otra terminal desde la raíz del repositorio:
 ```powershell
 cd .\frontend
 npm.cmd ci
-npm.cmd start
+npx.cmd ng serve
 ```
 
-Para los siguientes arranques, ejecuta los comandos que inician Uvicorn y Angular en sus respectivas terminales. Déjalas abiertas mientras uses ROOMI.
+Para los siguientes arranques, en la terminal de `backend` vuelve a definir `$env:UV_PROJECT_ENVIRONMENT = '.venv-roomi'` si es una terminal nueva y ejecuta `uv run --locked uvicorn backend.main:app --reload`. En la de `frontend`, ejecuta `npx.cmd ng serve`. Deja ambas terminales abiertas mientras uses ROOMI.
 
 Abre [ROOMI](http://localhost:4200). Puedes comprobar la conexión a SQL Server en [el estado de la API](http://127.0.0.1:8000/api/salud).
 
@@ -52,7 +54,8 @@ Abre [ROOMI](http://localhost:4200). Puedes comprobar la conexión a SQL Server 
 Para cargar cuatro anuncios ficticios con fotos ilustrativas en tu base local, ejecuta desde `backend`:
 
 ```powershell
-.\.venv-roomi\Scripts\python.exe create_table.py --datos-demo
+$env:UV_PROJECT_ENVIRONMENT = '.venv-roomi'
+uv run --locked python create_table.py --datos-demo
 ```
 
 Puedes ejecutar el comando otra vez sin duplicar los ejemplos. Para probar la publicación y el contacto, crea un anuncio con una cuenta de prueba y abre la ficha con otra cuenta desde una ventana privada.
