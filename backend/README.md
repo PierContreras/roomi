@@ -4,7 +4,9 @@ FastAPI recibe las solicitudes de Angular, aplica validación y permisos y guard
 
 ## Autenticación
 
-Una cuenta de ROOMI permite publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Las cuentas con rol `student` u `owner` tienen los mismos permisos de usuario.
+Una cuenta con el rol Usuario puede buscar, publicar, gestionar sus propios anuncios y reseñar alojamientos de otras personas. Cada anuncio conserva la referencia al usuario que lo publicó.
+
+La tabla `dbo.roles` contiene Usuario (`user`) y Administrador (`admin`). Cada cuenta referencia un rol mediante `dbo.usuarios.rol_id`. En `/administracion`, los administradores pueden consultar usuarios, anuncios, reportes, reseñas, consultas e historial de moderación, y eliminar cualquier anuncio con un motivo. La eliminación quita el anuncio del catálogo y registra la decisión y su responsable. El rol se asigna desde la terminal del backend a una cuenta registrada con `uv run --locked python asignar_administrador.py --email usuario@example.com`.
 
 `POST /api/auth/registro` y `POST /api/auth/login` devuelven el perfil y un JWT firmado con HS256 mediante PyJWT. Configura `ROOMI_JWT_SECRET` con una clave aleatoria de al menos 32 bytes. El token vence después de una hora y se envía mediante `Authorization: Bearer <token>` en las solicitudes protegidas.
 
@@ -77,5 +79,11 @@ OpenAPI documenta los estados aplicables a cada operación con el modelo compart
 - `src/backend/services/` aplica filtros y proporciona el hash y la firma de sesiones.
 - `src/backend/repositories/` consulta y actualiza SQL Server.
 - `migrations/` prepara el esquema. `create_table.py --datos-demo` carga ejemplos en una base local ya preparada.
+
+## Fotos de alojamientos
+
+FastAPI guarda las fotos en `uploads/alojamientos`, dentro del backend. SQL Server conserva la dirección relativa `/api/media/alojamientos/<archivo>` en `dbo.alojamiento_fotos.src`. Incluye la carpeta de fotos junto con la base de datos en las copias de seguridad.
+
+Para convertir las fotos guardadas anteriormente como Base64, activa el entorno del backend y ejecuta `uv run --locked python migrar_fotos.py` desde esta carpeta. El comando usa la conexión configurada para el backend y se puede repetir.
 
 [Swagger local](http://127.0.0.1:8000/docs) · [Estado de la API](http://127.0.0.1:8000/api/salud)

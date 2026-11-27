@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'ayuda', loadComponent: () => import('./components/help/help-page').then(m => m.HelpPage), title: 'Centro de ayuda | ROOMI' },
   { path: 'acceso', loadComponent: () => import('./components/access/access-page').then(m => m.AccessPage), title: 'Iniciar sesión | ROOMI' },
   { path: 'registro', loadComponent: () => import('./components/access/access-page').then(m => m.AccessPage), data: { mode: 'register' }, title: 'Registro | ROOMI' },
+  { path: 'administracion', canActivate: [requireRole('admin')], loadComponent: () => import('./components/admin/admin-page').then(m => m.AdminPage), title: 'Administración | ROOMI' },
   { path: 'propietario', canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/owner-page').then(m => m.OwnerPage), title: 'Mis anuncios | ROOMI' },
   { path: 'propietario/nuevo', data: { editorMode: true }, canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Publicar habitación | ROOMI' },
   { path: 'propietario/:id/editar', data: { editorMode: true }, canActivate: [requireRole('account')], loadComponent: () => import('./components/owner/room-editor-page').then(m => m.RoomEditorPage), title: 'Editar habitación | ROOMI' },

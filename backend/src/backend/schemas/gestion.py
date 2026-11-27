@@ -1,5 +1,3 @@
-import base64
-import binascii
 from typing import Annotated, Literal
 
 from datetime import datetime
@@ -7,10 +5,11 @@ from datetime import datetime
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator
 
 from backend.schemas.alojamiento import Alojamiento, Foto, Servicio, Tipo, Universidad, Zona
+from backend.services.archivos_fotos import decodificar_foto, es_ruta_foto
 
 Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Correo = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=180, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
-Rol = Literal["student", "owner"]
+Rol = Literal["user", "admin"]
 Estado = Literal["borrador", "publicado", "retirado"]
 
 
@@ -39,7 +38,7 @@ class Acceso(Entrada):
 class Registro(Acceso):
     model_config = ConfigDict(json_schema_extra={"examples": [{'email': 'ana@example.com', 'password': 'ejemplo-no-real-123', 'name': 'Ana Pérez'}]})
     name: Texto = Field(max_length=100)
-    role: Literal["student", "owner"] = "student"
+    role: Literal["user"] = "user"
 
 
 class Usuario(BaseModel):
@@ -47,7 +46,7 @@ class Usuario(BaseModel):
             'id': '11111111-1111-4111-8111-111111111111',
             'name': 'Ana Pérez',
             'email': 'ana@example.com',
-            'role': 'student',
+            'role': 'user',
     }]})
     id: str
     name: str
@@ -61,10 +60,28 @@ class Sesion(BaseModel):
             'user': {'id': '11111111-1111-4111-8111-111111111111',
                      'name': 'Ana Pérez',
                      'email': 'ana@example.com',
-                     'role': 'student'},
+                     'role': 'user'},
     }]})
     token: str
     user: Usuario
+
+
+class ResumenAdministracion(BaseModel):
+    usuarios: int
+    anunciosPublicados: int
+    reportesPendientes: int
+
+
+SeccionAdministracion = Literal["usuarios", "anuncios", "reportes", "resenas", "consultas", "moderacion"]
+
+
+class ListadoAdministracion(BaseModel):
+    registros: list[dict[str, str | int | None]]
+    haySiguiente: bool
+
+
+class EliminacionAdministrativa(Entrada):
+    motivo: Texto = Field(min_length=3, max_length=800)
 
 
 class Borrador(Entrada):
@@ -107,19 +124,14 @@ class Borrador(Entrada):
     @classmethod
     def validar_fotos(cls, fotos):
         for foto in fotos:
-            header, _, data = foto.src.partition(",")
-            if len(foto.alt) > 200 or len(data) > 533336:
+            if len(foto.alt) > 200:
+                raise ValueError("La descripción de cada foto admite hasta 200 caracteres.")
+            if es_ruta_foto(foto.src):
+                continue
+            if len(foto.src.partition(",")[2]) > 533336:
                 raise ValueError("Cada foto puede tener hasta 400 KB.")
-            try:
-                binary = base64.b64decode(data, validate=True)
-            except binascii.Error:
-                raise ValueError("La foto no tiene un formato válido.") from None
-            valid = (
-                (header == "data:image/jpeg;base64" and binary.startswith(b"\xff\xd8\xff"))
-                or (header == "data:image/png;base64" and binary.startswith(b"\x89PNG\r\n\x1a\n"))
-                or (header == "data:image/webp;base64" and binary.startswith(b"RIFF") and binary[8:12] == b"WEBP")
-            )
-            if not valid or len(binary) > 400000:
+            contenido, _ = decodificar_foto(foto.src)
+            if len(contenido) > 400000:
                 raise ValueError("Usa una foto JPG, PNG o WebP de hasta 400 KB.")
         return fotos
 

@@ -32,8 +32,12 @@ app.use('/api', express.raw({ type: 'application/json', limit: '2mb' }), async (
     if (challenge) res.set('WWW-Authenticate', challenge);
     const location = response.headers.get('location');
     if (location) res.set('Location', location);
-    const body = await response.text();
-    res.status(response.status).type('json').send(body);
+    const contentType = response.headers.get('content-type');
+    if (contentType) res.set('Content-Type', contentType);
+    const contentOptions = response.headers.get('x-content-type-options');
+    if (contentOptions) res.set('X-Content-Type-Options', contentOptions);
+    const body = Buffer.from(await response.arrayBuffer());
+    res.status(response.status).send(body);
   } catch {
     res.status(502).json({ detail: 'La API de ROOMI no está disponible.' });
   }

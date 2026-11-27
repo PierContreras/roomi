@@ -1,14 +1,16 @@
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from backend.repositories import administracion
 from backend.repositories import gestion as repo
 from backend.schemas.gestion import (
     Acceso, AnuncioGestionado, Consulta, ConsultaRecibida, Creado,
     Registro, Reporte, Resena, ResenaPublica, Retiro, Sesion, Usuario,
-    ResultadoAnuncio, SolicitudAnuncio, Disponibilidad, EstadoConsulta,
+    ResultadoAnuncio, SolicitudAnuncio, Disponibilidad, EstadoConsulta, ResumenAdministracion,
+    EliminacionAdministrativa, ListadoAdministracion, SeccionAdministracion,
 )
 from backend.services.exceptions import (
     ModeracionNoEncontrada, PublicacionInvalida, ResenaPropiaNoPermitida, TransicionInvalida,
@@ -61,7 +63,36 @@ def require(*roles):
     return Depends(usuario_actual)
 
 
-cuenta_publica = require("student", "owner")
+cuenta_publica = require("user")
+cuenta_autenticada = require("user", "admin")
+cuenta_admin = require("admin")
+
+
+@router.get("/administracion/resumen", tags=["Administración"], responses=PROTEGIDA)
+def resumen_administracion(response: Response, _admin: Usuario = cuenta_admin) -> ResumenAdministracion:
+    response.headers["Cache-Control"] = "private, no-store"
+    return ResumenAdministracion.model_validate(repo.resumen_administracion())
+
+
+@router.get("/administracion/{seccion}", tags=["Administración"], responses=PROTEGIDA)
+def listado_administracion(
+    seccion: SeccionAdministracion,
+    response: Response,
+    buscar: Annotated[str, Query(max_length=120)] = "",
+    pagina: Annotated[int, Query(ge=1, le=100_000)] = 1,
+    tamano: Annotated[int, Query(ge=1, le=50)] = 15,
+    _admin: Usuario = cuenta_admin,
+) -> ListadoAdministracion:
+    response.headers["Cache-Control"] = "private, no-store"
+    return ListadoAdministracion.model_validate(administracion.listar(seccion, buscar.strip(), pagina, tamano))
+
+
+@router.post("/administracion/anuncios/{anuncio_id}/eliminar", status_code=204,
+             tags=["Administración"], responses=GESTION, summary="Eliminar un anuncio y conservar su historial")
+def eliminar_anuncio_admin(anuncio_id: Id, data: EliminacionAdministrativa, admin: Usuario = cuenta_admin) -> Response:
+    with errores_gestion():
+        administracion.eliminar_anuncio(anuncio_id, admin.id, data.motivo)
+    return Response(status_code=204)
 
 
 @router.post("/auth/registro",
@@ -73,7 +104,7 @@ cuenta_publica = require("student", "owner")
 )
 def registro(data: Registro, response: Response) -> Sesion:
     key = clave_jwt()
-    row = repo.inscribir(data.name, data.email, "student", hash_password(data.password))
+    row = repo.inscribir(data.name, data.email, data.role, hash_password(data.password))
     if row is None:
         raise HTTPException(409, "Ya existe una cuenta con ese correo.")
     response.headers["Location"] = "/api/auth/perfil"
@@ -93,7 +124,7 @@ def login(data: Acceso) -> Sesion:
     valid = verifica_password(data.password, stored)
     if not row or not valid:
         raise HTTPException(401, "El correo o la contraseña no coinciden.", headers={"WWW-Authenticate": "Bearer"})
-    if row["role"] not in ("student", "owner"):
+    if row["role"] not in ("user", "admin"):
         raise HTTPException(403, "Esta cuenta no tiene acceso a ROOMI.")
     if necesita_rehash(stored):
         repo.actualizar_hash(row["id"], stored, hash_password(data.password))
@@ -107,7 +138,7 @@ def login(data: Acceso) -> Sesion:
     description="Devuelve el perfil de la cuenta autenticada, incluido su rol actual.",
     responses=PROTEGIDA,
 )
-def perfil(user: Usuario = cuenta_publica) -> Usuario:
+def perfil(user: Usuario = cuenta_autenticada) -> Usuario:
     return user
 
 

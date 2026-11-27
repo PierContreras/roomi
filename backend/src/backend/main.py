@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -15,6 +15,7 @@ from backend.db_connection import ConexionSqlError, abrir_conexion, validar_conf
 from backend.repositories.sql_alojamientos import RepositorioAlojamientosSql
 from backend.schemas.error import ErrorApi, ErrorCampo
 from backend.services.alojamientos import ServicioAlojamientos
+from backend.services.archivos_fotos import CARPETA_FOTOS, NOMBRE_FOTO, PREFIJO_FOTOS
 from backend.services.exceptions import AlojamientoNoEncontrado
 
 logger = logging.getLogger("uvicorn.error")
@@ -42,6 +43,14 @@ app.include_router(
     prefix="/api",
 )
 app.include_router(gestion_router, prefix="/api")
+
+
+@app.get(PREFIJO_FOTOS + "{nombre}", include_in_schema=False)
+def foto_alojamiento(nombre: str) -> FileResponse:
+    ruta = CARPETA_FOTOS / nombre
+    if not NOMBRE_FOTO.fullmatch(nombre) or not ruta.is_file():
+        raise HTTPException(404, "Foto no encontrada.")
+    return FileResponse(ruta, headers={"X-Content-Type-Options": "nosniff"})
 
 
 CODIGOS_ERROR = {
@@ -158,7 +167,7 @@ def salud() -> Salud:
                 COL_LENGTH(N'dbo.consultas', N'respondida_fecha')
             FROM sys.tables
             WHERE schema_id = SCHEMA_ID(N'dbo') AND name IN (
-                N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes',
+                N'alojamientos', N'usuarios', N'roles', N'consultas', N'resenas', N'reportes',
                 N'decisiones_moderacion', N'suspensiones_propietario', N'servicios',
                 N'alojamiento_servicios', N'alojamiento_fotos', N'alojamiento_titular_historico'
             )

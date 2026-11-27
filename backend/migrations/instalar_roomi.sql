@@ -4,6 +4,13 @@
 USE [BD_ROOMI];
 GO
 
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 GO
@@ -27,6 +34,14 @@ GO
 GO
 :r .\backend\migrations\009_seguimiento_alquiler.sql
 GO
+:r .\backend\migrations\010_retirar_moderaciones.sql
+GO
+:r .\backend\migrations\011_indice_decisiones_moderacion.sql
+GO
+:r .\backend\migrations\012_roles.sql
+GO
+:r .\backend\migrations\013_unificar_rol_usuario.sql
+GO
 COMMIT TRANSACTION;
 GO
 
@@ -34,7 +49,7 @@ SELECT DB_NAME() AS base_de_datos;
 SELECT name AS tabla_roomi
 FROM sys.tables
 WHERE schema_id = SCHEMA_ID(N'dbo')
-  AND name IN (N'alojamientos', N'usuarios', N'moderaciones', N'consultas', N'resenas', N'reportes',
+  AND name IN (N'alojamientos', N'usuarios', N'roles', N'consultas', N'resenas', N'reportes',
                N'decisiones_moderacion', N'suspensiones_propietario', N'servicios',
                N'alojamiento_servicios', N'alojamiento_fotos', N'alojamiento_titular_historico')
 ORDER BY name;

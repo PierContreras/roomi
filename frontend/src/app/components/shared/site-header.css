@@ -1,5 +1,5 @@
 :host { display: block; }
-header { background: rgb(255 255 255 / .94); border-bottom: 1px solid rgb(221 230 225 / .85); backdrop-filter: blur(14px); }
+header { position: relative; z-index: 3; background: rgb(255 255 255 / .94); border-bottom: 1px solid rgb(221 230 225 / .85); backdrop-filter: blur(14px); }
 .bar { display: flex; align-items: center; gap: clamp(16px, 3vw, 40px); min-height: 74px; }
 .brand { color: var(--brand); font-size: 1.75rem; font-weight: 750; text-decoration: none; letter-spacing: -.045em; }
 nav { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 10px; }
