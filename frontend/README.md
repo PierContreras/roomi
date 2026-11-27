@@ -14,7 +14,7 @@ npx.cmd ng serve
 
 Usa `npm.cmd ci` al preparar una copia nueva o al actualizar las dependencias. Para los siguientes arranques basta con `npx.cmd ng serve`. [Abrir ROOMI](http://localhost:4200)
 
-Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). En desarrollo, Angular lee la URL `http://127.0.0.1:8000/api` de [environment.ts](src/environments/environment.ts) y el navegador llama directamente a FastAPI. CORS permite las solicitudes desde `http://localhost:4200` y `http://127.0.0.1:4200`.
+Inicia también FastAPI en `127.0.0.1:8000` siguiendo la [guía del backend](../backend/README.md#ejecutar-en-windows). En desarrollo, Angular reenvía `/api` a FastAPI mediante [proxy.conf.json](proxy.conf.json).
 
 En producción, el servidor de Angular reenvía `/api` a FastAPI. Configura `ROOMI_API_URL` en ese servidor si FastAPI usa otro origen.
 
@@ -25,7 +25,7 @@ npm.cmd test -- --watch=false
 
 ## Inicio de sesión con JWT
 
-`SessionService` envía las credenciales a `POST /api/auth/login`. FastAPI verifica la cuenta y devuelve un JWT firmado. Angular conserva la sesión en `sessionStorage` para recuperarla al recargar la misma pestaña y envía `Authorization: Bearer <token>` en las solicitudes protegidas. FastAPI valida la firma, el vencimiento y los permisos por rol. Angular elimina la sesión guardada al cerrar sesión o al vencer el token.
+`SessionService` envía las credenciales a `POST /api/auth/login`. FastAPI verifica la cuenta y devuelve un JWT firmado, válido por una hora. Angular guarda la sesión en el navegador para recuperarla al recargar o reabrir ROOMI y envía `Authorization: Bearer <token>` en las solicitudes protegidas. FastAPI valida la firma, el vencimiento y los permisos por rol. Cerrar sesión elimina la sesión guardada y sincroniza las pestañas abiertas del mismo sitio.
 
 Desde `/registro` se crea una cuenta para buscar, publicar y reseñar alojamientos. La misma cuenta permite buscar habitaciones y gestionar tus publicaciones.
 

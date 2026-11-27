@@ -1,0 +1,118 @@
+<section class="container page stack">
+  <header class="admin-heading">
+    <h1>Administración</h1>
+  </header>
+
+  @if (summary.isLoading()) {
+    <p role="status">Cargando el resumen…</p>
+  } @else if (summary.error()) {
+    <p role="alert">No pudimos cargar el resumen.</p>
+    <div><button type="button" class="button quiet" (click)="summary.reload()">Reintentar resumen</button></div>
+  } @else if (summary.hasValue()) {
+    <dl class="metrics" aria-label="Resumen">
+      <div class="panel metric"><dt>Usuarios registrados</dt><dd>{{ summary.value().usuarios }}</dd></div>
+      <div class="panel metric"><dt>Anuncios publicados</dt><dd>{{ summary.value().anunciosPublicados }}</dd></div>
+      <div class="panel metric"><dt>Reportes pendientes</dt><dd>{{ summary.value().reportesPendientes }}</dd></div>
+    </dl>
+  }
+
+  <nav class="sections" aria-label="Secciones de administración">
+    @for (item of sections; track item.key) {
+      <button type="button" class="section-button" [attr.aria-pressed]="section() === item.key"
+        (click)="select(item.key)">{{ item.label }}</button>
+    }
+  </nav>
+
+  <section class="panel records" aria-labelledby="admin-section">
+    <div class="records-header">
+      <h2 id="admin-section">{{ active().label }}</h2>
+      <form role="search" (submit)="applySearch(term.value, $event)">
+        <label for="admin-search" class="sr-only">Buscar en {{ active().label }}</label>
+        <input #term id="admin-search" type="search" maxlength="120" [value]="draftSearch()"
+          (input)="draftSearch.set(term.value)" placeholder="Buscar registros">
+        <button type="submit" class="button">Buscar</button>
+      </form>
+    </div>
+    @if (feedback()) { <p class="notice" role="status">{{ feedback() }}</p> }
+
+    @if (results.isLoading()) {
+      <p class="notice muted" role="status">Cargando registros…</p>
+    } @else if (results.error()) {
+      <div class="notice"><p role="alert">No pudimos cargar los registros.</p>
+        <button type="button" class="button quiet" (click)="results.reload()">Reintentar</button>
+      </div>
+    } @else if (results.hasValue()) {
+      @if (results.value().registros.length) {
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="admin-section">
+          <table>
+            <thead><tr>
+              @for (column of active().columns; track column[0]) { <th scope="col">{{ column[1] }}</th> }
+              <th scope="col">Detalle</th>
+            </tr></thead>
+            <tbody>
+              @for (record of results.value().registros; track record.id) {
+                <tr [class.selected]="selected()?.id === record.id">
+                  @for (column of active().columns; track column[0]) {
+                    <td>
+                      @if (column[0] === 'fecha') { {{ (record[column[0]] | date:'dd/MM/yyyy HH:mm') ?? '—' }} }
+                      @else { {{ record[column[0]] ?? '—' }} }
+                    </td>
+                  }
+                  <td><button class="button quiet detail-button" type="button" [attr.aria-expanded]="selected()?.id === record.id"
+                    (click)="selected.set(selected()?.id === record.id ? null : record)">Ver datos</button></td>
+                </tr>
+                @if (selected()?.id === record.id) {
+                  <tr class="record-detail">
+                    <td [attr.colspan]="active().columns.length + 1">
+                      <dl>
+                        @for (field of active().details; track field[0]) {
+                          <div><dt>{{ field[1] }}</dt><dd>
+                            @if (field[0].startsWith('fecha')) { {{ (record[field[0]] | date:'dd/MM/yyyy HH:mm') ?? '—' }} }
+                            @else { {{ record[field[0]] ?? '—' }} }
+                          </dd></div>
+                        }
+                        <div><dt>Identificador</dt><dd>{{ record.id }}</dd></div>
+                      </dl>
+                      @if (section() === 'anuncios' && record['estado'] !== 'Eliminado') {
+                        <div class="actions listing-link">
+                          @if (record['estado'] === 'Publicado') {
+                            <a class="button quiet" [routerLink]="['/habitaciones', record.id]">Abrir ficha pública</a>
+                          }
+                          <button type="button" class="button danger" (click)="openDelete(deleteDialog, deleteForm)">Eliminar anuncio</button>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="notice muted" role="status">{{ search() ? 'No hay resultados para esta búsqueda.' : 'Aún no hay registros en esta sección.' }}</p>
+      }
+      @if (page() > 1 || results.value().haySiguiente) {
+        <nav class="pagination" aria-label="Paginación de registros">
+          <button class="button quiet" type="button" [disabled]="page() === 1" (click)="changePage(page() - 1)">Anterior</button>
+          <span>Página {{ page() }}</span>
+          <button class="button quiet" type="button" [disabled]="!results.value().haySiguiente" (click)="changePage(page() + 1)">Siguiente</button>
+        </nav>
+      }
+    }
+  </section>
+
+  <dialog #deleteDialog class="roomi-alert admin-delete" aria-labelledby="admin-delete-title"
+    (cancel)="deleting() && $event.preventDefault()">
+    <h2 id="admin-delete-title">Eliminar anuncio</h2>
+    <form #deleteForm (submit)="deleteListing(reason.value, deleteDialog, $event)">
+      <p>El anuncio «{{ selected()?.['titulo'] }}» se quitará del catálogo.</p>
+      <label for="admin-delete-reason">Motivo de la eliminación</label>
+      <textarea #reason id="admin-delete-reason" rows="3" required minlength="3" maxlength="800"></textarea>
+      @if (deleteError()) { <p class="error" role="alert">{{ deleteError() }}</p> }
+      <div class="actions">
+        <button type="button" class="button quiet" autofocus [disabled]="deleting()" (click)="deleteDialog.close()">Cancelar</button>
+        <button type="submit" class="button danger" [disabled]="deleting()">{{ deleting() ? 'Eliminando…' : 'Eliminar anuncio' }}</button>
+      </div>
+    </form>
+  </dialog>
+</section>

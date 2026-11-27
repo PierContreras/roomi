@@ -1,4 +1,5 @@
 """Prueba HTTP y ODBC de ROOMI sobre una base desechable roomi_test."""
+import base64
 import hashlib
 import json
 import os
@@ -37,6 +38,13 @@ def request(method, route, code=200, data=None, token=None):
         status, content = error.code, error.read()
     assert status == code, f"{method} {route}: esperado {code}, recibido {status} ({content.decode(errors='replace')})"
     return json.loads(content) if content else None
+
+
+def assert_photo(src):
+    assert src.startswith("/api/media/alojamientos/") and src.endswith(".png")
+    with HTTP.open(f"{BASE_URL}{src}", timeout=5) as response:
+        assert response.headers.get_content_type() == "image/png"
+        assert response.read() == base64.b64decode(PHOTO.partition(",")[2])
 
 
 def start():
@@ -79,16 +87,18 @@ def main():
     owner_email = f"propietario-{data_key}@roomi.test"
     other_email = f"otro-{data_key}@roomi.test"
     print(f"Datos ficticios identificados por {data_key} en roomi_test.", flush=True)
-    for name, email, role in (
-        ("Propietario de prueba", owner_email, "owner"),
-        ("Segundo propietario de prueba", other_email, "owner"),
+    for name, email in (
+        ("Propietario de prueba", owner_email),
+        ("Segundo usuario de prueba", other_email),
     ):
-        inscribir(name, email, role, hash_password(password))
+        inscribir(name, email, "user", hash_password(password))
     legacy_email = f"anterior-{data_key}@roomi.test"
+    admin_email = f"admin-{data_key}@roomi.test"
+    inscribir("Administrador de prueba", admin_email, "admin", hash_password(password))
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(password.encode(), salt=salt, n=2**15, r=8, p=3, maxmem=64 * 1024**2)
     legacy_hash = f"{salt.hex()}:{digest.hex()}"
-    inscribir("Cuenta anterior", legacy_email, "student", legacy_hash)
+    inscribir("Cuenta anterior", legacy_email, "user", legacy_hash)
     process = start()
     try:
         def login(email):
@@ -112,8 +122,27 @@ def main():
             os.environ["ROOMI_JWT_SECRET"], algorithm="HS256",
         )
         request("GET", "/api/auth/perfil", 401, token=expired)
-        request("GET", "/api/administracion/alojamientos", 404)
-        assert not any(path.startswith("/api/administracion/") for path in request("GET", "/openapi.json")["paths"])
+        endpoint_admin = "/api/administracion/resumen"
+        request("GET", endpoint_admin, 401)
+        request("GET", endpoint_admin, 403, token=student)
+        request("GET", endpoint_admin, 403, token=owner)
+        request("POST", "/api/auth/registro", 422, {**registration, "role": "admin"})
+        admin = login(admin_email)
+        request("GET", "/api/administracion/no-existe", 422, token=admin)
+        assert request("GET", "/api/auth/perfil", token=admin)["role"] == "admin"
+        assert request("GET", endpoint_admin, token=admin)["usuarios"] >= 4
+        admin_path = "/api/administracion"
+        for section in ("usuarios", "anuncios", "reportes", "resenas", "consultas", "moderacion"):
+            request("GET", f"{admin_path}/{section}", 401)
+            request("GET", f"{admin_path}/{section}", 403, token=student)
+            request("GET", f"{admin_path}/{section}", token=admin)
+        users = request("GET", f"{admin_path}/usuarios?buscar={owner_email}", token=admin)["registros"]
+        assert len(users) == 1 and users[0]["correo"] == owner_email and "password_hash" not in users[0]
+        page = request("GET", f"{admin_path}/usuarios?tamano=1", token=admin)
+        following = request("GET", f"{admin_path}/usuarios?tamano=1&pagina=2", token=admin)
+        assert page["haySiguiente"] and page["registros"][0]["id"] != following["registros"][0]["id"]
+        request("GET", "/api/propietario/alojamientos", 403, token=admin)
+        assert endpoint_admin in request("GET", "/openapi.json")["paths"]
         draft = {
             "title": f"Habitación de prueba {data_key}", "zone": "San Carlos", "university": "Continental",
             "type": "Habitación", "price": 320, "deposit": 100, "minutes": 8, "amenities": ["Wifi"],
@@ -125,12 +154,26 @@ def main():
         rooms = "/api/alojamientos"
         direct = request("POST", rooms, 201, draft, owner)
         assert direct["status"] == "publicado"
-        request("GET", f"{rooms}/{direct['id']}")
-        request("DELETE", f"{rooms}/{direct['id']}", 204, token=owner)
+        direct_id = direct["id"]
+        request("GET", f"{rooms}/{direct_id}")
+        delete_admin = f"{admin_path}/anuncios/{direct_id}/eliminar"
+        reason = f"Moderación de prueba {data_key}"
+        request("POST", delete_admin, 401, {"motivo": reason})
+        request("POST", delete_admin, 403, {"motivo": reason}, owner)
+        request("POST", delete_admin, 422, {"motivo": "  "}, admin)
+        request("POST", delete_admin, 204, {"motivo": reason}, admin)
+        request("POST", delete_admin, 404, {"motivo": reason}, admin)
+        request("GET", f"{rooms}/{direct_id}", 404)
+        assert all(row["id"] != direct_id for row in request("GET", rooms))
+        managed_record = request("GET", f"{admin_path}/anuncios?buscar={direct_id}", token=admin)["registros"]
+        assert len(managed_record) == 1 and managed_record[0]["estado"] == "Eliminado"
+        history = request("GET", f"{admin_path}/moderacion?buscar=Moderaci%C3%B3n%20de%20prueba%20{data_key}", token=admin)["registros"]
+        assert len(history) == 1 and history[0]["accion"] == "eliminar"
+        assert history[0]["motivo"] == reason and history[0]["responsable"] == "Administrador de prueba"
         request("GET", "/api/auth/perfil", 401)
         profile = request("GET", "/api/auth/perfil", token=owner)
-        assert profile["email"] == owner_email and profile["role"] == "owner"
-        assert request("GET", "/api/auth/perfil", token=student)["role"] == "student"
+        assert profile["email"] == owner_email and profile["role"] == "user"
+        assert request("GET", "/api/auth/perfil", token=student)["role"] == "user"
         request("POST", rooms, 401, draft)
         request("POST", rooms, 422, {**draft, "price": -1}, owner)
         invalid = {**draft, "photos": []}
@@ -153,7 +196,9 @@ def main():
         assert request("PUT", detail, 200, draft, owner)["status"] == "borrador"
         assert request("POST", detail + "/enviar", 200, token=owner)["status"] == "publicado"
         public = request("GET", detail)
-        assert public["photos"][0]["src"] == PHOTO and public["distanceKm"] == 1.2
+        assert public["distanceKm"] == 1.2
+        photo = public["photos"][0]
+        assert_photo(photo["src"])
         assert "whatsapp" not in public
         request("GET", detail + "/contacto", 401)
         assert request("GET", detail + "/contacto", token=student)["whatsapp"] == "51999000000"
@@ -185,17 +230,21 @@ def main():
 
         stop(process)
         process = start()
-        assert request("GET", detail)["photos"][0]["src"] == PHOTO
+        assert request("GET", detail)["photos"][0] == photo
+        assert_photo(photo["src"])
         assert any(row["roomId"] == room_id for row in request("GET", "/api/propietario/consultas", token=owner))
 
         report = {"message": "Reporte ficticio de prueba."}
         request("POST", detail + "/reportes", 201, report, student)
         request("POST", detail + "/reportes", 409, report, student)
+        for section in ("anuncios", "reportes", "resenas", "consultas", "moderacion"):
+            listing = request("GET", f"{admin_path}/{section}?buscar={data_key}", token=admin)
+            assert listing["registros"], section
         assert request("GET", detail)["id"] == room_id
         assert any(item["id"] == room_id for item in request("GET", rooms))
         request("PUT", detail, 422, {**draft, "photos": []}, owner)
         assert request("GET", detail)["price"] == 320
-        assert request("PUT", detail, 200, {**draft, "price": 310}, owner)["status"] == "publicado"
+        assert request("PUT", detail, 200, {**draft, "price": 310, "photos": [photo]}, owner)["status"] == "publicado"
         assert request("GET", detail)["price"] == 310
         request("PATCH", detail + "/estado", 204, {"status": "retirado"}, owner)
         request("GET", detail, 404)

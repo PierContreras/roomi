@@ -1,0 +1,36 @@
+.admin-heading h1 { margin: 0; }
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.metric { padding: clamp(12px, 2vw, 20px); border-top: 3px solid var(--control-border); }
+.metric dt { color: var(--muted); font-size: .875rem; font-weight: 650; }
+.metric dd { margin: 4px 0 0; font: 700 clamp(1.5rem, 3vw, 2.4rem)/1.2 var(--heading); font-variant-numeric: tabular-nums; }
+.sections { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-bottom: 1px solid var(--border); }
+.section-button { min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 650; }
+.section-button:hover { background: var(--mint-surface); }
+.section-button[aria-pressed="true"] { background: var(--soft); border-color: var(--border); color: var(--brand); }
+.records { min-width: 0; }
+.records-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: var(--space-3); }
+.records-header h2 { margin: 0; font-size: 1.35rem; }
+.records-header form { display: flex; flex: 0 1 350px; gap: 8px; }
+.notice, .pagination { margin: 0; padding: var(--space-3); border-top: 1px solid var(--border); }
+.table-scroll { overflow: auto; border-top: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; text-align: start; font-size: .875rem; }
+th, td { padding: 10px var(--space-3); text-align: start; overflow-wrap: anywhere; border-bottom: 1px solid var(--border); }
+th { background: var(--mint-surface); color: var(--muted); }
+td:last-child { white-space: nowrap; }
+.detail-button { min-height: 34px; padding: 5px 9px; }
+.selected, .record-detail { background: var(--surface); }
+.record-detail dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 12px; margin: 0; }
+.record-detail dt { font-weight: 700; }
+.record-detail dd { margin: 0; white-space: pre-wrap; }
+.listing-link { margin-top: var(--space-3); }
+.admin-delete form { display: grid; gap: 10px; text-align: start; }
+.admin-delete p { margin: 0; }
+.admin-delete::backdrop { background: rgb(16 43 45 / .56); }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .875rem; }
+@media (max-width: 560px) {
+  .metrics { gap: 6px; }
+  .metric { padding: 8px; }
+  .metric dt { font-size: .75rem; }
+  th, td { padding-inline: 10px; }
+  .detail-button { min-height: 44px; }
+}

@@ -1,7 +1,7 @@
 <header>
   <div class="container bar">
     <a #brand class="brand" routerLink="/explorar" aria-label="ROOMI, explorar habitaciones">roomi</a>
-    @if (session.user()?.role === 'owner') {
+    @if (session.publicAccount()) {
       <a class="button mobile-publish" routerLink="/propietario/nuevo" routerLinkActive="access-active" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="exactPage">Publicar anuncio</a>
     }
     <button #menuButton type="button" class="menu button quiet" aria-controls="navegacion-movil" aria-haspopup="dialog"
@@ -37,6 +37,8 @@
           @if (mobile) {
             <a routerLink="/propietario/nuevo" routerLinkActive="active" ariaCurrentWhenActive="page" [routerLinkActiveOptions]="exactPage" (click)="closeMenu()"><app-ui-icon name="plus" /> Publicar anuncio</a>
           }
+        } @else if (session.administrator()) {
+          <a routerLink="/administracion" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMenu()"><app-ui-icon name="list" /> Administración</a>
         } @else {
           <a routerLink="/acceso" [queryParams]="{ destino: 'publicar' }" (click)="closeMenu()"><app-ui-icon name="plus" /> Publicar</a>
         }

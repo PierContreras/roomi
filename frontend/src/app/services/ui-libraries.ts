@@ -122,7 +122,9 @@ export class UiLibraries {
       link.crossOrigin = 'anonymous';
       this.document.head.append(link);
     }
-    if (!window.L) await this.load(base + '.js', 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=');
+    if (!window.L) {
+      await this.load(base + '.js', 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=', 8000);
+    }
     return window.L;
   }
 
@@ -132,7 +134,7 @@ export class UiLibraries {
     return swal;
   }
 
-  private load(url: string, integrity?: string) {
+  private load(url: string, integrity?: string, timeoutMs = 2500) {
     const existing = this.pending.get(url);
     if (existing) return existing;
     const request = new Promise<void>(resolve => {
@@ -144,7 +146,7 @@ export class UiLibraries {
         if (!loaded) script.remove();
         resolve();
       };
-      const timeout = setTimeout(() => finish(false), 2500);
+      const timeout = setTimeout(() => finish(false), timeoutMs);
       script.src = url;
       if (integrity) {
         script.integrity = integrity;

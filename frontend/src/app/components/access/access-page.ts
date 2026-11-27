@@ -73,6 +73,10 @@ export class AccessPage {
   }
 
   private enter() {
+    if (this.session.administrator()) {
+      void this.router.navigateByUrl('/administracion');
+      return;
+    }
     void this.router.navigateByUrl(this.contactReturn() || (this.destino() === 'publicar' ? '/propietario/nuevo' : '/explorar'));
   }
 }

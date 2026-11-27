@@ -3,8 +3,9 @@ from uuid import uuid4
 from backend.db_connection import abrir_conexion
 from backend.repositories.sql_alojamientos import CAMPOS_CATALOGO, convertir_anuncio
 from backend.schemas.gestion import AnuncioGestionado, Borrador, Consulta, Resena, ResultadoAnuncio
+from backend.services.archivos_fotos import es_ruta_foto, guardar_foto
 from backend.services.exceptions import (
-    ModeracionNoEncontrada, ResenaPropiaNoPermitida, TransicionInvalida,
+    ModeracionNoEncontrada, PublicacionInvalida, ResenaPropiaNoPermitida, TransicionInvalida,
 )
 from backend.services.moderacion_reglas import validar_publicacion
 
@@ -22,7 +23,10 @@ def consultar(sql: str, *params):
 
 def usuario(valor: str, por_correo: bool = False):
     campo = "email" if por_correo else "id"
-    filas = consultar(f"SELECT id, name, email, role, password_hash FROM dbo.usuarios WHERE {campo} = ?", valor)
+    filas = consultar(f"""
+        SELECT u.id, u.name, u.email, r.codigo AS role, u.password_hash
+        FROM dbo.usuarios u JOIN dbo.roles r ON r.id=u.rol_id WHERE u.{campo}=?
+    """, valor)
     return filas[0] if filas else None
 
 
@@ -30,14 +34,22 @@ def inscribir(name: str, email: str, role: str, password_hash: str):
     user_id = str(uuid4())
     with abrir_conexion() as conn:
         cursor = conn.cursor().execute("""
-            INSERT INTO dbo.usuarios (id, name, email, role, password_hash)
-            SELECT ?, ?, ?, ?, ?
-            WHERE NOT EXISTS (SELECT 1 FROM dbo.usuarios WITH (UPDLOCK, HOLDLOCK) WHERE email = ?)
-        """, user_id, name, email, role, password_hash, email)
+            INSERT INTO dbo.usuarios (id, name, email, rol_id, password_hash)
+            SELECT ?, ?, ?, r.id, ? FROM dbo.roles r WHERE r.codigo=?
+              AND NOT EXISTS (SELECT 1 FROM dbo.usuarios WITH (UPDLOCK, HOLDLOCK) WHERE email = ?)
+        """, user_id, name, email, password_hash, role, email)
         if not cursor.rowcount:
             return None
         conn.commit()
     return {"id": user_id, "name": name, "email": email, "role": role}
+
+
+def resumen_administracion():
+    return consultar("""
+        SELECT (SELECT COUNT(*) FROM dbo.usuarios) AS usuarios,
+               (SELECT COUNT(*) FROM dbo.alojamientos WHERE deleted_at IS NULL AND [status]='publicado') AS anunciosPublicados,
+               (SELECT COUNT(*) FROM dbo.reportes WHERE resuelto_fecha IS NULL) AS reportesPendientes
+    """)[0]
 
 
 def actualizar_hash(user_id: str, anterior: str, nuevo: str) -> None:
@@ -73,13 +85,11 @@ def bloquear_propietario(cursor, owner_id):
         raise ModeracionNoEncontrada
 
 
-def seleccionar_anuncio(cursor, anuncio_id, owner_id=None):
-    sql = f"SELECT {CAMPOS} FROM dbo.alojamientos a WITH (UPDLOCK) WHERE id=? AND deleted_at IS NULL"
-    parametros = [anuncio_id]
-    if owner_id is not None:
-        sql += " AND owner_id=?"
-        parametros.append(owner_id)
-    cursor.execute(sql, *parametros)
+def seleccionar_anuncio(cursor, anuncio_id, owner_id):
+    cursor.execute(f"""
+        SELECT {CAMPOS} FROM dbo.alojamientos a WITH (UPDLOCK)
+        WHERE id=? AND deleted_at IS NULL AND owner_id=?
+    """, anuncio_id, owner_id)
     row = cursor.fetchone()
     if row is None:
         raise ModeracionNoEncontrada
@@ -111,6 +121,9 @@ def guardar(data: Borrador, owner, anuncio_id: str | None = None, *, borrador=Fa
         cursor = conn.cursor()
         bloquear_propietario(cursor, owner.id)
         actual = seleccionar_anuncio(cursor, anuncio_id, owner.id) if anuncio_id else None
+        rutas_actuales = {foto.src for foto in actual.photos} if actual else set()
+        if any(es_ruta_foto(foto.src) and foto.src not in rutas_actuales for foto in data.photos):
+            raise PublicacionInvalida("La foto guardada no pertenece a este anuncio.")
         if actual and borrador and actual.status != "borrador":
             raise TransicionInvalida
         if borrador or (actual and actual.status == "borrador"):
@@ -144,7 +157,7 @@ def guardar(data: Borrador, owner, anuncio_id: str | None = None, *, borrador=Fa
         if data.photos:
             cursor.executemany("""
                 INSERT dbo.alojamiento_fotos (alojamiento_id, posicion, src, alt) VALUES (?, ?, ?, ?)
-            """, [(anuncio_id, posicion, foto.src, foto.alt) for posicion, foto in enumerate(data.photos)])
+            """, [(anuncio_id, posicion, guardar_foto(foto.src), foto.alt) for posicion, foto in enumerate(data.photos)])
         if estado == "publicado":
             auditar(cursor, anuncio_id, owner.id, "aprobar", "publicacion_automatica")
         conn.commit()

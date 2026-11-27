@@ -42,12 +42,12 @@ const mockCatalog: HttpInterceptorFn = request => {
       return throwError(() => new HttpErrorResponse({ status: 503, error: { detail: 'Configura el secreto de sesión en el servidor.' } }));
     }
     const owner = data.email.startsWith('propietario');
-    const role = owner ? 'owner' : 'student';
-    return reply({ token: 'test-' + role, user: { id: 'demo-' + role, name: 'Cuenta Prueba', email: data.email, role } });
+    const fixture = owner ? 'owner' : 'student';
+    return reply({ token: 'test-' + fixture, user: { id: 'demo-' + fixture, name: 'Cuenta Prueba', email: data.email, role: 'user' } });
   }
   if (url === '/api/propietario/alojamientos') {
-    const role = request.headers.get('Authorization')?.slice('Bearer test-'.length);
-    return reply(managed.filter(room => room.ownerId === 'demo-' + role));
+    const fixture = request.headers.get('Authorization')?.slice('Bearer test-'.length);
+    return reply(managed.filter(room => room.ownerId === 'demo-' + fixture));
   }
   if (url.endsWith('/contacto')) return reply({ whatsapp: '51987654321' });
   if (url.endsWith('/reportes') && method === 'POST') {
@@ -171,7 +171,7 @@ describe('App', () => {
 
   it('muestra la cuenta y devuelve el foco al cerrar el menú con Escape', async () => {
     vi.spyOn(TestBed.inject(SessionService), 'user').mockReturnValue({
-      id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student',
+      id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'user',
     });
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
@@ -193,7 +193,7 @@ describe('App', () => {
 it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al cerrar sesión', async () => {
   const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
   const token = `cabecera.${payload}.firma`;
-  const user = { id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'student' };
+  const user = { id: 'cuenta', name: 'Cuenta de prueba', email: 'prueba@roomi.test', role: 'user' };
   const http: HttpInterceptorFn = request => {
     if (request.url === `${environment.apiUrl}/auth/login`) return of(new HttpResponse({ body: { token, user } }));
     expect(request.headers.get('Authorization')).toBe('Bearer ' + token);
@@ -204,10 +204,16 @@ it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al 
     provideHttpClient(withInterceptors([http])),
   ] });
 
-  sessionStorage.removeItem('roomi.session.v1');
+  const key = 'roomi.session.v1';
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
   try {
     configure();
     await TestBed.inject(SessionService).signIn(user.email, 'clave-de-prueba');
+    expect(localStorage.getItem(key)).toBe(JSON.stringify({ token, user }));
+    expect(sessionStorage.getItem(key)).toBeNull();
+    sessionStorage.setItem(key, JSON.stringify({ token, user: { ...user, role: 'student' } }));
+    localStorage.removeItem(key);
     TestBed.resetTestingModule();
     configure();
 
@@ -217,10 +223,14 @@ it('recupera la sesión antes de entrar a la misma ruta protegida y la borra al 
     expect(harness.routeNativeElement?.textContent).toContain('Publicar habitación');
     const session = TestBed.inject(SessionService);
     expect(session.user()).toEqual(user);
+    expect(localStorage.getItem(key)).toBe(JSON.stringify({ token, user }));
+    expect(sessionStorage.getItem(key)).toBeNull();
     session.signOut();
-    expect(sessionStorage.getItem('roomi.session.v1')).toBeNull();
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(sessionStorage.getItem(key)).toBeNull();
   } finally {
-    sessionStorage.removeItem('roomi.session.v1');
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
   }
 });
 
@@ -229,6 +239,7 @@ describe('Recorridos de ROOMI', () => {
 
   beforeEach(async () => {
     reports.clear();
+    localStorage.removeItem('roomi.session.v1');
     managed = demoRooms.map(room => ({
       ...room, contactAvailable: true,
       ...(room.id === 'san-carlos-320' ? { latitude: 0, longitude: 0 } : {}),
